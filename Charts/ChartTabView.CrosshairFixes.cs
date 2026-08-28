@@ -1,17 +1,12 @@
 using System;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace TradeIt.Charts
 {
     public partial class ChartTabView
     {
-        /// <summary>
-        /// Applies the stored chart settings before the first Loaded event and
-        /// installs a second mouse-move handler which runs after the legacy
-        /// handler in ChartTabView.xaml.cs. The second handler snaps X to the
-        /// nearest actual bar, so the crosshair never rests between candles.
-        /// </summary>
         protected override void OnInitialized(EventArgs e)
         {
             base.OnInitialized(e);
@@ -25,6 +20,29 @@ namespace TradeIt.Charts
 
             Chart.PreviewMouseMove += CrosshairFixes_PreviewMouseMove;
             VolumeChart.PreviewMouseMove += CrosshairFixes_VolumeMouseMove;
+            Loaded += ChartTabView_EnsureChartType;
+        }
+
+        private void ChartTabView_EnsureChartType(object sender, RoutedEventArgs e)
+        {
+            if (ChartTypeComboBox.SelectedItem is ComboBoxItem item)
+            {
+                string type = item.Tag?.ToString() ?? "Candlestick";
+                _chartType = type switch
+                {
+                    "Line" => ChartDisplayType.Line,
+                    "Bar" => ChartDisplayType.Bar,
+                    _ => ChartDisplayType.Candlestick
+                };
+            }
+            else
+            {
+                _chartType = ChartDisplayType.Candlestick;
+                ChartTypeComboBox.SelectedIndex = 0;
+            }
+
+            if (_bars.Count > 0)
+                DrawChart();
         }
 
         private void CrosshairFixes_PreviewMouseMove(object sender, MouseEventArgs e)
@@ -48,7 +66,7 @@ namespace TradeIt.Charts
             _crosshair.IsVisible = true;
             _crosshairMouseInside = true;
 
-            UpdateCrosshairBarInformation(nearestIndex, coordinates.Y);
+            UpdateCrosshairBarInformation(nearestIndex);
             Chart.Refresh();
         }
 
@@ -77,7 +95,7 @@ namespace TradeIt.Charts
             _crosshair.IsVisible = true;
             _crosshairMouseInside = true;
 
-            UpdateCrosshairBarInformation(nearestIndex, y);
+            UpdateCrosshairBarInformation(nearestIndex);
             Chart.Refresh();
         }
 
@@ -104,7 +122,7 @@ namespace TradeIt.Charts
             return nearest;
         }
 
-        private void UpdateCrosshairBarInformation(int index, double crossPrice)
+        private void UpdateCrosshairBarInformation(int index)
         {
             if (index < 0 || index >= _bars.Count)
                 return;
@@ -112,11 +130,9 @@ namespace TradeIt.Charts
             MarketBar bar = _bars[index];
             DateTime timestamp = GetBarDateTime(bar, index);
 
-            string dateText;
-            if (timestamp.TimeOfDay == TimeSpan.Zero)
-                dateText = timestamp.ToString("yyyy/MM/dd");
-            else
-                dateText = timestamp.ToString("yyyy/MM/dd HH:mm:ss");
+            string dateText = timestamp.TimeOfDay == TimeSpan.Zero
+                ? timestamp.ToString("yyyy/MM/dd")
+                : timestamp.ToString("yyyy/MM/dd HH:mm:ss");
 
             ChartInfoTextBlock.Text =
                 $"{_symbol.Symbol} | O: {bar.Open:N2}  H: {bar.High:N2}  L: {bar.Low:N2}  C: {bar.Close:N2}  V: {bar.Volume:N0} | {dateText}";
