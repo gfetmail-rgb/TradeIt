@@ -8,6 +8,11 @@ using System.Windows.Threading;
 using TradeIt.Charts;
 using TradeIt.Models;
 
+using WpfButton = System.Windows.Controls.Button;
+using WpfOrientation = System.Windows.Controls.Orientation;
+using WpfStackPanel = System.Windows.Controls.StackPanel;
+using WpfTextBlock = System.Windows.Controls.TextBlock;
+
 namespace TradeIt
 {
     public partial class MainWindow
@@ -94,9 +99,9 @@ namespace TradeIt
 
         private object CreateAutoScrollTabHeader(string title)
         {
-            var panel = new StackPanel { Orientation = Orientation.Horizontal };
-            var text = new TextBlock { Text = title, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
-            var close = new Button { Content = "×", Width = 22, Height = 22, Padding = new Thickness(0), FontWeight = FontWeights.Bold, ToolTip = "بستن نمودار Auto Scroll" };
+            var panel = new WpfStackPanel { Orientation = WpfOrientation.Horizontal };
+            var text = new WpfTextBlock { Text = title, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
+            var close = new WpfButton { Content = "×", Width = 22, Height = 22, Padding = new Thickness(0), FontWeight = FontWeights.Bold, ToolTip = "بستن نمودار Auto Scroll" };
             close.Click += (_, _) =>
             {
                 StopOrder2AutoScroll();
