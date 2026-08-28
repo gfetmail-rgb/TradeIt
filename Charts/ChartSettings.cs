@@ -8,13 +8,17 @@ namespace TradeIt.Charts
         public string FigureBackground { get; set; } = "#FFFFFF";
         public string DataBackground { get; set; } = "#FFFFFF";
         public string GridColor { get; set; } = "#DDDDDD";
+        public string GridPattern { get; set; } = "Solid";
+        public double GridLineWidth { get; set; } = 1;
         public string AxisColor { get; set; } = "#444444";
         public double LineWidth { get; set; } = 2;
-        public bool GridVisible { get; set; } = true;
+        public bool GridVisible { get; set; } = false;
         public int AutoScrollDelayMilliseconds { get; set; } = 1000;
-
-        // رفتار کلیک روی نام سهم در فهرست نمادها
         public bool OpenChartInNewTab { get; set; } = true;
+
+        public string CrosshairColor { get; set; } = "#909090";
+        public double CrosshairLineWidth { get; set; } = 1;
+        public string CrosshairPattern { get; set; } = "Dotted";
 
         public ChartSettings Clone()
         {
@@ -26,11 +30,16 @@ namespace TradeIt.Charts
                 FigureBackground = FigureBackground,
                 DataBackground = DataBackground,
                 GridColor = GridColor,
+                GridPattern = GridPattern,
+                GridLineWidth = GridLineWidth,
                 AxisColor = AxisColor,
                 LineWidth = LineWidth,
                 GridVisible = GridVisible,
                 AutoScrollDelayMilliseconds = AutoScrollDelayMilliseconds,
-                OpenChartInNewTab = OpenChartInNewTab
+                OpenChartInNewTab = OpenChartInNewTab,
+                CrosshairColor = CrosshairColor,
+                CrosshairLineWidth = CrosshairLineWidth,
+                CrosshairPattern = CrosshairPattern
             };
         }
     }
