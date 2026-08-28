@@ -45,6 +45,10 @@ namespace TradeIt.Charts
             DateTime barTime = GetBarDateTime(_bars[nearestIndex], nearestIndex);
             double x = barTime.ToOADate();
             var limits = Chart.Plot.Axes.GetLimits();
+
+            // X always snaps to the center of the nearest bar.
+            // Y remains at the actual mouse price so the horizontal price
+            // label represents the exact crosshair price.
             double y = Math.Clamp(coordinates.Y, limits.Bottom, limits.Top);
 
             _crosshair.Position = new ScottPlot.Coordinates(x, y);
@@ -52,12 +56,22 @@ namespace TradeIt.Charts
             _crosshairMouseInside = true;
 
             var bar = _bars[nearestIndex];
-            bool hasTime = bar.Timestamp.HasValue && bar.Timestamp.Value > DateTime.MinValue && bar.Timestamp.Value < DateTime.MaxValue;
-            string dateText = hasTime ? barTime.ToString("yyyy/MM/dd") : $"کندل {nearestIndex + 1}";
-            string timeText = hasTime && barTime.TimeOfDay != TimeSpan.Zero ? $" {barTime:HH:mm}" : "";
+            bool hasRealTimestamp =
+                bar.Timestamp.HasValue &&
+                bar.Timestamp.Value > DateTime.MinValue &&
+                bar.Timestamp.Value < DateTime.MaxValue;
+
+            string xLabel = hasRealTimestamp
+                ? (barTime.TimeOfDay == TimeSpan.Zero
+                    ? barTime.ToString("yyyy/MM/dd")
+                    : barTime.ToString("yyyy/MM/dd HH:mm"))
+                : $"کندل {nearestIndex + 1}";
+
+            _crosshair.HorizontalLine.Text = y.ToString("N2");
+            _crosshair.VerticalLine.Text = xLabel;
 
             ChartInfoTextBlock.Text =
-                $"{_symbol.Symbol}    O: {bar.Open:N2}  H: {bar.High:N2}  L: {bar.Low:N2}  C: {bar.Close:N2}  V: {bar.Volume:N0}    {dateText}{timeText}";
+                $"{_symbol.Symbol}    O: {bar.Open:N2}  H: {bar.High:N2}  L: {bar.Low:N2}  C: {bar.Close:N2}  V: {bar.Volume:N0}";
 
             Chart.Refresh();
         }
