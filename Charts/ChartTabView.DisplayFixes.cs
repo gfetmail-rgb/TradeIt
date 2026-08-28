@@ -3,7 +3,6 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Windows;
-using System.Windows.Input;
 using TradeIt.Models;
 
 namespace TradeIt.Charts
@@ -63,7 +62,6 @@ namespace TradeIt.Charts
             }
             catch
             {
-                // A settings refresh must never prevent the chart from opening.
             }
         }
 
@@ -75,9 +73,6 @@ namespace TradeIt.Charts
             _crosshair.LineColor = ScottPlot.Color.FromHtml(settings.CrosshairColor);
             _crosshair.LineWidth = (float)Math.Max(0.1, settings.CrosshairLineWidth);
             _crosshair.LinePattern = ParseDisplayLinePattern(settings.CrosshairPattern);
-
-            // The horizontal price label belongs at the price-axis end of the crosshair,
-            // not in the upper-left information area.
             _crosshair.HorizontalLine.LabelOppositeAxis = true;
             _crosshair.HorizontalLine.TextAlignment = ScottPlot.Alignment.MiddleLeft;
             _crosshair.VerticalLine.LabelOppositeAxis = false;
@@ -177,15 +172,13 @@ namespace TradeIt.Charts
             }
         }
 
-        private void DisplayFixes_MouseMove(object sender, MouseEventArgs e)
+        private void DisplayFixes_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             try
             {
                 if (_bars.Count == 0 || _crosshair == null || !_crosshair.IsVisible)
                     return;
 
-                // The base ChartTabView converts the mouse position to chart coordinates.
-                // Snap that X coordinate to the nearest actual candle before rendering.
                 double rawX = _crosshair.Position.X;
                 int index = FindNearestBarIndex(rawX);
                 if (index < 0 || index >= _bars.Count)
@@ -194,16 +187,13 @@ namespace TradeIt.Charts
                 MarketBar bar = _bars[index];
                 double snappedX = GetBarDateTime(bar, index).ToOADate();
 
-                _crosshair.Position = new ScottPlot.Coordinates(
-                    snappedX,
-                    bar.Close);
+                _crosshair.Position = new ScottPlot.Coordinates(snappedX, bar.Close);
 
                 string dateText = GetDisplayDateText(bar, index);
 
                 ChartInfoTextBlock.Text =
                     $"{_symbol.Symbol}    O: {bar.Open:N2}    H: {bar.High:N2}    L: {bar.Low:N2}    C: {bar.Close:N2}    V: {bar.Volume:N0}";
 
-                // Price is shown at the end of the horizontal crosshair on the price axis.
                 _crosshair.HorizontalLine.Text = bar.Close.ToString("N2", CultureInfo.InvariantCulture);
                 _crosshair.VerticalLine.Text = dateText;
 
@@ -214,7 +204,7 @@ namespace TradeIt.Charts
             }
         }
 
-        private void DisplayFixes_VolumeMouseMove(object sender, MouseEventArgs e)
+        private void DisplayFixes_VolumeMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             try
             {
@@ -290,8 +280,6 @@ namespace TradeIt.Charts
 
         private void ApplyAxisLabelMode()
         {
-            // DrawChart already owns the DateTime axis generator. We only customize
-            // its labels during rendering, avoiding incompatible TickGenerator changes.
         }
 
         private void DisplayFixes_RenderStarting(object? sender, EventArgs e)
