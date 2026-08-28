@@ -33,7 +33,7 @@ namespace TradeIt
         {
             if (_selectedPortfolio == null || _allSymbols.Count == 0)
             {
-                MessageBox.Show("هیچ نمادی برای Auto Scroll وجود ندارد.", "Auto Scroll", MessageBoxButton.OK, MessageBoxImage.Information);
+                System.Windows.MessageBox.Show("هیچ نمادی برای Auto Scroll وجود ندارد.", "Auto Scroll", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -70,7 +70,7 @@ namespace TradeIt
 
             if (!int.TryParse(text, out milliseconds) || milliseconds < 1)
             {
-                MessageBox.Show("زمان Auto Scroll باید یک عدد صحیح بزرگ‌تر از صفر و بر حسب میلی‌ثانیه باشد.", "Auto Scroll", MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Windows.MessageBox.Show("زمان Auto Scroll باید یک عدد صحیح بزرگ‌تر از صفر و بر حسب میلی‌ثانیه باشد.", "Auto Scroll", MessageBoxButton.OK, MessageBoxImage.Warning);
                 AutoScrollIntervalTextBox.Focus();
                 AutoScrollIntervalTextBox.SelectAll();
                 return false;
@@ -165,7 +165,7 @@ namespace TradeIt
             catch (Exception ex)
             {
                 StopOrder2AutoScroll();
-                MessageBox.Show(ex.ToString(), "خطا در Auto Scroll", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show(ex.ToString(), "خطا در Auto Scroll", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
