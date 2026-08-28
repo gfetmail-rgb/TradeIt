@@ -24,6 +24,7 @@ namespace TradeIt.Charts
             lock (Sync)
             {
                 _current = settings.Clone();
+                _current.HasUserSavedSettings = false;
             }
         }
 
@@ -40,6 +41,7 @@ namespace TradeIt.Charts
             lock (Sync)
             {
                 _current = settings.Clone();
+                _current.HasUserSavedSettings = true;
                 Directory.CreateDirectory(SettingsDirectory);
                 string json = JsonSerializer.Serialize(_current, new JsonSerializerOptions
                 {
@@ -62,7 +64,8 @@ namespace TradeIt.Charts
                 {
                     string json = File.ReadAllText(SettingsFile);
                     ChartSettings? saved = JsonSerializer.Deserialize<ChartSettings>(json);
-                    if (saved != null)
+
+                    if (saved != null && saved.HasUserSavedSettings)
                         return saved;
                 }
             }
@@ -71,13 +74,14 @@ namespace TradeIt.Charts
                 // A corrupt settings file must not prevent the application from starting.
             }
 
-            // First application run: the requested initial chart appearance.
+            // First application run: requested initial chart appearance.
             var firstRun = new ChartSettings
             {
                 GridVisible = false,
                 CrosshairColor = "#909090",
                 CrosshairLineWidth = 1,
-                CrosshairPattern = "Dotted"
+                CrosshairPattern = "Dotted",
+                HasUserSavedSettings = false
             };
 
             try
