@@ -10,18 +10,47 @@ namespace TradeIt.Portfolios
     {
         private void LoadPreviewButton_MultiFile_Click(object sender, RoutedEventArgs e)
         {
+            string path = PathTextBox.Text.Trim();
+
+            if (Directory.Exists(path))
+            {
+                LoadPreviewButton_Click(sender, e);
+                return;
+            }
+
             string[] files = GetSelectedFilesForMultiFile();
             if (files.Length == 0)
+            {
+                System.Windows.MessageBox.Show(
+                    "ابتدا یک فایل یا پوشه داده را انتخاب کنید.",
+                    "پیش‌نمایش",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
                 return;
+            }
 
             string original = PathTextBox.Text;
             PathTextBox.Text = files[0];
-            LoadPreviewButton_Click(sender, e);
-            PathTextBox.Text = original;
+            try
+            {
+                LoadPreviewButton_Click(sender, e);
+            }
+            finally
+            {
+                PathTextBox.Text = original;
+            }
         }
 
         private void SaveButton_MultiFile_Click(object sender, RoutedEventArgs e)
         {
+            string path = PathTextBox.Text.Trim();
+
+            if (Directory.Exists(path))
+            {
+                SaveButton_Click(sender, e);
+                return;
+            }
+
             string[] selectedFiles = GetSelectedFilesForMultiFile();
 
             if (selectedFiles.Length <= 1)
@@ -31,30 +60,43 @@ namespace TradeIt.Portfolios
             }
 
             string folder = Path.GetDirectoryName(selectedFiles[0]) ?? "";
-            if (selectedFiles.Any(x => !string.Equals(Path.GetDirectoryName(x), folder, StringComparison.OrdinalIgnoreCase)))
+            if (selectedFiles.Any(x => !string.Equals(
+                    Path.GetDirectoryName(x),
+                    folder,
+                    StringComparison.OrdinalIgnoreCase)))
             {
-                System.Windows.MessageBox.Show(this, "برای انتخاب چند فایل، فایل‌ها باید در یک پوشه باشند.", "منبع داده", MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Windows.MessageBox.Show(
+                    this,
+                    "برای انتخاب چند فایل، فایل‌ها باید در یک پوشه باشند.",
+                    "منبع داده",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
                 return;
             }
 
             string originalPath = PathTextBox.Text;
             PathTextBox.Text = folder;
-            SaveButton_Click(sender, e);
-
-            if (ResultPortfolio != null)
+            try
             {
-                ResultPortfolio.DataSource.SourceType = "Folder";
-                ResultPortfolio.DataSource.Path = folder;
-                ResultPortfolio.UseExplicitSymbolList = true;
-                ResultPortfolio.Symbols = selectedFiles.Select(file => new SymbolInfo
-                {
-                    Symbol = Path.GetFileNameWithoutExtension(file),
-                    DisplayName = Path.GetFileNameWithoutExtension(file),
-                    FilePath = file
-                }).ToList();
-            }
+                SaveButton_Click(sender, e);
 
-            PathTextBox.Text = originalPath;
+                if (ResultPortfolio != null)
+                {
+                    ResultPortfolio.DataSource.SourceType = "Folder";
+                    ResultPortfolio.DataSource.Path = folder;
+                    ResultPortfolio.UseExplicitSymbolList = true;
+                    ResultPortfolio.Symbols = selectedFiles.Select(file => new SymbolInfo
+                    {
+                        Symbol = Path.GetFileNameWithoutExtension(file),
+                        DisplayName = Path.GetFileNameWithoutExtension(file),
+                        FilePath = file
+                    }).ToList();
+                }
+            }
+            finally
+            {
+                PathTextBox.Text = originalPath;
+            }
         }
 
         private string[] GetSelectedFilesForMultiFile()
