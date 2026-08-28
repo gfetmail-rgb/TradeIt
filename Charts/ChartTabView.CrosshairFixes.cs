@@ -139,21 +139,21 @@ namespace TradeIt.Charts
             return nearest;
         }
 
-        private bool HasRealTimestamp(MarketBar bar)
+        private bool HasRealTimestamp(TradeIt.Models.MarketBar bar)
         {
             return bar.Timestamp.HasValue &&
                    bar.Timestamp.Value > DateTime.MinValue &&
                    bar.Timestamp.Value < DateTime.MaxValue;
         }
 
-        private double GetBarX(MarketBar bar, int index)
+        private double GetBarX(TradeIt.Models.MarketBar bar, int index)
         {
             return HasRealTimestamp(bar)
                 ? bar.Timestamp!.Value.ToOADate()
                 : new DateTime(2000, 1, 1).AddDays(index).ToOADate();
         }
 
-        private string GetBarAxisLabel(MarketBar bar, int index)
+        private string GetBarAxisLabel(TradeIt.Models.MarketBar bar, int index)
         {
             if (!HasRealTimestamp(bar))
                 return $"کندل {index + 1}";
@@ -173,9 +173,7 @@ namespace TradeIt.Charts
             string[] labels = _bars.Select((bar, index) => GetBarAxisLabel(bar, index)).ToArray();
 
             if (positions.Length > 0)
-            {
                 Chart.Plot.Axes.Bottom.SetTicks(positions, labels);
-            }
 
             Chart.Refresh();
         }
