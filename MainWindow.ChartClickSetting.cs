@@ -47,9 +47,7 @@ namespace TradeIt
             {
                 if (ReferenceEquals(current, grid))
                     return true;
-                current = current is Visual visual
-                    ? System.Windows.Media.VisualTreeHelper.GetParent(visual)
-                    : null;
+                current = VisualTreeHelper.GetParent(current);
             }
             return false;
         }
