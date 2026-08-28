@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Threading;
 
 namespace TradeIt
@@ -6,7 +7,6 @@ namespace TradeIt
     public partial class MainWindow
     {
         private bool _startupEmptyListPending;
-        private int _startupSelectionEvents;
 
         private static readonly bool _startupHandlerRegistered = RegisterStartupHandler();
 
@@ -18,12 +18,6 @@ namespace TradeIt
                 new RoutedEventHandler(MainWindow_StartupEmptyListLoaded),
                 true);
 
-            EventManager.RegisterClassHandler(
-                typeof(MainWindow),
-                SelectionChangedEvent,
-                new System.Windows.Controls.SelectionChangedEventHandler(MainWindow_StartupSelectionChanged),
-                true);
-
             return true;
         }
 
@@ -33,20 +27,10 @@ namespace TradeIt
                 return;
 
             window._startupEmptyListPending = true;
-            window._startupSelectionEvents = 0;
 
             window.Dispatcher.BeginInvoke(
                 DispatcherPriority.ApplicationIdle,
                 new System.Action(() => window.ClearStartupPortfolioSelection()));
-        }
-
-        private static void MainWindow_StartupSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
-        {
-            if (sender is not MainWindow window || !window._startupEmptyListPending)
-                return;
-
-            if (e.OriginalSource == window.PortfolioComboBox)
-                window._startupSelectionEvents++;
         }
 
         private void ClearStartupPortfolioSelection()
