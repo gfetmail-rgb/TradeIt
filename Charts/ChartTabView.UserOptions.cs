@@ -38,11 +38,6 @@ namespace TradeIt.Charts
                 ChartSettingsManager.SettingsChanged -= view.ChartSettingsManager_SettingsChanged;
         }
 
-        private void ChartSettingsManager_SettingsChanged(object? sender, EventArgs e)
-        {
-            Dispatcher.InvokeAsync(ApplyPersistedAppearance);
-        }
-
         private void ApplyPersistedAppearance()
         {
             try
