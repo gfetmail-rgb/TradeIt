@@ -13,600 +13,168 @@
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
-
-        <!-- ================================================= -->
-        <!-- تاریخ آخرین معامله -->
-        <!-- ================================================= -->
-
         <local:TradeDateConverter x:Key="TradeDateConverter"/>
-
     </Window.Resources>
 
-
     <Grid x:Name="RootLayout">
-
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="37*"/>
             <ColumnDefinition Width="1163*"/>
         </Grid.ColumnDefinitions>
-
         <Grid.RowDefinitions>
-
-            <RowDefinition x:Name="TopToolbarRow"
-                           Height="55"/>
-
-            <RowDefinition x:Name="MainContentRow"
-                           Height="*"/>
-
-            <RowDefinition x:Name="StatusBarRow"
-                           Height="30"/>
-
+            <RowDefinition x:Name="TopToolbarRow" Height="55"/>
+            <RowDefinition x:Name="MainContentRow" Height="*"/>
+            <RowDefinition x:Name="StatusBarRow" Height="30"/>
         </Grid.RowDefinitions>
 
-
-        <!-- ===================================================== -->
-        <!-- Top Toolbar -->
-        <!-- ===================================================== -->
-
-        <Border x:Name="TopToolbar"
-                Grid.Row="0"
-                Grid.ColumnSpan="2"
-                BorderBrush="#D0D0D0"
-                BorderThickness="0,0,0,1"
-                Background="#F5F5F5">
-
+        <Border x:Name="TopToolbar" Grid.Row="0" Grid.ColumnSpan="2" BorderBrush="#D0D0D0" BorderThickness="0,0,0,1" Background="#F5F5F5">
             <Grid Margin="10,5">
-
                 <Grid.ColumnDefinitions>
-
                     <ColumnDefinition Width="Auto"/>
-
-                    <ColumnDefinition x:Name="SymbolsColumn"
-                                      Width="250"/>
-
+                    <ColumnDefinition x:Name="SymbolsColumn" Width="250"/>
                     <ColumnDefinition Width="Auto"/>
-
                     <ColumnDefinition Width="Auto"/>
-
                     <ColumnDefinition Width="Auto"/>
-
                     <ColumnDefinition Width="Auto"/>
-
                     <ColumnDefinition Width="*"/>
-
                     <ColumnDefinition Width="Auto"/>
-
                 </Grid.ColumnDefinitions>
-
-
-                <TextBlock Grid.Column="0"
-                           Text="سبد:"
-                           VerticalAlignment="Center"
-                           Margin="0,0,8,0"
-                           FontWeight="SemiBold"/>
-
-
-                <ComboBox x:Name="PortfolioComboBox"
-                          Grid.Column="1"
-                          Height="32"
-                          VerticalAlignment="Center"
-                          DisplayMemberPath="Name"
-                          SelectionChanged="PortfolioComboBox_SelectionChanged"/>
-
-
-                <Button x:Name="ManagePortfolioButton"
-                        Grid.Column="2"
-                        Content="مدیریت سبدها"
-                        Height="32"
-                        Padding="15,0"
-                        Margin="10,0,8,0"
-                        Click="ManagePortfolioButton_Click"/>
-
-
-                <Button x:Name="NewPortfolioButton"
-                        Grid.Column="3"
-                        Content="+ تعریف سبد"
-                        Height="32"
-                        Padding="15,0"
-                        Margin="0,0,8,0"
-                        Click="NewPortfolioButton_Click"/>
-
-
-                <Button x:Name="RefreshPortfolioButton"
-                        Grid.Column="4"
-                        Content="بازخوانی"
-                        Height="32"
-                        Padding="15,0"
-                        Click="RefreshPortfolioButton_Click"/>
-
-
-                <Button x:Name="FullScreenButton"
-                        Grid.Column="7"
-                        Content="⛶ تمام صفحه"
-                        Height="32"
-                        Padding="15,0"
-                        Margin="10,0,0,0"
-                        Click="FullScreenButton_Click"/>
-
+                <TextBlock Grid.Column="0" Text="سبد:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="SemiBold"/>
+                <ComboBox x:Name="PortfolioComboBox" Grid.Column="1" Height="32" VerticalAlignment="Center" DisplayMemberPath="Name" SelectionChanged="PortfolioComboBox_SelectionChanged"/>
+                <Button x:Name="ManagePortfolioButton" Grid.Column="2" Content="مدیریت سبدها" Height="32" Padding="15,0" Margin="10,0,8,0" Click="ManagePortfolioButton_Click"/>
+                <Button x:Name="NewPortfolioButton" Grid.Column="3" Content="+ تعریف سبد" Height="32" Padding="15,0" Margin="0,0,8,0" Click="NewPortfolioButton_Click"/>
+                <Button x:Name="RefreshPortfolioButton" Grid.Column="4" Content="بازخوانی" Height="32" Padding="15,0" Click="RefreshPortfolioButton_Click"/>
+                <Button x:Name="FullScreenButton" Grid.Column="7" Content="⛶ تمام صفحه" Height="32" Padding="15,0" Margin="10,0,0,0" Click="FullScreenButton_Click"/>
             </Grid>
-
         </Border>
 
-
-        <!-- ===================================================== -->
-        <!-- Main Content -->
-        <!-- ===================================================== -->
-
-        <Grid x:Name="MainContent"
-              Grid.Row="1"
-              Grid.ColumnSpan="2">
-
+        <Grid x:Name="MainContent" Grid.Row="1" Grid.ColumnSpan="2">
             <Grid.ColumnDefinitions>
-
-                <ColumnDefinition x:Name="SymbolsPanelColumn"
-                                  Width="300"/>
-
-                <ColumnDefinition x:Name="ChartPanelColumn"
-                                  Width="*"/>
-
+                <ColumnDefinition x:Name="SymbolsPanelColumn" Width="300"/>
+                <ColumnDefinition x:Name="ChartPanelColumn" Width="*"/>
             </Grid.ColumnDefinitions>
 
-
-            <!-- ================================================= -->
-            <!-- Symbols Panel -->
-            <!-- ================================================= -->
-
-            <Border x:Name="SymbolsPanel"
-                    Grid.Column="0"
-                    BorderBrush="#D0D0D0"
-                    BorderThickness="0,0,1,0"
-                    Background="#FAFAFA">
-
+            <Border x:Name="SymbolsPanel" Grid.Column="0" BorderBrush="#D0D0D0" BorderThickness="0,0,1,0" Background="#FAFAFA">
                 <Grid Margin="8">
-
                     <Grid.RowDefinitions>
-
                         <RowDefinition Height="Auto"/>
-
                         <RowDefinition Height="Auto"/>
-
                         <RowDefinition Height="*"/>
-
                         <RowDefinition Height="Auto"/>
-
                         <RowDefinition Height="Auto"/>
-
                     </Grid.RowDefinitions>
 
-
-                    <!-- ================================================= -->
-                    <!-- Header -->
-                    <!-- ================================================= -->
-
-                    <Grid Grid.Row="0"
-                          Margin="0,0,0,8">
-
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
                         <Grid.ColumnDefinitions>
-
                             <ColumnDefinition Width="*"/>
-
                             <ColumnDefinition Width="Auto"/>
-
                         </Grid.ColumnDefinitions>
-
-
-                        <TextBlock Grid.Column="0"
-                                   Text="نمادهای سبد"
-                                   FontSize="16"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center"/>
-
-
-                        <TextBlock x:Name="SymbolCountTextBlock"
-                                   Grid.Column="1"
-                                   Text="تعداد کل نمادها: ۰"
-                                   FontSize="13"
-                                   FontWeight="SemiBold"
-                                   Foreground="#555555"
-                                   VerticalAlignment="Center"/>
-
+                        <TextBlock Grid.Column="0" Text="نمادهای سبد" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="SymbolCountTextBlock" Grid.Column="1" Text="تعداد کل نمادها: ۰" FontSize="13" FontWeight="SemiBold" Foreground="#555555" VerticalAlignment="Center"/>
                     </Grid>
 
+                    <TextBox x:Name="SymbolSearchTextBox" Grid.Row="1" Height="30" Padding="7,3" ToolTip="جستجوی نماد" TextChanged="SymbolSearchTextBox_TextChanged"/>
 
-                    <!-- ================================================= -->
-                    <!-- Search -->
-                    <!-- ================================================= -->
-
-                    <TextBox x:Name="SymbolSearchTextBox"
-                             Grid.Row="1"
-                             Height="30"
-                             Padding="7,3"
-                             ToolTip="جستجوی نماد"
-                             TextChanged="SymbolSearchTextBox_TextChanged"/>
-
-
-                    <!-- ================================================= -->
-                    <!-- Symbols DataGrid -->
-                    <!-- ================================================= -->
-
-                    <DataGrid x:Name="SymbolsDataGrid"
-                              Grid.Row="2"
-                              Margin="0,8,0,5"
-
-                              AutoGenerateColumns="False"
-
-                              CanUserAddRows="False"
-                              CanUserDeleteRows="False"
-                              CanUserResizeRows="False"
-
-                              HeadersVisibility="Column"
-
-                              SelectionMode="Single"
-                              SelectionUnit="FullRow"
-
-                              IsReadOnly="True"
-
-                              AlternationCount="1000000"
-
-                              SelectionChanged="SymbolsDataGrid_SelectionChanged">
-
-
+                    <DataGrid x:Name="SymbolsDataGrid" Grid.Row="2" Margin="0,8,0,5" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" HeadersVisibility="Column" SelectionMode="Single" SelectionUnit="FullRow" IsReadOnly="True" AlternationCount="1000000" SelectionChanged="SymbolsDataGrid_SelectionChanged">
                         <DataGrid.Columns>
-
-
-                            <!-- ========================================= -->
-                            <!-- Row Number -->
-                            <!-- ========================================= -->
-
-                            <DataGridTextColumn Header="ردیف"
-                                                Binding="{Binding RowNumber}"
-                                                Width="50"
-                                                IsReadOnly="True"/>
-
-
-                            <!-- ========================================= -->
-                            <!-- Symbol Name -->
-                            <!-- فقط این سلول چارت را باز می‌کند -->
-                            <!-- ========================================= -->
-
-                            <DataGridTemplateColumn Header="نام سهم"
-                                                    Width="*"
-                                                    IsReadOnly="True">
-
+                            <DataGridTextColumn Header="ردیف" Binding="{Binding RowNumber}" Width="50" IsReadOnly="True"/>
+                            <DataGridTemplateColumn Header="نام سهم" Width="*" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
-
                                     <DataTemplate>
-
-                                        <TextBlock Text="{Binding DisplayName}"
-                                                   Cursor="Hand"
-                                                   HorizontalAlignment="Left"
-                                                   VerticalAlignment="Center"
-                                                   Padding="4,0"
-                                                   MouseLeftButtonUp="SymbolNameTextBlock_MouseLeftButtonUp"/>
-
+                                        <TextBlock Text="{Binding DisplayName}" Cursor="Hand" HorizontalAlignment="Left" VerticalAlignment="Center" Padding="4,0" MouseLeftButtonUp="SymbolNameTextBlock_MouseLeftButtonUp"/>
                                     </DataTemplate>
-
                                 </DataGridTemplateColumn.CellTemplate>
-
                             </DataGridTemplateColumn>
-
-
-                            <!-- ========================================= -->
-                            <!-- Last Trade Date -->
-                            <!-- ========================================= -->
-
-                            <DataGridTemplateColumn Header="آخرین معامله"
-                                                    Width="110"
-                                                    IsReadOnly="True">
-
+                            <DataGridTemplateColumn Header="آخرین معامله" Width="110" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
-
                                     <DataTemplate>
-
-                                        <TextBlock HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center">
-
+                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">
                                             <TextBlock.Text>
-
-                                                <MultiBinding
-                                                    Converter="{StaticResource TradeDateConverter}">
-
-                                                    <!-- تاریخ -->
-
+                                                <MultiBinding Converter="{StaticResource TradeDateConverter}">
                                                     <Binding Path="LastTradeDate"/>
-
-                                                    <!-- تقویم سبد -->
-
-                                                    <Binding
-                                                        RelativeSource="{RelativeSource AncestorType={x:Type Window}}"
-                                                        Path="SelectedPortfolioCalendar"/>
-
+                                                    <Binding RelativeSource="{RelativeSource AncestorType={x:Type Window}}" Path="SelectedPortfolioCalendar"/>
                                                 </MultiBinding>
-
                                             </TextBlock.Text>
-
                                         </TextBlock>
-
                                     </DataTemplate>
-
                                 </DataGridTemplateColumn.CellTemplate>
-
                             </DataGridTemplateColumn>
-
-
-                            <!-- ========================================= -->
-                            <!-- CheckBox -->
-                            <!-- ========================================= -->
-
-                            <DataGridTemplateColumn Header="انتخاب"
-                                                    Width="65"
-                                                    IsReadOnly="False">
-
+                            <DataGridTemplateColumn Header="انتخاب" Width="65" IsReadOnly="False">
                                 <DataGridTemplateColumn.CellTemplate>
-
                                     <DataTemplate>
-
-                                        <CheckBox HorizontalAlignment="Center"
-                                                  VerticalAlignment="Center"
-
-                                                  IsChecked="{Binding IsSelected,
-                                                                      Mode=TwoWay,
-                                                                      UpdateSourceTrigger=PropertyChanged}"
-
-                                                  Click="SymbolCheckBox_Click"/>
-
+                                        <CheckBox HorizontalAlignment="Center" VerticalAlignment="Center" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Click="SymbolCheckBox_Click"/>
                                     </DataTemplate>
-
                                 </DataGridTemplateColumn.CellTemplate>
-
                             </DataGridTemplateColumn>
-
-
                         </DataGrid.Columns>
-
                     </DataGrid>
 
-
-                    <!-- ================================================= -->
-                    <!-- Auto Scroll -->
-                    <!-- ================================================= -->
-
-                    <Border Grid.Row="3"
-                            BorderBrush="#D0D0D0"
-                            BorderThickness="1"
-                            CornerRadius="3"
-                            Padding="6"
-                            Margin="0,0,0,5"
-                            Background="#F7F7F7">
-
+                    <Border Grid.Row="3" BorderBrush="#D0D0D0" BorderThickness="1" CornerRadius="3" Padding="6" Margin="0,0,0,5" Background="#F7F7F7">
                         <Grid>
-
                             <Grid.ColumnDefinitions>
-
                                 <ColumnDefinition Width="Auto"/>
-
                                 <ColumnDefinition Width="*"/>
-
                                 <ColumnDefinition Width="Auto"/>
-
                             </Grid.ColumnDefinitions>
-
-
-                            <TextBlock Grid.Column="0"
-                                       Text="زمان:"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,6,0"/>
-
-
-                            <TextBox x:Name="AutoScrollIntervalTextBox"
-                                     Grid.Column="1"
-                                     Height="28"
-                                     MinWidth="70"
-                                     Padding="6,2"
-                                     Text="1000"
-                                     HorizontalContentAlignment="Center"
-                                     VerticalContentAlignment="Center"/>
-
-
-                            <TextBlock Grid.Column="2"
-                                       Text="ms"
-                                       VerticalAlignment="Center"
-                                       Margin="6,0,0,0"/>
-
+                            <TextBlock Grid.Column="0" Text="زمان:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBox x:Name="AutoScrollIntervalTextBox" Grid.Column="1" Height="28" MinWidth="70" Padding="6,2" Text="1000" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                            <TextBlock Grid.Column="2" Text="ms" VerticalAlignment="Center" Margin="6,0,0,0"/>
                         </Grid>
-
                     </Border>
 
-
-                    <!-- ================================================= -->
-                    <!-- Buttons -->
-                    <!-- ================================================= -->
-
                     <Grid Grid.Row="4">
-
                         <Grid.RowDefinitions>
-
                             <RowDefinition Height="35"/>
-
                             <RowDefinition Height="35"/>
-
                         </Grid.RowDefinitions>
-
-
                         <Grid.ColumnDefinitions>
-
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
-
                         </Grid.ColumnDefinitions>
-
-
-                        <Button x:Name="RefreshSymbolsButton"
-                                Grid.Row="0"
-                                Grid.Column="0"
-                                Content="Refresh"
-                                Margin="2"
-                                Click="RefreshSymbolsButton_Click"/>
-
-
-                        <Button x:Name="AutoScrollButton"
-                                Grid.Row="0"
-                                Grid.Column="1"
-                                Content="Auto Scroll"
-                                Margin="2"
-                                Click="AutoScrollButton_Click"/>
-
-
-                        <Button x:Name="DeleteSymbolsButton"
-                                Grid.Row="0"
-                                Grid.Column="2"
-                                Content="Delete"
-                                Margin="2"
-                                Click="DeleteSymbolsButton_Click"/>
-
-
-                        <Button x:Name="MakeWatchButton"
-                                Grid.Row="0"
-                                Grid.Column="3"
-                                Content="Make Watch"
-                                Margin="2"
-                                Click="MakeWatchButton_Click"/>
-
-
-                        <RadioButton x:Name="AllRadioButton"
-                                     Grid.Row="1"
-                                     Grid.Column="0"
-                                     Content="All"
-                                     HorizontalAlignment="Center"
-                                     VerticalAlignment="Center"
-                                     Checked="AllRadioButton_Checked"/>
-
-
-                        <RadioButton x:Name="NoneRadioButton"
-                                     Grid.Row="1"
-                                     Grid.Column="1"
-                                     Content="None"
-                                     HorizontalAlignment="Center"
-                                     VerticalAlignment="Center"
-                                     Checked="NoneRadioButton_Checked"/>
-
+                        <Button x:Name="RefreshSymbolsButton" Grid.Row="0" Grid.Column="0" Content="Refresh" Margin="2" Click="RefreshSymbolsButton_Click"/>
+                        <Button x:Name="AutoScrollButton" Grid.Row="0" Grid.Column="1" Content="Auto Scroll" Margin="2" Click="AutoScrollButton_Order2_Click"/>
+                        <Button x:Name="DeleteSymbolsButton" Grid.Row="0" Grid.Column="2" Content="Delete" Margin="2" Click="DeleteSymbolsButton_Click"/>
+                        <Button x:Name="MakeWatchButton" Grid.Row="0" Grid.Column="3" Content="Make Watch" Margin="2" Click="MakeWatchButton_Click"/>
+                        <RadioButton x:Name="AllRadioButton" Grid.Row="1" Grid.Column="0" Content="All" HorizontalAlignment="Center" VerticalAlignment="Center" Checked="AllRadioButton_Checked"/>
+                        <RadioButton x:Name="NoneRadioButton" Grid.Row="1" Grid.Column="1" Content="None" HorizontalAlignment="Center" VerticalAlignment="Center" Checked="NoneRadioButton_Checked"/>
                     </Grid>
-
                 </Grid>
-
             </Border>
 
-
-            <!-- ================================================= -->
-            <!-- Chart Area -->
-            <!-- ================================================= -->
-
-            <Grid x:Name="ChartArea"
-                  Grid.Column="1">
-
+            <Grid x:Name="ChartArea" Grid.Column="1">
                 <Grid.RowDefinitions>
-
                     <RowDefinition Height="34"/>
-
                     <RowDefinition Height="*"/>
-
                 </Grid.RowDefinitions>
-
-
-                <!-- Chart Toolbar -->
-
-                <Border Grid.Row="0"
-                        Background="#F5F5F5"
-                        BorderBrush="#D0D0D0"
-                        BorderThickness="0,0,0,1">
-
-                    <Grid>
-
-                        <Button x:Name="CloseAllChartsButton"
-                                Content="بستن همه چارت‌ها"
-                                HorizontalAlignment="Left"
-                                VerticalAlignment="Center"
-                                Height="26"
-                                Padding="12,0"
-                                Margin="5,0,0,0"
-                                Click="CloseAllChartsButton_Click"/>
-
-                    </Grid>
-
+                <Border Grid.Row="0" BorderBrush="#D0D0D0" BorderThickness="0,0,0,1" Background="#F7F7F7">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button x:Name="VolumeButton" Content="Volume" Margin="2" Click="VolumeButton_Click"/>
+                        <Button x:Name="GridButton" Content="Grid" Margin="2" Click="GridButton_Click"/>
+                        <Button x:Name="CrosshairButton" Content="Cross" Margin="2" Click="CrosshairButton_Click"/>
+                        <Button x:Name="ScreenshotButton" Content="عکس" Margin="2" Click="ScreenshotButton_Click"/>
+                        <Button x:Name="PrintButton" Content="پرینت" Margin="2" Click="PrintButton_Click"/>
+                        <ComboBox x:Name="ChartTypeComboBox" Width="120" Margin="2" SelectionChanged="ChartTypeComboBox_SelectionChanged">
+                            <ComboBoxItem Content="Candlestick"/>
+                            <ComboBoxItem Content="Line"/>
+                            <ComboBoxItem Content="Bar"/>
+                        </ComboBox>
+                        <Button x:Name="SettingsButton" Content="Settings" Margin="2" Click="SettingsButton_Click"/>
+                        <Button x:Name="HideChartButton" Content="Hide Chart" Margin="2" Click="HideChartButton_Click"/>
+                        <Button x:Name="HideToolsButton" Content="Hide Tools" Margin="2" Click="HideToolsButton_Click"/>
+                        <Button x:Name="ZoomInButton" Content="+" Margin="2" Click="ZoomInButton_Click"/>
+                        <Button x:Name="ZoomOutButton" Content="−" Margin="2" Click="ZoomOutButton_Click"/>
+                        <Button x:Name="ResetZoomButton" Content="Reset" Margin="2" Click="ResetZoomButton_Click"/>
+                        <Button x:Name="FullViewButton" Content="Full View" Margin="2" Click="FullViewButton_Click"/>
+                    </StackPanel>
                 </Border>
-
-
-                <!-- Chart Tabs -->
-
-                <TabControl x:Name="ChartTabs"
-                            Grid.Row="1"
-                            HorizontalAlignment="Stretch"
-                            VerticalAlignment="Stretch"
-                            SelectionChanged="ChartTabs_SelectionChanged"/>
-
-
-                <!-- Full Screen Exit -->
-
-                <Button x:Name="FullScreenExitButton"
-                        Content="↙ خروج از تمام صفحه"
-                        Width="175"
-                        Height="34"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Top"
-                        Margin="0,10,10,0"
-                        Padding="10,0"
-                        Panel.ZIndex="10000"
-                        Visibility="Collapsed"
-                        Click="FullScreenExitButton_Click"/>
-
+                <TabControl x:Name="ChartTabs" Grid.Row="1" SelectionChanged="ChartTabs_SelectionChanged"/>
             </Grid>
-
         </Grid>
 
-
-        <!-- ===================================================== -->
-        <!-- Status Bar -->
-        <!-- ===================================================== -->
-
-        <Border x:Name="StatusBar"
-                Grid.Row="2"
-                Grid.ColumnSpan="2"
-                Height="30"
-                MinHeight="30"
-                MaxHeight="30"
-                Background="#EEEEEE"
-                BorderBrush="#D0D0D0"
-                BorderThickness="0,1,0,0">
-
-            <Grid Margin="8,0">
-
-                <Grid.ColumnDefinitions>
-
-                    <ColumnDefinition Width="*"/>
-
-                    <ColumnDefinition Width="180"/>
-
-                </Grid.ColumnDefinitions>
-
-
-                <TextBlock x:Name="StatusTextBlock"
-                           Text="آماده"
-                           VerticalAlignment="Center"/>
-
-
-                <ProgressBar x:Name="ProgressBar"
-                             Grid.Column="1"
-                             Height="12"
-                             VerticalAlignment="Center"
-                             Visibility="Collapsed"
-                             IsIndeterminate="True"/>
-
-            </Grid>
-
+        <Border Grid.Row="2" Grid.ColumnSpan="2" BorderBrush="#D0D0D0" BorderThickness="0,1,0,0" Background="#F5F5F5">
+            <TextBlock x:Name="StatusTextBlock" VerticalAlignment="Center" Margin="10,0" Text="آماده"/>
         </Border>
-
     </Grid>
-
 </Window>
