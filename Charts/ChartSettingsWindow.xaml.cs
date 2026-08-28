@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -7,11 +8,13 @@ namespace TradeIt.Charts
     public partial class ChartSettingsWindow : Window
     {
         public ChartSettings Settings { get; private set; }
+        private string _crosshairColor = "#909090";
 
         public ChartSettingsWindow(ChartSettings settings)
         {
             InitializeComponent();
             Settings = settings.Clone();
+            _crosshairColor = Settings.CrosshairColor;
             LoadSettings();
         }
 
@@ -24,16 +27,25 @@ namespace TradeIt.Charts
             SetPreviewColor(DataBackgroundPreview, Settings.DataBackground);
             SetPreviewColor(GridColorPreview, Settings.GridColor);
             SetPreviewColor(AxisColorPreview, Settings.AxisColor);
+            SelectComboValue(LineWidthComboBox, Settings.LineWidth);
+            SelectComboValue(CandleLineWidthComboBox, Settings.CandleLineWidth);
+            SelectComboValue(BarLineWidthComboBox, Settings.BarLineWidth);
+            SelectComboValue(GridLineWidthComboBox, Settings.GridLineWidth);
+            SelectTag(GridPatternComboBox, Settings.GridPattern);
+            OpenChartInNewTabCheckBox.IsChecked = Settings.OpenChartInNewTab;
+        }
 
-            foreach (ComboBoxItem item in LineWidthComboBox.Items)
-            {
-                if (double.TryParse(item.Tag?.ToString(), out double value) && Math.Abs(value - Settings.LineWidth) < 0.001)
-                {
-                    LineWidthComboBox.SelectedItem = item;
-                    break;
-                }
-            }
-            if (LineWidthComboBox.SelectedItem == null) LineWidthComboBox.SelectedIndex = 2;
+        private static void SelectComboValue(ComboBox combo, double value)
+        {
+            foreach (ComboBoxItem item in combo.Items)
+                if (double.TryParse(item.Tag?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) && Math.Abs(parsed - value) < 0.001) { combo.SelectedItem = item; return; }
+            if (combo.Items.Count > 0) combo.SelectedIndex = 0;
+        }
+
+        private static void SelectTag(ComboBox combo, string? tag)
+        {
+            foreach (ComboBoxItem item in combo.Items)
+                if (string.Equals(item.Tag?.ToString(), tag, StringComparison.OrdinalIgnoreCase)) { combo.SelectedItem = item; return; }
         }
 
         private string? SelectColor(string currentColor)
@@ -41,19 +53,13 @@ namespace TradeIt.Charts
             try
             {
                 var color = System.Drawing.ColorTranslator.FromHtml(currentColor);
-                using var dialog = new System.Windows.Forms.ColorDialog
-                {
-                    Color = color,
-                    FullOpen = true,
-                    AnyColor = true
-                };
-                if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return null;
-                return $"#{dialog.Color.R:X2}{dialog.Color.G:X2}{dialog.Color.B:X2}";
+                using var dialog = new System.Windows.Forms.ColorDialog { Color = color, FullOpen = true, AnyColor = true };
+                return dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK ? $"#{dialog.Color.R:X2}{dialog.Color.G:X2}{dialog.Color.B:X2}" : null;
             }
             catch { return null; }
         }
 
-        private void SetPreviewColor(System.Windows.Controls.Border preview, string color)
+        private static void SetPreviewColor(System.Windows.Controls.Border preview, string color)
         {
             try
             {
@@ -81,27 +87,21 @@ namespace TradeIt.Charts
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
-            if (LineWidthComboBox.SelectedItem is ComboBoxItem lineItem && double.TryParse(lineItem.Tag?.ToString(), out double lineWidth))
-                Settings.LineWidth = lineWidth;
-
-            if (GridPatternComboBox.SelectedItem is ComboBoxItem gridPattern)
-                Settings.GridPattern = gridPattern.Tag?.ToString() ?? "Solid";
-
-            if (GridLineWidthComboBox.SelectedItem is ComboBoxItem gridWidth && double.TryParse(gridWidth.Tag?.ToString(), out double gw))
-                Settings.GridLineWidth = gw;
-
-            if (_crosshairPatternComboBox?.SelectedItem is ComboBoxItem crossPattern)
-                Settings.CrosshairPattern = crossPattern.Tag?.ToString() ?? "Dotted";
-
-            if (_crosshairLineWidthComboBox?.SelectedItem is ComboBoxItem crossWidth && double.TryParse(crossWidth.Tag?.ToString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double cw))
-                Settings.CrosshairLineWidth = cw;
-
+            Settings.LineWidth = ReadComboValue(LineWidthComboBox, Settings.LineWidth);
+            Settings.CandleLineWidth = ReadComboValue(CandleLineWidthComboBox, Settings.CandleLineWidth);
+            Settings.BarLineWidth = ReadComboValue(BarLineWidthComboBox, Settings.BarLineWidth);
+            Settings.GridLineWidth = ReadComboValue(GridLineWidthComboBox, Settings.GridLineWidth);
+            if (GridPatternComboBox.SelectedItem is ComboBoxItem gridPattern) Settings.GridPattern = gridPattern.Tag?.ToString() ?? "Solid";
+            if (_crosshairPatternComboBox?.SelectedItem is ComboBoxItem crossPattern) Settings.CrosshairPattern = crossPattern.Tag?.ToString() ?? "Dotted";
+            if (_crosshairLineWidthComboBox?.SelectedItem is ComboBoxItem crossWidth && double.TryParse(crossWidth.Tag?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double cw)) Settings.CrosshairLineWidth = cw;
             Settings.CrosshairColor = _crosshairColor;
             Settings.OpenChartInNewTab = OpenChartInNewTabCheckBox.IsChecked == true;
             Settings.HasUserSavedSettings = true;
+            ChartSettingsManager.Save(Settings);
             DialogResult = true;
         }
 
+        private static double ReadComboValue(ComboBox combo, double fallback) => combo.SelectedItem is ComboBoxItem item && double.TryParse(item.Tag?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ? value : fallback;
         private void CancelButton_Click(object sender, RoutedEventArgs e) => DialogResult = false;
     }
 }
