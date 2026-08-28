@@ -8,358 +8,100 @@ namespace TradeIt.Charts
     {
         public ChartSettings Settings { get; private set; }
 
-
-        // =========================================================
-        // Constructor
-        // =========================================================
-
-        public ChartSettingsWindow(
-            ChartSettings settings)
+        public ChartSettingsWindow(ChartSettings settings)
         {
             InitializeComponent();
-
-            // حتماً یک کپی مستقل ایجاد می‌کنیم.
-            // تغییرات پنجره تنظیمات مستقیماً روی Chart اصلی
-            // اعمال نمی‌شود.
-            Settings =
-                settings.Clone();
-
+            Settings = settings.Clone();
             LoadSettings();
         }
 
-
-        // =========================================================
-        // Load
-        // =========================================================
-
         private void LoadSettings()
         {
-            SetPreviewColor(
-                RisingColorPreview,
-                Settings.RisingColor);
+            SetPreviewColor(RisingColorPreview, Settings.RisingColor);
+            SetPreviewColor(FallingColorPreview, Settings.FallingColor);
+            SetPreviewColor(LineColorPreview, Settings.LineColor);
+            SetPreviewColor(FigureBackgroundPreview, Settings.FigureBackground);
+            SetPreviewColor(DataBackgroundPreview, Settings.DataBackground);
+            SetPreviewColor(GridColorPreview, Settings.GridColor);
+            SetPreviewColor(AxisColorPreview, Settings.AxisColor);
 
-            SetPreviewColor(
-                FallingColorPreview,
-                Settings.FallingColor);
-
-            SetPreviewColor(
-                LineColorPreview,
-                Settings.LineColor);
-
-            SetPreviewColor(
-                FigureBackgroundPreview,
-                Settings.FigureBackground);
-
-            SetPreviewColor(
-                DataBackgroundPreview,
-                Settings.DataBackground);
-
-            SetPreviewColor(
-                GridColorPreview,
-                Settings.GridColor);
-
-            SetPreviewColor(
-                AxisColorPreview,
-                Settings.AxisColor);
-
-
-            foreach (ComboBoxItem item
-                     in LineWidthComboBox.Items)
+            foreach (ComboBoxItem item in LineWidthComboBox.Items)
             {
-                if (double.TryParse(
-                        item.Tag?.ToString(),
-                        out double value))
+                if (double.TryParse(item.Tag?.ToString(), out double value) && Math.Abs(value - Settings.LineWidth) < 0.001)
                 {
-                    if (Math.Abs(
-                            value -
-                            Settings.LineWidth)
-                        < 0.001)
-                    {
-                        LineWidthComboBox.SelectedItem =
-                            item;
-
-                        break;
-                    }
+                    LineWidthComboBox.SelectedItem = item;
+                    break;
                 }
             }
-
-
-            if (LineWidthComboBox.SelectedItem == null)
-            {
-                LineWidthComboBox.SelectedIndex = 2;
-            }
+            if (LineWidthComboBox.SelectedItem == null) LineWidthComboBox.SelectedIndex = 2;
         }
 
-
-        // =========================================================
-        // Color Dialog
-        // =========================================================
-
-        private string? SelectColor(
-            string currentColor)
+        private string? SelectColor(string currentColor)
         {
             try
             {
-                var color =
-                    System.Drawing.ColorTranslator
-                        .FromHtml(currentColor);
-
-
-                using var dialog =
-                    new System.Windows.Forms.ColorDialog
-                    {
-                        Color = color,
-                        FullOpen = true,
-                        AnyColor = true
-                    };
-
-
-                if (dialog.ShowDialog() !=
-                    System.Windows.Forms.DialogResult.OK)
+                var color = System.Drawing.ColorTranslator.FromHtml(currentColor);
+                using var dialog = new System.Windows.Forms.ColorDialog
                 {
-                    return null;
-                }
-
-
-                return
-                    $"#{dialog.Color.R:X2}" +
-                    $"{dialog.Color.G:X2}" +
-                    $"{dialog.Color.B:X2}";
+                    Color = color,
+                    FullOpen = true,
+                    AnyColor = true
+                };
+                if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return null;
+                return $"#{dialog.Color.R:X2}{dialog.Color.G:X2}{dialog.Color.B:X2}";
             }
-            catch
-            {
-                return null;
-            }
+            catch { return null; }
         }
 
-
-        // =========================================================
-        // Preview
-        // =========================================================
-
-        private void SetPreviewColor(
-            System.Windows.Controls.Border preview,
-            string color)
+        private void SetPreviewColor(System.Windows.Controls.Border preview, string color)
         {
             try
             {
-                var mediaColor =
-                    (System.Windows.Media.Color)
-                    System.Windows.Media.ColorConverter
-                        .ConvertFromString(color);
-
-                preview.Background =
-                    new System.Windows.Media.SolidColorBrush(
-                        mediaColor);
+                var mediaColor = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(color);
+                preview.Background = new System.Windows.Media.SolidColorBrush(mediaColor);
             }
-            catch
-            {
-                preview.Background =
-                    System.Windows.Media.Brushes.White;
-            }
+            catch { preview.Background = System.Windows.Media.Brushes.White; }
         }
 
+        private void RisingColorButton_Click(object sender, RoutedEventArgs e) => ChooseColor(c => Settings.RisingColor = c, Settings.RisingColor, RisingColorPreview);
+        private void FallingColorButton_Click(object sender, RoutedEventArgs e) => ChooseColor(c => Settings.FallingColor = c, Settings.FallingColor, FallingColorPreview);
+        private void LineColorButton_Click(object sender, RoutedEventArgs e) => ChooseColor(c => Settings.LineColor = c, Settings.LineColor, LineColorPreview);
+        private void FigureBackgroundButton_Click(object sender, RoutedEventArgs e) => ChooseColor(c => Settings.FigureBackground = c, Settings.FigureBackground, FigureBackgroundPreview);
+        private void DataBackgroundButton_Click(object sender, RoutedEventArgs e) => ChooseColor(c => Settings.DataBackground = c, Settings.DataBackground, DataBackgroundPreview);
+        private void AxisColorButton_Click(object sender, RoutedEventArgs e) => ChooseColor(c => Settings.AxisColor = c, Settings.AxisColor, AxisColorPreview);
+        private void GridColorButton_Click(object sender, RoutedEventArgs e) => ChooseColor(c => Settings.GridColor = c, Settings.GridColor, GridColorPreview);
 
-        // =========================================================
-        // Rising Color
-        // =========================================================
-
-        private void RisingColorButton_Click(
-            object sender,
-            RoutedEventArgs e)
+        private void ChooseColor(Action<string> assign, string current, System.Windows.Controls.Border preview)
         {
-            string? color =
-                SelectColor(
-                    Settings.RisingColor);
-
-            if (color == null)
-                return;
-
-            Settings.RisingColor =
-                color;
-
-            SetPreviewColor(
-                RisingColorPreview,
-                color);
+            string? color = SelectColor(current);
+            if (color == null) return;
+            assign(color);
+            SetPreviewColor(preview, color);
         }
 
-
-        // =========================================================
-        // Falling Color
-        // =========================================================
-
-        private void FallingColorButton_Click(
-            object sender,
-            RoutedEventArgs e)
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
-            string? color =
-                SelectColor(
-                    Settings.FallingColor);
+            if (LineWidthComboBox.SelectedItem is ComboBoxItem lineItem && double.TryParse(lineItem.Tag?.ToString(), out double lineWidth))
+                Settings.LineWidth = lineWidth;
 
-            if (color == null)
-                return;
+            if (GridPatternComboBox.SelectedItem is ComboBoxItem gridPattern)
+                Settings.GridPattern = gridPattern.Tag?.ToString() ?? "Solid";
 
-            Settings.FallingColor =
-                color;
+            if (GridLineWidthComboBox.SelectedItem is ComboBoxItem gridWidth && double.TryParse(gridWidth.Tag?.ToString(), out double gw))
+                Settings.GridLineWidth = gw;
 
-            SetPreviewColor(
-                FallingColorPreview,
-                color);
-        }
+            if (_crosshairPatternComboBox?.SelectedItem is ComboBoxItem crossPattern)
+                Settings.CrosshairPattern = crossPattern.Tag?.ToString() ?? "Dotted";
 
+            if (_crosshairLineWidthComboBox?.SelectedItem is ComboBoxItem crossWidth && double.TryParse(crossWidth.Tag?.ToString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double cw))
+                Settings.CrosshairLineWidth = cw;
 
-        // =========================================================
-        // Line Color
-        // =========================================================
-
-        private void LineColorButton_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            string? color =
-                SelectColor(
-                    Settings.LineColor);
-
-            if (color == null)
-                return;
-
-            Settings.LineColor =
-                color;
-
-            SetPreviewColor(
-                LineColorPreview,
-                color);
-        }
-
-
-        // =========================================================
-        // Figure Background
-        // =========================================================
-
-        private void FigureBackgroundButton_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            string? color =
-                SelectColor(
-                    Settings.FigureBackground);
-
-            if (color == null)
-                return;
-
-            Settings.FigureBackground =
-                color;
-
-            SetPreviewColor(
-                FigureBackgroundPreview,
-                color);
-        }
-
-
-        // =========================================================
-        // Data Background
-        // =========================================================
-
-        private void DataBackgroundButton_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            string? color =
-                SelectColor(
-                    Settings.DataBackground);
-
-            if (color == null)
-                return;
-
-            Settings.DataBackground =
-                color;
-
-            SetPreviewColor(
-                DataBackgroundPreview,
-                color);
-        }
-
-
-        // =========================================================
-        // Axis Color
-        // =========================================================
-
-        private void AxisColorButton_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            string? color =
-                SelectColor(
-                    Settings.AxisColor);
-
-            if (color == null)
-                return;
-
-            Settings.AxisColor =
-                color;
-
-            SetPreviewColor(
-                AxisColorPreview,
-                color);
-        }
-
-
-        // =========================================================
-        // Grid Color
-        // =========================================================
-
-        private void GridColorButton_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            string? color =
-                SelectColor(
-                    Settings.GridColor);
-
-            if (color == null)
-                return;
-
-            Settings.GridColor =
-                color;
-
-            SetPreviewColor(
-                GridColorPreview,
-                color);
-        }
-
-
-        // =========================================================
-        // Save
-        // =========================================================
-
-        private void SaveButton_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            if (LineWidthComboBox.SelectedItem
-                is ComboBoxItem item &&
-                double.TryParse(
-                    item.Tag?.ToString(),
-                    out double width))
-            {
-                Settings.LineWidth =
-                    width;
-            }
-
-
+            Settings.CrosshairColor = _crosshairColor;
+            Settings.OpenChartInNewTab = OpenChartInNewTabCheckBox.IsChecked == true;
+            Settings.HasUserSavedSettings = true;
             DialogResult = true;
         }
 
-
-        // =========================================================
-        // Cancel
-        // =========================================================
-
-        private void CancelButton_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            DialogResult = false;
-        }
+        private void CancelButton_Click(object sender, RoutedEventArgs e) => DialogResult = false;
     }
 }
