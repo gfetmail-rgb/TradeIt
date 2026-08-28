@@ -9,9 +9,7 @@ namespace TradeIt.Charts
     public partial class ChartTabView
     {
         private static readonly bool _displayFixesRegistered = RegisterDisplayFixes();
-        private int _displayFixesLastCrosshairIndex = -1;
-        private bool _displayFixesMouseUpdateQueued;
-        private int _displayFixesQueuedIndex = -1;
+        private int _displayFixesLastBarIndex = -1;
 
         private static bool RegisterDisplayFixes()
         {
@@ -23,6 +21,7 @@ namespace TradeIt.Charts
         private static void DisplayFixes_Loaded(object sender, RoutedEventArgs e)
         {
             if (sender is not ChartTabView chart) return;
+            chart._displayFixesLastBarIndex = -1;
             chart.ApplyDisplayFixesNow();
             ChartSettingsManager.SettingsChanged -= chart.DisplayFixes_SettingsChanged;
             ChartSettingsManager.SettingsChanged += chart.DisplayFixes_SettingsChanged;
@@ -40,39 +39,45 @@ namespace TradeIt.Charts
             if (e.OriginalSource is not System.Windows.DependencyObject source) return;
             ScottPlot.WPF.WpfPlot? plot = FindPlot(source);
             if (plot == null || (!ReferenceEquals(plot, chart.Chart) && !ReferenceEquals(plot, chart.VolumeChart))) return;
+
             System.Windows.Point point = e.GetPosition(plot);
             if (!chart.TryGetChartCoordinates(plot, point, out ScottPlot.Coordinates coordinates)) return;
 
             int index = chart.DisplayFixes_FindNearestBarIndex(coordinates.X);
             if (index < 0 || index >= chart._bars.Count) return;
 
-            // The crosshair is deliberately updated only when the snapped bar changes.
-            // This prevents the axis labels from being re-laid-out on every mouse pixel.
-            if (index == chart._displayFixesLastCrosshairIndex) return;
-            chart._displayFixesQueuedIndex = index;
-            if (chart._displayFixesMouseUpdateQueued) return;
-            chart._displayFixesMouseUpdateQueued = true;
+            // IMPORTANT: do this synchronously. Queuing MouseMove work with Dispatcher
+            // can execute old mouse positions after newer ones and makes the snap appear
+            // to jump backward and forward between candles.
+            double x = chart.GetBarDateTime(chart._bars[index], index).ToOADate();
 
-            chart.Dispatcher.BeginInvoke(new Action(() =>
+            // X is snapped to the candle. Y follows the mouse continuously so the
+            // horizontal crosshair remains a true price crosshair.
+            double y = coordinates.Y;
+            chart._crosshair.Position = new ScottPlot.Coordinates(x, y);
+            chart._crosshair.IsVisible = true;
+            chart._crosshairMouseInside = true;
+
+            chart._crosshair.HorizontalLine.LabelOppositeAxis = false;
+            chart._crosshair.VerticalLine.LabelOppositeAxis = false;
+            chart._crosshair.HorizontalLine.LabelAlignment = ScottPlot.Alignment.MiddleRight;
+            chart._crosshair.VerticalLine.LabelAlignment = ScottPlot.Alignment.LowerCenter;
+
+            // Only the X label changes when the selected candle changes.
+            // This prevents needless layout changes while the mouse moves inside one candle.
+            if (index != chart._displayFixesLastBarIndex)
             {
-                chart._displayFixesMouseUpdateQueued = false;
-                int snappedIndex = chart._displayFixesQueuedIndex;
-                if (chart._crosshair == null || !chart._chartVisible || !chart._crosshairVisible || snappedIndex < 0 || snappedIndex >= chart._bars.Count) return;
+                chart._displayFixesLastBarIndex = index;
+                chart._crosshair.VerticalLine.Text = chart.DisplayFixes_GetCrosshairXLabel(index);
+                chart.UpdateSnappedMouseInformation(index, y);
+            }
 
-                double x = chart.GetBarDateTime(chart._bars[snappedIndex], snappedIndex).ToOADate();
-                double y = chart._bars[snappedIndex].Close;
-
-                chart._crosshair.Position = new ScottPlot.Coordinates(x, y);
-                chart._crosshair.IsVisible = true;
-                chart._crosshairMouseInside = true;
-                chart._crosshair.HorizontalLine.LabelOppositeAxis = false;
-                chart._crosshair.VerticalLine.LabelOppositeAxis = false;
-                chart._crosshair.HorizontalLine.Text = y.ToString("N2", CultureInfo.InvariantCulture);
-                chart._crosshair.VerticalLine.Text = chart.DisplayFixes_GetCrosshairXLabel(snappedIndex);
-                chart._displayFixesLastCrosshairIndex = snappedIndex;
-                chart.UpdateSnappedMouseInformation(snappedIndex, y);
-                chart.Chart.Refresh();
-            }), System.Windows.Threading.DispatcherPriority.Input);
+            // Price follows the actual crosshair Y position, but its axis panel has a
+            // fixed minimum width (see ApplyDisplayCrosshairLayout) so changing the
+            // number of digits cannot make the label jump horizontally.
+            chart._crosshair.HorizontalLine.Text = y.ToString("N2", CultureInfo.InvariantCulture);
+            chart.Chart.Refresh();
+            e.Handled = true;
         }
 
         private static ScottPlot.WPF.WpfPlot? FindPlot(System.Windows.DependencyObject source)
@@ -97,7 +102,10 @@ namespace TradeIt.Charts
                 DateTime dt = GetBarDateTime(bar, index);
                 dateText = dt.TimeOfDay == TimeSpan.Zero ? dt.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture) : dt.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
             }
-            else dateText = $"کندل {index + 1}";
+            else
+            {
+                dateText = $"کندل {index + 1}";
+            }
 
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | O: {bar.Open:N2}  H: {bar.High:N2}  L: {bar.Low:N2}  C: {bar.Close:N2}  V: {bar.Volume:N0}";
             BottomInfoTextBlock.Text = dateText;
@@ -110,6 +118,7 @@ namespace TradeIt.Charts
                 _settings = ChartSettingsManager.Current;
                 _gridVisible = _settings.GridVisible;
                 ApplyDisplayCrosshairSettings();
+                ApplyDisplayCrosshairLayout();
                 ApplyDisplayGridSettings(Chart);
                 ApplyDisplayGridSettings(VolumeChart);
                 ApplyDisplayBackgroundAndAxes(Chart);
@@ -131,6 +140,18 @@ namespace TradeIt.Charts
             _crosshair.LinePattern = ParseDisplayPattern(_settings.CrosshairPattern);
             _crosshair.HorizontalLine.LabelOppositeAxis = false;
             _crosshair.VerticalLine.LabelOppositeAxis = false;
+            _crosshair.HorizontalLine.LabelAlignment = ScottPlot.Alignment.MiddleRight;
+            _crosshair.VerticalLine.LabelAlignment = ScottPlot.Alignment.LowerCenter;
+        }
+
+        private void ApplyDisplayCrosshairLayout()
+        {
+            // ScottPlot calculates the axis panel size from its contents. When the
+            // horizontal crosshair label changes from e.g. "9,999.00" to "10,000.00",
+            // the left panel can resize and make the label appear to jump several cm.
+            // Reserve stable space for the price label so its X position never changes.
+            Chart.Plot.Axes.Left.MinimumSize = Math.Max(85, Chart.Plot.Axes.Left.MinimumSize);
+            Chart.Plot.Axes.Bottom.MinimumSize = Math.Max(38, Chart.Plot.Axes.Bottom.MinimumSize);
         }
 
         private static ScottPlot.LinePattern ParseDisplayPattern(string? value) => value?.Trim().ToLowerInvariant() switch
