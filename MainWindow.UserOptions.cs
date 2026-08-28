@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using TradeIt.Charts;
 using TradeIt.Models;
@@ -12,11 +14,7 @@ namespace TradeIt
 
         private static bool RegisterUserOptionsStartupHandler()
         {
-            EventManager.RegisterClassHandler(
-                typeof(MainWindow),
-                FrameworkElement.LoadedEvent,
-                new RoutedEventHandler(MainWindow_UserOptionsLoaded),
-                true);
+            EventManager.RegisterClassHandler(typeof(MainWindow), FrameworkElement.LoadedEvent, new RoutedEventHandler(MainWindow_UserOptionsLoaded), true);
             return true;
         }
 
@@ -24,6 +22,8 @@ namespace TradeIt
         {
             if (sender is not MainWindow window)
                 return;
+
+            window.AddTopSettingsButton();
 
             window.Dispatcher.BeginInvoke(new Action(() =>
             {
@@ -40,12 +40,28 @@ namespace TradeIt
             }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         }
 
-        private async void SymbolNameTextBlock_ClickBySetting(object sender, MouseButtonEventArgs e)
+        private void AddTopSettingsButton()
         {
-            await TaskProxy(sender, e);
+            if (TopToolbar?.Child is not Grid toolbarGrid)
+                return;
+
+            if (toolbarGrid.Children.OfType<Button>().Any(x => x.Name == "TopSettingsButton"))
+                return;
+
+            var button = new Button
+            {
+                Name = "TopSettingsButton",
+                Content = "تنظیمات",
+                Height = 32,
+                Padding = new Thickness(15, 0),
+                Margin = new Thickness(10, 0, 8, 0)
+            };
+            Grid.SetColumn(button, 5);
+            button.Click += SettingsButton_Click;
+            toolbarGrid.Children.Add(button);
         }
 
-        private static async System.Threading.Tasks.Task TaskProxy(object sender, MouseButtonEventArgs e)
+        private async void SymbolNameTextBlock_ClickBySetting(object sender, MouseButtonEventArgs e)
         {
             if (sender is not FrameworkElement element ||
                 element.DataContext is not SymbolInfo symbol ||
@@ -57,13 +73,9 @@ namespace TradeIt
 
             ChartSettings settings = ChartSettingsManager.Current;
             if (settings.OpenChartInNewTab)
-            {
                 await window.OpenChartTabAsync(symbol, window._selectedPortfolio, false);
-            }
             else
-            {
                 await window.OpenSharedChartTabAsync(symbol, window._selectedPortfolio);
-            }
         }
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
