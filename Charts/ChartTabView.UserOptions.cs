@@ -29,7 +29,6 @@ namespace TradeIt.Charts
             try
             {
                 var settings = ChartSettingsManager.Current;
-
                 _settings = settings;
                 _gridVisible = settings.GridVisible;
 
@@ -65,8 +64,9 @@ namespace TradeIt.Charts
             var settings = _settings;
             chart.Plot.Grid.IsVisible = settings.GridVisible;
             chart.Plot.Grid.LineColor = ScottPlot.Color.FromHtml(settings.GridColor);
-            chart.Plot.Grid.LineWidth = settings.GridLineWidth;
             chart.Plot.Grid.LinePattern = ParseLinePattern(settings.GridPattern);
+            chart.Plot.Grid.MajorLineWidth = settings.GridLineWidth;
+            chart.Plot.Grid.MinorLineWidth = settings.GridLineWidth;
         }
 
         private static ScottPlot.LinePattern ParseLinePattern(string? value)
