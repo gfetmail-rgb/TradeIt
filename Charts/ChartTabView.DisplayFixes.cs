@@ -10,14 +10,17 @@ namespace TradeIt.Charts
 {
     public partial class ChartTabView
     {
-        // This initializer runs before the normal constructor body and only
-        // installs event hooks. The controls themselves are used after Loaded.
-        private readonly bool _displayFixesInstalled = InstallDisplayFixes();
+        // Event hooks are installed from the constructor, not a field initializer.
+        private bool _displayFixesInstalled;
 
         private bool InstallDisplayFixes()
         {
+            if (_displayFixesInstalled)
+                return true;
+
             Loaded += DisplayFixes_Loaded;
             Unloaded += DisplayFixes_Unloaded;
+            _displayFixesInstalled = true;
             return true;
         }
 
@@ -25,7 +28,6 @@ namespace TradeIt.Charts
         {
             Chart.PreviewMouseMove += DisplayFixes_MouseMove;
             ChartSettingsManager.SettingsChanged += DisplayFixes_SettingsChanged;
-
             ApplyDisplayFixes();
         }
 
@@ -47,8 +49,6 @@ namespace TradeIt.Charts
                 var current = ChartSettingsManager.Current;
                 _settings = current;
 
-                // Date labels are valid only when the source actually contains
-                // timestamps. The chart's existing DateTime axis is preserved.
                 if (_bars.Any(x => x.Timestamp.HasValue && x.Timestamp.Value > DateTime.MinValue))
                     Chart.Plot.Axes.DateTimeTicksBottom();
 
@@ -62,7 +62,6 @@ namespace TradeIt.Charts
             }
             catch
             {
-                // Styling must never prevent the chart itself from opening.
             }
         }
 
@@ -122,8 +121,6 @@ namespace TradeIt.Charts
             }
             catch
             {
-                // Some ScottPlot financial plottables expose different style
-                // properties across minor versions. Ignore unsupported ones.
             }
         }
 
@@ -140,8 +137,6 @@ namespace TradeIt.Charts
                 plot.Grid.MajorLineColor = ScottPlot.Color.FromHtml(settings.GridColor);
                 plot.Grid.LinePattern = ParseDisplayLinePattern(settings.GridPattern);
 
-                // ScottPlot versions differ in the exact public name of the
-                // major-grid width property, so use reflection when available.
                 PropertyInfo? width = plot.Grid.GetType().GetProperty("LineWidth")
                     ?? plot.Grid.GetType().GetProperty("MajorLineWidth");
 
@@ -150,7 +145,6 @@ namespace TradeIt.Charts
             }
             catch
             {
-                // Grid styling must not prevent chart rendering.
             }
         }
 
@@ -172,14 +166,11 @@ namespace TradeIt.Charts
                 ChartInfoTextBlock.Text =
                     $"{_symbol.Symbol}   O: {bar.Open:N2}   H: {bar.High:N2}   L: {bar.Low:N2}   C: {bar.Close:N2}   V: {bar.Volume:N0}";
 
-                // The horizontal crosshair line carries the price label at its
-                // axis edge, while the top-left area is reserved for OHLCV.
                 _crosshair.HorizontalLine.Text = bar.Close.ToString("N2", CultureInfo.InvariantCulture);
                 _crosshair.VerticalLine.Text = dateText;
             }
             catch
             {
-                // Crosshair decoration must never interrupt mouse interaction.
             }
         }
 
