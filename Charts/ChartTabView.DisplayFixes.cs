@@ -1,7 +1,6 @@
 using System;
 using System.Globalization;
 using System.Linq;
-using System.Reflection;
 using System.Windows;
 using TradeIt.Models;
 
@@ -61,8 +60,6 @@ namespace TradeIt.Charts
             chart._crosshairMouseInside = true;
             chart.UpdateSnappedMouseInformation(index, y);
             chart.Chart.Refresh();
-
-            // Prevent the old free-movement handler from overwriting the snapped position.
             e.Handled = true;
         }
 
@@ -71,8 +68,7 @@ namespace TradeIt.Charts
             DependencyObject? current = source;
             while (current != null)
             {
-                if (current is ScottPlot.WPF.WpfPlot plot)
-                    return plot;
+                if (current is ScottPlot.WPF.WpfPlot plot) return plot;
                 current = System.Windows.Media.VisualTreeHelper.GetParent(current);
             }
             return null;
@@ -87,17 +83,13 @@ namespace TradeIt.Charts
             if (hasRealTimestamp)
             {
                 DateTime dt = GetBarDateTime(bar, index);
-                dateText = dt.TimeOfDay == TimeSpan.Zero
-                    ? dt.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture)
-                    : dt.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
+                dateText = dt.TimeOfDay == TimeSpan.Zero ? dt.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture) : dt.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
             }
             else
             {
                 dateText = $"کندل {index + 1}";
             }
-
-            ChartInfoTextBlock.Text =
-                $"{_symbol.Symbol} | O: {bar.Open:N2}  H: {bar.High:N2}  L: {bar.Low:N2}  C: {bar.Close:N2}  V: {bar.Volume:N0}";
+            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | O: {bar.Open:N2}  H: {bar.High:N2}  L: {bar.Low:N2}  C: {bar.Close:N2}  V: {bar.Volume:N0}";
             BottomInfoTextBlock.Text = dateText;
         }
 
@@ -118,10 +110,7 @@ namespace TradeIt.Charts
                 Chart.Refresh();
                 VolumeChart.Refresh();
             }
-            catch
-            {
-                // Rendering must not prevent the chart window from opening.
-            }
+            catch { }
         }
 
         private void ApplyDisplayCrosshairSettings()
@@ -142,12 +131,7 @@ namespace TradeIt.Charts
             _ => ScottPlot.LinePattern.Solid
         };
 
-        private static void ApplyDisplayGridSettings(ScottPlot.WPF.WpfPlot plot)
-        {
-            // Kept in the instance caller because settings are instance-specific.
-        }
-
-        private void ApplyDisplayGridSettings(ScottPlot.WPF.WpfPlot plot, bool unused = false)
+        private void ApplyDisplayGridSettings(ScottPlot.WPF.WpfPlot plot)
         {
             plot.Plot.Grid.IsVisible = _settings.GridVisible;
             plot.Plot.Grid.LineColor = ScottPlot.Color.FromHtml(_settings.GridColor);
@@ -186,15 +170,12 @@ namespace TradeIt.Charts
 
         private void ConfigureDisplayDateAxis(ScottPlot.WPF.WpfPlot plot)
         {
-            bool hasRealTimestamp = _bars.Any(b => b.Timestamp.HasValue && b.Timestamp.Value > DateTime.MinValue && b.Timestamp.Value < DateTime.MaxValue);
-            if (!hasRealTimestamp) return;
+            if (!_bars.Any(b => b.Timestamp.HasValue && b.Timestamp.Value > DateTime.MinValue && b.Timestamp.Value < DateTime.MaxValue)) return;
             try
             {
                 var axis = plot.Plot.Axes.DateTimeTicksBottom();
                 if (axis.TickGenerator is ScottPlot.TickGenerators.DateTimeAutomatic auto)
-                    auto.LabelFormatter = dt => dt.TimeOfDay == TimeSpan.Zero
-                        ? dt.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture)
-                        : dt.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
+                    auto.LabelFormatter = dt => dt.TimeOfDay == TimeSpan.Zero ? dt.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture) : dt.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
             }
             catch { }
         }
