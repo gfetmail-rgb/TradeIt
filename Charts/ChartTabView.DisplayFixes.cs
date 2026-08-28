@@ -10,8 +10,8 @@ namespace TradeIt.Charts
 {
     public partial class ChartTabView
     {
-        // Event hooks are installed from the constructor, not a field initializer.
         private bool _displayFixesInstalled;
+        private bool _axisLabelsHookInstalled;
 
         private bool InstallDisplayFixes()
         {
@@ -27,13 +27,16 @@ namespace TradeIt.Charts
         private void DisplayFixes_Loaded(object sender, RoutedEventArgs e)
         {
             Chart.PreviewMouseMove += DisplayFixes_MouseMove;
+            VolumeChart.PreviewMouseMove += DisplayFixes_VolumeMouseMove;
             ChartSettingsManager.SettingsChanged += DisplayFixes_SettingsChanged;
+            InstallAxisLabelsHook();
             ApplyDisplayFixes();
         }
 
         private void DisplayFixes_Unloaded(object sender, RoutedEventArgs e)
         {
             Chart.PreviewMouseMove -= DisplayFixes_MouseMove;
+            VolumeChart.PreviewMouseMove -= DisplayFixes_VolumeMouseMove;
             ChartSettingsManager.SettingsChanged -= DisplayFixes_SettingsChanged;
         }
 
@@ -49,12 +52,10 @@ namespace TradeIt.Charts
                 var current = ChartSettingsManager.Current;
                 _settings = current;
 
-                if (_bars.Any(x => x.Timestamp.HasValue && x.Timestamp.Value > DateTime.MinValue))
-                    Chart.Plot.Axes.DateTimeTicksBottom();
-
                 ApplyCrosshairSettings(current);
                 ApplyFinancialLineWidths(current);
                 ApplyGridStyle(current);
+                ApplyAxisLabelMode();
 
                 Chart.Refresh();
                 if (_volumeVisible)
@@ -62,6 +63,7 @@ namespace TradeIt.Charts
             }
             catch
             {
+                // A settings refresh must never prevent the chart from opening.
             }
         }
 
@@ -73,6 +75,12 @@ namespace TradeIt.Charts
             _crosshair.LineColor = ScottPlot.Color.FromHtml(settings.CrosshairColor);
             _crosshair.LineWidth = (float)Math.Max(0.1, settings.CrosshairLineWidth);
             _crosshair.LinePattern = ParseDisplayLinePattern(settings.CrosshairPattern);
+
+            // The horizontal price label belongs at the price-axis end of the crosshair,
+            // not in the upper-left information area.
+            _crosshair.HorizontalLine.LabelOppositeAxis = true;
+            _crosshair.HorizontalLine.TextAlignment = ScottPlot.Alignment.MiddleLeft;
+            _crosshair.VerticalLine.LabelOppositeAxis = false;
         }
 
         private static ScottPlot.LinePattern ParseDisplayLinePattern(string? pattern)
@@ -98,13 +106,34 @@ namespace TradeIt.Charts
                     SetNestedLineWidth(plottable, "RisingLineStyle", settings.CandleLineWidth);
                     SetNestedLineWidth(plottable, "FallingLineStyle", settings.CandleLineWidth);
                 }
-                else if (typeName.Contains("OHLC", StringComparison.OrdinalIgnoreCase))
+                else if (typeName.Contains("OHLC", StringComparison.OrdinalIgnoreCase) ||
+                         typeName.Contains("Ohlc", StringComparison.OrdinalIgnoreCase))
                 {
-                    SetNestedLineWidth(plottable, "RisingLineStyle", settings.BarLineWidth);
-                    SetNestedLineWidth(plottable, "FallingLineStyle", settings.BarLineWidth);
                     SetNestedLineWidth(plottable, "RisingStyle", settings.BarLineWidth);
                     SetNestedLineWidth(plottable, "FallingStyle", settings.BarLineWidth);
                 }
+                else if (typeName.Contains("Scatter", StringComparison.OrdinalIgnoreCase))
+                {
+                    SetDirectFloatProperty(plottable, "LineWidth", settings.LineWidth);
+                }
+            }
+        }
+
+        private static void SetDirectFloatProperty(object target, string propertyName, double value)
+        {
+            try
+            {
+                PropertyInfo? property = target.GetType().GetProperty(propertyName);
+                if (property?.CanWrite != true)
+                    return;
+
+                if (property.PropertyType == typeof(float))
+                    property.SetValue(target, (float)Math.Max(0.1, value));
+                else if (property.PropertyType == typeof(double))
+                    property.SetValue(target, Math.Max(0.1, value));
+            }
+            catch
+            {
             }
         }
 
@@ -155,19 +184,60 @@ namespace TradeIt.Charts
                 if (_bars.Count == 0 || _crosshair == null || !_crosshair.IsVisible)
                     return;
 
-                double x = _crosshair.Position.X;
-                int index = FindNearestBarIndex(x);
+                // The base ChartTabView converts the mouse position to chart coordinates.
+                // Snap that X coordinate to the nearest actual candle before rendering.
+                double rawX = _crosshair.Position.X;
+                int index = FindNearestBarIndex(rawX);
                 if (index < 0 || index >= _bars.Count)
                     return;
 
                 MarketBar bar = _bars[index];
+                double snappedX = GetBarDateTime(bar, index).ToOADate();
+
+                _crosshair.Position = new ScottPlot.Coordinates(
+                    snappedX,
+                    bar.Close);
+
                 string dateText = GetDisplayDateText(bar, index);
 
                 ChartInfoTextBlock.Text =
-                    $"{_symbol.Symbol}   O: {bar.Open:N2}   H: {bar.High:N2}   L: {bar.Low:N2}   C: {bar.Close:N2}   V: {bar.Volume:N0}";
+                    $"{_symbol.Symbol}    O: {bar.Open:N2}    H: {bar.High:N2}    L: {bar.Low:N2}    C: {bar.Close:N2}    V: {bar.Volume:N0}";
 
+                // Price is shown at the end of the horizontal crosshair on the price axis.
                 _crosshair.HorizontalLine.Text = bar.Close.ToString("N2", CultureInfo.InvariantCulture);
                 _crosshair.VerticalLine.Text = dateText;
+
+                Chart.Refresh();
+            }
+            catch
+            {
+            }
+        }
+
+        private void DisplayFixes_VolumeMouseMove(object sender, MouseEventArgs e)
+        {
+            try
+            {
+                if (_bars.Count == 0 || _crosshair == null || !_crosshair.IsVisible)
+                    return;
+
+                double rawX = _crosshair.Position.X;
+                int index = FindNearestBarIndex(rawX);
+                if (index < 0 || index >= _bars.Count)
+                    return;
+
+                MarketBar bar = _bars[index];
+                double snappedX = GetBarDateTime(bar, index).ToOADate();
+                var mainLimits = Chart.Plot.Axes.GetLimits();
+                double y = Math.Max(mainLimits.Bottom, Math.Min(mainLimits.Top, bar.Close));
+
+                _crosshair.Position = new ScottPlot.Coordinates(snappedX, y);
+                _crosshair.HorizontalLine.Text = bar.Close.ToString("N2", CultureInfo.InvariantCulture);
+                _crosshair.VerticalLine.Text = GetDisplayDateText(bar, index);
+                ChartInfoTextBlock.Text =
+                    $"{_symbol.Symbol}    O: {bar.Open:N2}    H: {bar.High:N2}    L: {bar.Low:N2}    C: {bar.Close:N2}    V: {bar.Volume:N0}";
+
+                Chart.Refresh();
             }
             catch
             {
@@ -207,6 +277,64 @@ namespace TradeIt.Charts
             }
 
             return $"کندل {index + 1}";
+        }
+
+        private void InstallAxisLabelsHook()
+        {
+            if (_axisLabelsHookInstalled)
+                return;
+
+            Chart.RenderManager.RenderStarting += DisplayFixes_RenderStarting;
+            _axisLabelsHookInstalled = true;
+        }
+
+        private void ApplyAxisLabelMode()
+        {
+            // DrawChart already owns the DateTime axis generator. We only customize
+            // its labels during rendering, avoiding incompatible TickGenerator changes.
+        }
+
+        private void DisplayFixes_RenderStarting(object? sender, EventArgs e)
+        {
+            try
+            {
+                if (_bars.Count == 0)
+                    return;
+
+                var ticks = Chart.Plot.Axes.Bottom.TickGenerator.Ticks;
+                if (ticks == null || ticks.Length == 0)
+                    return;
+
+                bool hasRealTimestamp = _bars.Any(x =>
+                    x.Timestamp.HasValue &&
+                    x.Timestamp.Value > DateTime.MinValue &&
+                    x.Timestamp.Value < DateTime.MaxValue);
+
+                for (int i = 0; i < ticks.Length; i++)
+                {
+                    int nearest = FindNearestBarIndex(ticks[i].Position);
+                    if (nearest < 0)
+                        continue;
+
+                    string label;
+                    if (hasRealTimestamp)
+                    {
+                        DateTime dt = GetBarDateTime(_bars[nearest], nearest);
+                        label = dt.TimeOfDay == TimeSpan.Zero
+                            ? dt.ToString("yyyy/MM/dd")
+                            : dt.ToString("yyyy/MM/dd HH:mm");
+                    }
+                    else
+                    {
+                        label = $"کندل {nearest + 1}";
+                    }
+
+                    ticks[i] = new ScottPlot.Tick(ticks[i].Position, label, ticks[i].IsMajor);
+                }
+            }
+            catch
+            {
+            }
         }
     }
 }
