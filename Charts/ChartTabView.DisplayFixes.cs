@@ -13,218 +13,190 @@ namespace TradeIt.Charts
 
         private static bool RegisterDisplayFixes()
         {
-            EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.LoadedEvent, new RoutedEventHandler(DisplayFixes_ClassLoaded));
-            EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.UnloadedEvent, new RoutedEventHandler(DisplayFixes_ClassUnloaded));
+            EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.LoadedEvent, new RoutedEventHandler(DisplayFixes_Loaded));
+            EventManager.RegisterClassHandler(typeof(ChartTabView), UIElement.PreviewMouseMoveEvent, new System.Windows.Input.MouseEventHandler(DisplayFixes_PreviewMouseMove));
             return true;
         }
 
-        private static void DisplayFixes_ClassLoaded(object sender, RoutedEventArgs e)
+        private static void DisplayFixes_Loaded(object sender, RoutedEventArgs e)
         {
             if (sender is not ChartTabView chart) return;
-            chart.ConfigureDateAxisLabels();
-            chart.ApplyDisplayFixes();
-            chart.Chart.PreviewMouseMove -= chart.DisplayFixes_ChartMouseMove;
-            chart.Chart.PreviewMouseMove += chart.DisplayFixes_ChartMouseMove;
-            chart.VolumeChart.PreviewMouseMove -= chart.DisplayFixes_VolumeMouseMove;
-            chart.VolumeChart.PreviewMouseMove += chart.DisplayFixes_VolumeMouseMove;
+            chart.ApplyDisplayFixesNow();
+            ChartSettingsManager.SettingsChanged -= chart.DisplayFixes_SettingsChanged;
+            ChartSettingsManager.SettingsChanged += chart.DisplayFixes_SettingsChanged;
         }
 
-        private static void DisplayFixes_ClassUnloaded(object sender, RoutedEventArgs e)
+        private void DisplayFixes_SettingsChanged(object? sender, EventArgs e)
         {
-            if (sender is not ChartTabView chart) return;
-            chart.Chart.PreviewMouseMove -= chart.DisplayFixes_ChartMouseMove;
-            chart.VolumeChart.PreviewMouseMove -= chart.DisplayFixes_VolumeMouseMove;
+            if (Dispatcher.CheckAccess()) ApplyDisplayFixesNow();
+            else Dispatcher.InvokeAsync(ApplyDisplayFixesNow);
         }
 
-        private void DisplayFixes_ChartMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        private static void DisplayFixes_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            if (_crosshair == null || !_chartVisible || !_crosshairVisible || _bars.Count == 0) return;
-            System.Windows.Point point = e.GetPosition(Chart);
-            if (!TryGetChartCoordinates(Chart, point, out ScottPlot.Coordinates coordinates)) return;
-            int index = FindNearestBarIndex(coordinates.X);
-            if (index < 0) return;
-            double x = GetBarDateTime(_bars[index], index).ToOADate();
-            _crosshair.Position = new ScottPlot.Coordinates(x, coordinates.Y);
-            _crosshair.IsVisible = true;
-            _crosshairMouseInside = true;
-            UpdateSnappedMouseInformation(index, coordinates.Y);
-            Chart.Refresh();
+            if (sender is not ChartTabView chart || chart._crosshair == null || !chart._chartVisible || !chart._crosshairVisible || chart._bars.Count == 0)
+                return;
+
+            if (e.OriginalSource is not System.Windows.DependencyObject source)
+                return;
+
+            ScottPlot.WPF.WpfPlot? plot = FindPlot(source);
+            if (plot == null || (!ReferenceEquals(plot, chart.Chart) && !ReferenceEquals(plot, chart.VolumeChart)))
+                return;
+
+            System.Windows.Point point = e.GetPosition(plot);
+            if (!chart.TryGetChartCoordinates(plot, point, out ScottPlot.Coordinates coordinates))
+                return;
+
+            int index = chart.FindNearestBarIndex(coordinates.X);
+            if (index < 0 || index >= chart._bars.Count)
+                return;
+
+            double x = chart.GetBarDateTime(chart._bars[index], index).ToOADate();
+            var limits = chart.Chart.Plot.Axes.GetLimits();
+            double y = ReferenceEquals(plot, chart.Chart) ? coordinates.Y : (limits.Bottom + limits.Top) / 2.0;
+
+            chart._crosshair.Position = new ScottPlot.Coordinates(x, y);
+            chart._crosshair.IsVisible = true;
+            chart._crosshairMouseInside = true;
+            chart.UpdateSnappedMouseInformation(index, y);
+            chart.Chart.Refresh();
+
+            // Prevent the old free-movement handler from overwriting the snapped position.
+            e.Handled = true;
         }
 
-        private void DisplayFixes_VolumeMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        private static ScottPlot.WPF.WpfPlot? FindPlot(System.Windows.DependencyObject source)
         {
-            if (_crosshair == null || !_chartVisible || !_crosshairVisible || _bars.Count == 0) return;
-            System.Windows.Point point = e.GetPosition(VolumeChart);
-            if (!TryGetChartCoordinates(VolumeChart, point, out ScottPlot.Coordinates coordinates)) return;
-            int index = FindNearestBarIndex(coordinates.X);
-            if (index < 0) return;
-            double x = GetBarDateTime(_bars[index], index).ToOADate();
-            var limits = Chart.Plot.Axes.GetLimits();
-            double y = (limits.Bottom + limits.Top) / 2.0;
-            _crosshair.Position = new ScottPlot.Coordinates(x, y);
-            _crosshair.IsVisible = true;
-            _crosshairMouseInside = true;
-            UpdateSnappedMouseInformation(index, y);
-            Chart.Refresh();
+            DependencyObject? current = source;
+            while (current != null)
+            {
+                if (current is ScottPlot.WPF.WpfPlot plot)
+                    return plot;
+                current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+            }
+            return null;
         }
 
         private void UpdateSnappedMouseInformation(int index, double crosshairPrice)
         {
             if (index < 0 || index >= _bars.Count) return;
             MarketBar bar = _bars[index];
-            DateTime dt = GetBarDateTime(bar, index);
             bool hasRealTimestamp = _bars.Any(b => b.Timestamp.HasValue && b.Timestamp.Value > DateTime.MinValue && b.Timestamp.Value < DateTime.MaxValue);
-            string dateText = hasRealTimestamp
-                ? (dt.TimeOfDay == TimeSpan.Zero ? dt.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture) : dt.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture))
-                : $"کندل {index + 1}";
-            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | O: {bar.Open:N2}  H: {bar.High:N2}  L: {bar.Low:N2}  C: {bar.Close:N2}  V: {bar.Volume:N0} | {dateText}";
+            string dateText;
+            if (hasRealTimestamp)
+            {
+                DateTime dt = GetBarDateTime(bar, index);
+                dateText = dt.TimeOfDay == TimeSpan.Zero
+                    ? dt.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture)
+                    : dt.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
+            }
+            else
+            {
+                dateText = $"کندل {index + 1}";
+            }
+
+            ChartInfoTextBlock.Text =
+                $"{_symbol.Symbol} | O: {bar.Open:N2}  H: {bar.High:N2}  L: {bar.Low:N2}  C: {bar.Close:N2}  V: {bar.Volume:N0}";
+            BottomInfoTextBlock.Text = dateText;
         }
 
-        private void ApplyDisplayFixes()
+        private void ApplyDisplayFixesNow()
         {
             try
             {
-                ChartSettings settings = ChartSettingsManager.Current;
-                _settings = settings;
-                _gridVisible = settings.GridVisible;
-                ApplyCrosshairSettings(settings);
-                ApplyFinancialLineWidths(settings);
-                ApplyGridStyle(settings);
-                Chart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(settings.FigureBackground);
-                Chart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(settings.DataBackground);
-                Chart.Plot.Axes.Color(ScottPlot.Color.FromHtml(settings.AxisColor));
-                VolumeChart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(settings.FigureBackground);
-                VolumeChart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(settings.DataBackground);
-                VolumeChart.Plot.Axes.Color(ScottPlot.Color.FromHtml(settings.AxisColor));
+                _settings = ChartSettingsManager.Current;
+                _gridVisible = _settings.GridVisible;
+                ApplyDisplayCrosshairSettings();
+                ApplyDisplayGridSettings(Chart);
+                ApplyDisplayGridSettings(VolumeChart);
+                ApplyDisplayBackgroundAndAxes(Chart);
+                ApplyDisplayBackgroundAndAxes(VolumeChart);
+                ApplyDisplaySeriesWidths();
+                ConfigureDisplayDateAxis(Chart);
+                ConfigureDisplayDateAxis(VolumeChart);
                 Chart.Refresh();
                 VolumeChart.Refresh();
             }
-            catch { }
+            catch
+            {
+                // Rendering must not prevent the chart window from opening.
+            }
         }
 
-        private void ApplyCrosshairSettings(ChartSettings settings)
+        private void ApplyDisplayCrosshairSettings()
         {
             if (_crosshair == null) return;
-            _crosshair.LineColor = ScottPlot.Color.FromHtml(settings.CrosshairColor);
-            _crosshair.LineWidth = (float)Math.Max(0.1, settings.CrosshairLineWidth);
-            _crosshair.LinePattern = ParseDisplayLinePattern(settings.CrosshairPattern);
+            _crosshair.LineColor = ScottPlot.Color.FromHtml(_settings.CrosshairColor);
+            _crosshair.LineWidth = (float)Math.Max(0.01, _settings.CrosshairLineWidth);
+            _crosshair.LinePattern = ParseDisplayPattern(_settings.CrosshairPattern);
             _crosshair.HorizontalLine.LabelOppositeAxis = true;
-            _crosshair.HorizontalLine.TextAlignment = ScottPlot.Alignment.MiddleLeft;
             _crosshair.VerticalLine.LabelOppositeAxis = false;
         }
 
-        private static ScottPlot.LinePattern ParseDisplayLinePattern(string? pattern) => pattern?.Trim().ToLowerInvariant() switch
+        private static ScottPlot.LinePattern ParseDisplayPattern(string? value) => value?.Trim().ToLowerInvariant() switch
         {
-            "solid" => ScottPlot.LinePattern.Solid,
+            "dotted" => ScottPlot.LinePattern.Dotted,
             "dashed" => ScottPlot.LinePattern.Dashed,
             "denselydashed" => ScottPlot.LinePattern.DenselyDashed,
-            "dotted" => ScottPlot.LinePattern.Dotted,
-            _ => ScottPlot.LinePattern.Dotted
+            _ => ScottPlot.LinePattern.Solid
         };
 
-        private void ApplyFinancialLineWidths(ChartSettings settings)
+        private static void ApplyDisplayGridSettings(ScottPlot.WPF.WpfPlot plot)
+        {
+            // Kept in the instance caller because settings are instance-specific.
+        }
+
+        private void ApplyDisplayGridSettings(ScottPlot.WPF.WpfPlot plot, bool unused = false)
+        {
+            plot.Plot.Grid.IsVisible = _settings.GridVisible;
+            plot.Plot.Grid.LineColor = ScottPlot.Color.FromHtml(_settings.GridColor);
+            plot.Plot.Grid.LinePattern = ParseDisplayPattern(_settings.GridPattern);
+            plot.Plot.Grid.MajorLineWidth = (float)Math.Max(0.01, _settings.GridLineWidth);
+            plot.Plot.Grid.MinorLineWidth = (float)Math.Max(0.01, _settings.GridLineWidth);
+        }
+
+        private void ApplyDisplayBackgroundAndAxes(ScottPlot.WPF.WpfPlot plot)
+        {
+            plot.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(_settings.FigureBackground);
+            plot.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(_settings.DataBackground);
+            plot.Plot.Axes.Color(ScottPlot.Color.FromHtml(_settings.AxisColor));
+        }
+
+        private void ApplyDisplaySeriesWidths()
         {
             foreach (var plottable in Chart.Plot.GetPlottables())
             {
-                string typeName = plottable.GetType().Name;
-                if (typeName.Contains("Candlestick", StringComparison.OrdinalIgnoreCase))
+                if (plottable is ScottPlot.Plottables.CandlestickPlot candles)
                 {
-                    SetNestedLineWidth(plottable, "RisingLineStyle", settings.CandleLineWidth);
-                    SetNestedLineWidth(plottable, "FallingLineStyle", settings.CandleLineWidth);
+                    candles.RisingLineStyle.Width = (float)Math.Max(0.01, _settings.CandleLineWidth);
+                    candles.FallingLineStyle.Width = (float)Math.Max(0.01, _settings.CandleLineWidth);
                 }
-                else if (typeName.Contains("OHLC", StringComparison.OrdinalIgnoreCase) || typeName.Contains("Ohlc", StringComparison.OrdinalIgnoreCase))
+                else if (plottable is ScottPlot.Plottables.OhlcPlot ohlc)
                 {
-                    SetNestedLineWidth(plottable, "RisingStyle", settings.BarLineWidth);
-                    SetNestedLineWidth(plottable, "FallingStyle", settings.BarLineWidth);
+                    ohlc.RisingStyle.Width = (float)Math.Max(0.01, _settings.BarLineWidth);
+                    ohlc.FallingStyle.Width = (float)Math.Max(0.01, _settings.BarLineWidth);
                 }
-                else if (typeName.Contains("Scatter", StringComparison.OrdinalIgnoreCase))
+                else if (plottable is ScottPlot.Plottables.Scatter scatter)
                 {
-                    SetDirectFloatProperty(plottable, "LineWidth", settings.LineWidth);
+                    scatter.LineWidth = (float)Math.Max(0.01, _settings.LineWidth);
                 }
             }
         }
 
-        private static void SetDirectFloatProperty(object target, string propertyName, double value)
-        {
-            try
-            {
-                PropertyInfo? property = target.GetType().GetProperty(propertyName);
-                if (property?.CanWrite != true) return;
-                if (property.PropertyType == typeof(float)) property.SetValue(target, (float)Math.Max(0.01, value));
-                else if (property.PropertyType == typeof(double)) property.SetValue(target, Math.Max(0.01, value));
-            }
-            catch { }
-        }
-
-        private static void SetNestedLineWidth(object target, string stylePropertyName, double width)
-        {
-            try
-            {
-                PropertyInfo? styleProperty = target.GetType().GetProperty(stylePropertyName);
-                object? style = styleProperty?.GetValue(target);
-                PropertyInfo? widthProperty = style?.GetType().GetProperty("Width");
-                if (widthProperty?.CanWrite != true) return;
-                if (widthProperty.PropertyType == typeof(float)) widthProperty.SetValue(style, (float)Math.Max(0.01, width));
-                else if (widthProperty.PropertyType == typeof(double)) widthProperty.SetValue(style, Math.Max(0.01, width));
-            }
-            catch { }
-        }
-
-        private void ApplyGridStyle(ChartSettings settings)
-        {
-            ApplyGridStyleToPlot(Chart.Plot, settings);
-            ApplyGridStyleToPlot(VolumeChart.Plot, settings);
-        }
-
-        private static void ApplyGridStyleToPlot(ScottPlot.Plot plot, ChartSettings settings)
-        {
-            try
-            {
-                plot.Grid.MajorLineColor = ScottPlot.Color.FromHtml(settings.GridColor);
-                plot.Grid.LinePattern = ParseDisplayLinePattern(settings.GridPattern);
-                PropertyInfo? width = plot.Grid.GetType().GetProperty("LineWidth") ?? plot.Grid.GetType().GetProperty("MajorLineWidth");
-                if (width?.CanWrite == true)
-                {
-                    if (width.PropertyType == typeof(float)) width.SetValue(plot.Grid, (float)Math.Max(0.01, settings.GridLineWidth));
-                    else if (width.PropertyType == typeof(double)) width.SetValue(plot.Grid, Math.Max(0.01, settings.GridLineWidth));
-                }
-                plot.Grid.IsVisible = settings.GridVisible;
-            }
-            catch { }
-        }
-
-        private void ConfigureDateAxisLabels()
-        {
-            try
-            {
-                var bottom = Chart.Plot.Axes.DateTimeTicksBottom();
-                if (bottom.TickGenerator is ScottPlot.TickGenerators.DateTimeAutomatic automatic) automatic.LabelFormatter = FormatChartDateTick;
-                var volumeBottom = VolumeChart.Plot.Axes.DateTimeTicksBottom();
-                if (volumeBottom.TickGenerator is ScottPlot.TickGenerators.DateTimeAutomatic volumeAutomatic) volumeAutomatic.LabelFormatter = FormatChartDateTick;
-            }
-            catch { }
-        }
-
-        private string FormatChartDateTick(DateTime dateTime)
+        private void ConfigureDisplayDateAxis(ScottPlot.WPF.WpfPlot plot)
         {
             bool hasRealTimestamp = _bars.Any(b => b.Timestamp.HasValue && b.Timestamp.Value > DateTime.MinValue && b.Timestamp.Value < DateTime.MaxValue);
-            if (hasRealTimestamp) return dateTime.TimeOfDay == TimeSpan.Zero ? dateTime.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture) : dateTime.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
-            int nearest = FindNearestBarIndex(dateTime.ToOADate());
-            return nearest >= 0 ? $"کندل {nearest + 1}" : string.Empty;
-        }
-
-        private int FindNearestBarIndex(double x)
-        {
-            if (_bars.Count == 0) return -1;
-            int bestIndex = 0;
-            double bestDistance = double.MaxValue;
-            for (int i = 0; i < _bars.Count; i++)
+            if (!hasRealTimestamp) return;
+            try
             {
-                double barX = GetBarDateTime(_bars[i], i).ToOADate();
-                double distance = Math.Abs(barX - x);
-                if (distance < bestDistance) { bestDistance = distance; bestIndex = i; }
+                var axis = plot.Plot.Axes.DateTimeTicksBottom();
+                if (axis.TickGenerator is ScottPlot.TickGenerators.DateTimeAutomatic auto)
+                    auto.LabelFormatter = dt => dt.TimeOfDay == TimeSpan.Zero
+                        ? dt.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture)
+                        : dt.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
             }
-            return bestIndex;
+            catch { }
         }
     }
 }
