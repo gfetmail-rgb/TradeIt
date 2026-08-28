@@ -8,6 +8,7 @@ using WpfButton = System.Windows.Controls.Button;
 using WpfGroupBox = System.Windows.Controls.GroupBox;
 using WpfStackPanel = System.Windows.Controls.StackPanel;
 using WpfTextBlock = System.Windows.Controls.TextBlock;
+using WpfBrushes = System.Windows.Media.Brushes;
 
 namespace TradeIt.Charts
 {
@@ -53,7 +54,7 @@ namespace TradeIt.Charts
             {
                 Text = "اگر خاموش باشد، همه سهم‌ها در یک تب مشترک نمایش داده می‌شوند.",
                 TextWrapping = TextWrapping.Wrap,
-                Foreground = Brushes.Gray
+                Foreground = WpfBrushes.Gray
             });
 
             group.Content = panel;
