@@ -1,7 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
+using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
 
 namespace TradeIt.Charts
 {
@@ -45,12 +45,12 @@ namespace TradeIt.Charts
                 DrawChart();
         }
 
-        private void CrosshairFixes_PreviewMouseMove(object sender, MouseEventArgs e)
+        private void CrosshairFixes_PreviewMouseMove(object sender, WpfMouseEventArgs e)
         {
             if (_crosshair == null || !_chartVisible || !_crosshairVisible || _bars.Count == 0)
                 return;
 
-            Point mouse = e.GetPosition(Chart);
+            System.Windows.Point mouse = e.GetPosition(Chart);
             if (!TryGetChartCoordinates(Chart, mouse, out ScottPlot.Coordinates coordinates))
                 return;
 
@@ -59,7 +59,6 @@ namespace TradeIt.Charts
                 return;
 
             double snappedX = GetBarDateTime(_bars[nearestIndex], nearestIndex).ToOADate();
-
             _crosshair.Position = new ScottPlot.Coordinates(snappedX, coordinates.Y);
             _crosshair.HorizontalLine.Text = coordinates.Y.ToString("N2");
             _crosshair.HorizontalLine.LabelOppositeAxis = false;
@@ -70,12 +69,12 @@ namespace TradeIt.Charts
             Chart.Refresh();
         }
 
-        private void CrosshairFixes_VolumeMouseMove(object sender, MouseEventArgs e)
+        private void CrosshairFixes_VolumeMouseMove(object sender, WpfMouseEventArgs e)
         {
             if (_crosshair == null || !_chartVisible || !_crosshairVisible || _bars.Count == 0)
                 return;
 
-            Point mouse = e.GetPosition(VolumeChart);
+            System.Windows.Point mouse = e.GetPosition(VolumeChart);
             if (!TryGetChartCoordinates(VolumeChart, mouse, out ScottPlot.Coordinates coordinates))
                 return;
 
@@ -89,7 +88,6 @@ namespace TradeIt.Charts
 
             double snappedX = GetBarDateTime(_bars[nearestIndex], nearestIndex).ToOADate();
             double y = (mainLimits.Bottom + mainLimits.Top) / 2.0;
-
             _crosshair.Position = new ScottPlot.Coordinates(snappedX, y);
             _crosshair.HorizontalLine.Text = y.ToString("N2");
             _crosshair.IsVisible = true;
@@ -111,7 +109,6 @@ namespace TradeIt.Charts
             {
                 double barX = GetBarDateTime(_bars[i], i).ToOADate();
                 double distance = Math.Abs(barX - x);
-
                 if (distance < bestDistance)
                 {
                     bestDistance = distance;
@@ -127,9 +124,8 @@ namespace TradeIt.Charts
             if (index < 0 || index >= _bars.Count)
                 return;
 
-            MarketBar bar = _bars[index];
+            var bar = _bars[index];
             DateTime timestamp = GetBarDateTime(bar, index);
-
             string dateText = timestamp.TimeOfDay == TimeSpan.Zero
                 ? timestamp.ToString("yyyy/MM/dd")
                 : timestamp.ToString("yyyy/MM/dd HH:mm:ss");
