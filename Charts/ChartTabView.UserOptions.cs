@@ -38,7 +38,7 @@ namespace TradeIt.Charts
                 if (_crosshair != null)
                 {
                     _crosshair.LineColor = ScottPlot.Color.FromHtml(settings.CrosshairColor);
-                    _crosshair.LineWidth = settings.CrosshairLineWidth;
+                    _crosshair.LineWidth = (float)settings.CrosshairLineWidth;
                     _crosshair.LinePattern = ParseLinePattern(settings.CrosshairPattern);
                 }
 
@@ -65,8 +65,8 @@ namespace TradeIt.Charts
             chart.Plot.Grid.IsVisible = settings.GridVisible;
             chart.Plot.Grid.LineColor = ScottPlot.Color.FromHtml(settings.GridColor);
             chart.Plot.Grid.LinePattern = ParseLinePattern(settings.GridPattern);
-            chart.Plot.Grid.MajorLineWidth = settings.GridLineWidth;
-            chart.Plot.Grid.MinorLineWidth = settings.GridLineWidth;
+            chart.Plot.Grid.MajorLineWidth = (float)settings.GridLineWidth;
+            chart.Plot.Grid.MinorLineWidth = (float)settings.GridLineWidth;
         }
 
         private static ScottPlot.LinePattern ParseLinePattern(string? value)
