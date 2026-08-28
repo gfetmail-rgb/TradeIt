@@ -9,21 +9,24 @@ namespace TradeIt.Charts
 {
     public partial class ChartTabView
     {
-        private bool _userFixesHooked;
+        private static readonly bool _userRequestedFixesRegistered = RegisterUserRequestedFixes();
 
-        private void HookUserRequestedChartFixes()
+        private static bool RegisterUserRequestedFixes()
         {
-            if (_userFixesHooked)
-                return;
-
-            _userFixesHooked = true;
-            Chart.Loaded += UserFixesChart_Loaded;
+            EventManager.RegisterClassHandler(
+                typeof(ChartTabView),
+                FrameworkElement.LoadedEvent,
+                new RoutedEventHandler(UserRequestedChartLoaded));
+            return true;
         }
 
-        private void UserFixesChart_Loaded(object sender, RoutedEventArgs e)
+        private static void UserRequestedChartLoaded(object sender, RoutedEventArgs e)
         {
-            Chart.MouseMove -= UserFixesChart_MouseMove;
-            Chart.MouseMove += UserFixesChart_MouseMove;
+            if (sender is not ChartTabView chart)
+                return;
+
+            chart.Chart.MouseMove -= chart.UserFixesChart_MouseMove;
+            chart.Chart.MouseMove += chart.UserFixesChart_MouseMove;
         }
 
         private void UserFixesChart_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
@@ -50,7 +53,7 @@ namespace TradeIt.Charts
 
             var bar = _bars[nearestIndex];
             bool hasTime = bar.Timestamp.HasValue && bar.Timestamp.Value > DateTime.MinValue && bar.Timestamp.Value < DateTime.MaxValue;
-            string dateText = hasTime ? barTime.ToString("yyyy/MM/dd") : nearestIndex.ToString();
+            string dateText = hasTime ? barTime.ToString("yyyy/MM/dd") : $"کندل {nearestIndex + 1}";
             string timeText = hasTime && barTime.TimeOfDay != TimeSpan.Zero ? $" {barTime:HH:mm}" : "";
 
             ChartInfoTextBlock.Text =
@@ -66,7 +69,6 @@ namespace TradeIt.Charts
                 Chart.UpdateLayout();
                 int width = Math.Max(1, (int)Math.Ceiling(Chart.ActualWidth));
                 int height = Math.Max(1, (int)Math.Ceiling(Chart.ActualHeight));
-
                 var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
                 bitmap.Render(Chart);
 
@@ -76,14 +78,12 @@ namespace TradeIt.Charts
                     Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg",
                     FileName = $"{_symbol.Symbol}_{DateTime.Now:yyyyMMdd_HHmmss}.png"
                 };
-
                 if (dialog.ShowDialog() != true)
                     return;
 
                 BitmapEncoder encoder = Path.GetExtension(dialog.FileName).Equals(".jpg", StringComparison.OrdinalIgnoreCase)
                     ? new JpegBitmapEncoder()
                     : new PngBitmapEncoder();
-
                 encoder.Frames.Add(BitmapFrame.Create(bitmap));
                 using FileStream stream = new FileStream(dialog.FileName, FileMode.Create);
                 encoder.Save(stream);
@@ -102,7 +102,6 @@ namespace TradeIt.Charts
                 var dialog = new System.Windows.Controls.PrintDialog();
                 if (dialog.ShowDialog() != true)
                     return;
-
                 dialog.PrintVisual(Chart, $"TradeIt - {_symbol.Symbol}");
                 BottomInfoTextBlock.Text = "فقط ناحیه اصلی نمودار برای چاپ ارسال شد.";
             }
