@@ -31,6 +31,9 @@ namespace TradeIt.Charts
             if (window.OpenChartInNewTabCheckBox != null) window.Settings.OpenChartInNewTab = window.OpenChartInNewTabCheckBox.IsChecked == true;
             if (window.GridPatternComboBox?.SelectedItem is WpfComboBoxItem pi) window.Settings.GridPattern = pi.Tag?.ToString() ?? "Solid";
             if (window.GridLineWidthComboBox?.SelectedItem is WpfComboBoxItem wi && double.TryParse(wi.Tag?.ToString(), out var w)) window.Settings.GridLineWidth = w;
+            if (window.LineWidthComboBox?.SelectedItem is WpfComboBoxItem li && double.TryParse(li.Tag?.ToString(), out var lw)) window.Settings.LineWidth = lw;
+            if (window.CandleLineWidthComboBox?.SelectedItem is WpfComboBoxItem ci && double.TryParse(ci.Tag?.ToString(), out var clw)) window.Settings.CandleLineWidth = clw;
+            if (window.BarLineWidthComboBox?.SelectedItem is WpfComboBoxItem bi && double.TryParse(bi.Tag?.ToString(), out var blw)) window.Settings.BarLineWidth = blw;
             if (window._crosshairPatternComboBox?.SelectedItem is WpfComboBoxItem cpi) window.Settings.CrosshairPattern = cpi.Tag?.ToString() ?? "Dotted";
             if (window._crosshairLineWidthComboBox?.SelectedItem is WpfComboBoxItem cwi && double.TryParse(cwi.Tag?.ToString(), out var cw)) window.Settings.CrosshairLineWidth = cw;
             window.Settings.CrosshairColor = window._crosshairColor;
@@ -42,11 +45,27 @@ namespace TradeIt.Charts
         {
             base.OnContentRendered(e);
             OpenChartInNewTabCheckBox.IsChecked = Settings.OpenChartInNewTab;
+            SelectComboValue(LineWidthComboBox, Settings.LineWidth);
+            SelectComboValue(CandleLineWidthComboBox, Settings.CandleLineWidth);
+            SelectComboValue(BarLineWidthComboBox, Settings.BarLineWidth);
             foreach (WpfComboBoxItem item in GridPatternComboBox.Items)
                 if (string.Equals(item.Tag?.ToString(), Settings.GridPattern, StringComparison.OrdinalIgnoreCase)) { GridPatternComboBox.SelectedItem = item; break; }
             foreach (WpfComboBoxItem item in GridLineWidthComboBox.Items)
                 if (double.TryParse(item.Tag?.ToString(), out var value) && Math.Abs(value - Settings.GridLineWidth) < .001) { GridLineWidthComboBox.SelectedItem = item; break; }
             BuildCrosshairControls();
+        }
+
+        private static void SelectComboValue(WpfComboBox comboBox, double value)
+        {
+            foreach (WpfComboBoxItem item in comboBox.Items)
+            {
+                if (double.TryParse(item.Tag?.ToString(), out var itemValue) && Math.Abs(itemValue - value) < .001)
+                {
+                    comboBox.SelectedItem = item;
+                    return;
+                }
+            }
+            if (comboBox.Items.Count > 0) comboBox.SelectedIndex = 0;
         }
 
         private void BuildCrosshairControls()
