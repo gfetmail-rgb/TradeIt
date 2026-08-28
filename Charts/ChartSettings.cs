@@ -19,6 +19,7 @@ namespace TradeIt.Charts
         public string CrosshairColor { get; set; } = "#909090";
         public double CrosshairLineWidth { get; set; } = 1;
         public string CrosshairPattern { get; set; } = "Dotted";
+        public bool HasUserSavedSettings { get; set; } = false;
 
         public ChartSettings Clone()
         {
@@ -39,7 +40,8 @@ namespace TradeIt.Charts
                 OpenChartInNewTab = OpenChartInNewTab,
                 CrosshairColor = CrosshairColor,
                 CrosshairLineWidth = CrosshairLineWidth,
-                CrosshairPattern = CrosshairPattern
+                CrosshairPattern = CrosshairPattern,
+                HasUserSavedSettings = HasUserSavedSettings
             };
         }
     }
