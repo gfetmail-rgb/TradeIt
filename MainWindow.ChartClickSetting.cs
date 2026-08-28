@@ -1,7 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
 using TradeIt.Charts;
 using TradeIt.Models;
 
@@ -23,7 +22,12 @@ namespace TradeIt
 
         private static async void ChartNameClassClickHandler(object sender, MouseButtonEventArgs e)
         {
-            if (sender is not TextBlock textBlock || textBlock.DataContext is not SymbolInfo symbol)
+            if (e.Handled)
+                return;
+
+            if (sender is not TextBlock textBlock ||
+                textBlock.Tag?.ToString() != "SymbolName" ||
+                textBlock.DataContext is not SymbolInfo symbol)
                 return;
 
             if (Window.GetWindow(textBlock) is not MainWindow window ||
@@ -47,7 +51,7 @@ namespace TradeIt
             {
                 if (ReferenceEquals(current, grid))
                     return true;
-                current = VisualTreeHelper.GetParent(current);
+                current = System.Windows.Media.VisualTreeHelper.GetParent(current);
             }
             return false;
         }
