@@ -1,15 +1,19 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using WpfCheckBox = System.Windows.Controls.CheckBox;
+using WpfButton = System.Windows.Controls.Button;
+using WpfGroupBox = System.Windows.Controls.GroupBox;
+using WpfStackPanel = System.Windows.Controls.StackPanel;
+using WpfTextBlock = System.Windows.Controls.TextBlock;
 
 namespace TradeIt.Charts
 {
     public partial class ChartSettingsWindow
     {
-        private CheckBox? _openChartInNewTabCheckBox;
+        private WpfCheckBox? _openChartInNewTabCheckBox;
         private bool _chartOpeningOptionAdded;
 
         protected override void OnContentRendered(System.EventArgs e)
@@ -23,21 +27,21 @@ namespace TradeIt.Charts
             if (_chartOpeningOptionAdded)
                 return;
 
-            StackPanel? stack = FindVisualChildren<StackPanel>(this)
-                .FirstOrDefault(x => x.Children.OfType<GroupBox>().Any());
+            WpfStackPanel? stack = FindVisualChildren<WpfStackPanel>(this)
+                .FirstOrDefault(x => x.Children.OfType<WpfGroupBox>().Any());
 
             if (stack == null)
                 return;
 
-            var group = new GroupBox
+            var group = new WpfGroupBox
             {
                 Header = "نحوه باز شدن نمودار",
                 Margin = new Thickness(0, 0, 0, 10)
             };
 
-            var panel = new StackPanel { Margin = new Thickness(10) };
+            var panel = new WpfStackPanel { Margin = new Thickness(10) };
 
-            _openChartInNewTabCheckBox = new CheckBox
+            _openChartInNewTabCheckBox = new WpfCheckBox
             {
                 Content = "کلیک روی نام سهم در تب جدید باز شود",
                 IsChecked = Settings.OpenChartInNewTab,
@@ -45,7 +49,7 @@ namespace TradeIt.Charts
             };
 
             panel.Children.Add(_openChartInNewTabCheckBox);
-            panel.Children.Add(new TextBlock
+            panel.Children.Add(new WpfTextBlock
             {
                 Text = "اگر خاموش باشد، همه سهم‌ها در یک تب مشترک نمایش داده می‌شوند.",
                 TextWrapping = TextWrapping.Wrap,
@@ -55,7 +59,7 @@ namespace TradeIt.Charts
             group.Content = panel;
             stack.Children.Add(group);
 
-            foreach (Button button in FindVisualChildren<Button>(this))
+            foreach (WpfButton button in FindVisualChildren<WpfButton>(this))
             {
                 if (button.Content?.ToString() == "ذخیره")
                 {
