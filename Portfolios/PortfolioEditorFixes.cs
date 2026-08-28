@@ -1,10 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Threading;
 
 namespace TradeIt.Portfolios
@@ -13,26 +11,14 @@ namespace TradeIt.Portfolios
     {
         static PortfolioEditorWindow()
         {
-            EventManager.RegisterClassHandler(
-                typeof(PortfolioEditorWindow),
-                Button.ClickEvent,
-                new RoutedEventHandler(PortfolioEditor_ButtonClicked));
-
-            EventManager.RegisterClassHandler(
-                typeof(PortfolioEditorWindow),
-                TextBox.TextChangedEvent,
-                new TextChangedEventHandler(PortfolioEditor_PathChanged));
-
-            EventManager.RegisterClassHandler(
-                typeof(PortfolioEditorWindow),
-                FrameworkElement.LoadedEvent,
-                new RoutedEventHandler(PortfolioEditor_Loaded));
+            EventManager.RegisterClassHandler(typeof(PortfolioEditorWindow), Button.ClickEvent, new RoutedEventHandler(PortfolioEditor_ButtonClicked));
+            EventManager.RegisterClassHandler(typeof(PortfolioEditorWindow), TextBox.TextChangedEvent, new TextChangedEventHandler(PortfolioEditor_PathChanged));
+            EventManager.RegisterClassHandler(typeof(PortfolioEditorWindow), FrameworkElement.LoadedEvent, new RoutedEventHandler(PortfolioEditor_Loaded));
         }
 
         private static void PortfolioEditor_ButtonClicked(object sender, RoutedEventArgs e)
         {
-            if (sender is not Button button ||
-                Window.GetWindow(button) is not PortfolioEditorWindow window)
+            if (sender is not Button button || Window.GetWindow(button) is not PortfolioEditorWindow window)
                 return;
 
             if (button.Name == "BrowseButton")
@@ -60,53 +46,45 @@ namespace TradeIt.Portfolios
                 return;
             }
 
-            if (button.Content?.ToString() == "ذخیره سبد")
+            if (button.Content?.ToString() != "ذخیره سبد")
+                return;
+
+            string[] files = GetSelectedFiles(window);
+            if (files.Length <= 1)
+                return;
+
+            string folder = Path.GetDirectoryName(files[0]) ?? "";
+            if (files.Any(x => !string.Equals(Path.GetDirectoryName(x), folder, StringComparison.OrdinalIgnoreCase)))
             {
-                string[] files = GetSelectedFiles(window);
-
-                if (files.Length <= 1)
-                    return;
-
-                string folder = Path.GetDirectoryName(files[0]) ?? "";
-
-                if (files.Any(x => !string.Equals(
-                        Path.GetDirectoryName(x),
-                        folder,
-                        StringComparison.OrdinalIgnoreCase)))
-                {
-                    MessageBox.Show(
-                        window,
-                        "برای انتخاب چند فایل، فایل‌ها باید در یک پوشه باشند.",
-                        "منبع داده",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Warning);
-                    e.Handled = true;
-                    return;
-                }
-
-                // اجرای منطق اصلی Save، سپس تبدیل نتیجه به یک لیست صریح از فایل‌ها.
-                string originalPath = window.PathTextBox.Text;
-                window.PathTextBox.Text = folder;
-                window.SaveButton_Click(window, e);
-
-                if (window.ResultPortfolio != null)
-                {
-                    window.ResultPortfolio.DataSource.SourceType = "Folder";
-                    window.ResultPortfolio.DataSource.Path = folder;
-                    window.ResultPortfolio.UseExplicitSymbolList = true;
-                    window.ResultPortfolio.Symbols = files
-                        .Select(file => new Models.SymbolInfo
-                        {
-                            Symbol = Path.GetFileNameWithoutExtension(file),
-                            DisplayName = Path.GetFileNameWithoutExtension(file),
-                            FilePath = file
-                        })
-                        .ToList();
-                }
-
-                window.PathTextBox.Text = originalPath;
+                MessageBox.Show(window, "برای انتخاب چند فایل، فایل‌ها باید در یک پوشه باشند.", "منبع داده", MessageBoxButton.OK, MessageBoxImage.Warning);
                 e.Handled = true;
+                return;
             }
+
+            // این handler قبل از SaveButton_Click اجرا می‌شود؛ بنابراین منطق اصلی Save را
+            // مستقیماً اجرا می‌کنیم و سپس نتیجه را به لیست صریح فایل‌های انتخاب‌شده تبدیل می‌کنیم.
+            e.Handled = true;
+
+            string originalPath = window.PathTextBox.Text;
+            window.PathTextBox.Text = folder;
+            window.SaveButton_Click(window, e);
+
+            if (window.ResultPortfolio != null)
+            {
+                window.ResultPortfolio.DataSource.SourceType = "Folder";
+                window.ResultPortfolio.DataSource.Path = folder;
+                window.ResultPortfolio.UseExplicitSymbolList = true;
+                window.ResultPortfolio.Symbols = files
+                    .Select(file => new Models.SymbolInfo
+                    {
+                        Symbol = Path.GetFileNameWithoutExtension(file),
+                        DisplayName = Path.GetFileNameWithoutExtension(file),
+                        FilePath = file
+                    })
+                    .ToList();
+            }
+
+            window.PathTextBox.Text = originalPath;
         }
 
         private static string[] GetSelectedFiles(PortfolioEditorWindow window)
@@ -121,8 +99,7 @@ namespace TradeIt.Portfolios
 
         private static void PortfolioEditor_PathChanged(object sender, TextChangedEventArgs e)
         {
-            if (sender is not TextBox textBox ||
-                Window.GetWindow(textBox) is not PortfolioEditorWindow window)
+            if (sender is not TextBox textBox || Window.GetWindow(textBox) is not PortfolioEditorWindow window)
                 return;
 
             QueuePreview(window);
@@ -130,8 +107,7 @@ namespace TradeIt.Portfolios
 
         private static void PortfolioEditor_Loaded(object sender, RoutedEventArgs e)
         {
-            if (sender is not PortfolioEditorWindow window ||
-                window.DataTypeComboBox == null)
+            if (sender is not PortfolioEditorWindow window || window.DataTypeComboBox == null)
                 return;
 
             window.DataTypeComboBox.Visibility = Visibility.Collapsed;
@@ -175,9 +151,7 @@ namespace TradeIt.Portfolios
                     if (!File.Exists(original))
                         window.PathTextBox.Text = previewFile;
 
-                    window.LoadPreviewButton_Click(
-                        window,
-                        new RoutedEventArgs());
+                    window.LoadPreviewButton_Click(window, new RoutedEventArgs());
 
                     if (!string.Equals(window.PathTextBox.Text, original, StringComparison.Ordinal))
                         window.PathTextBox.Text = original;
