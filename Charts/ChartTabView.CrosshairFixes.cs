@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
@@ -21,6 +22,15 @@ namespace TradeIt.Charts
             Chart.PreviewMouseMove += CrosshairFixes_PreviewMouseMove;
             VolumeChart.PreviewMouseMove += CrosshairFixes_VolumeMouseMove;
             Loaded += ChartTabView_EnsureChartType;
+            ChartTypeComboBox.SelectionChanged += ChartTypeComboBox_AxisLabelsChanged;
+        }
+
+        private void ChartTypeComboBox_AxisLabelsChanged(object? sender, SelectionChangedEventArgs e)
+        {
+            if (IsLoaded)
+            {
+                Dispatcher.BeginInvoke(new Action(ApplyHorizontalAxisLabels), System.Windows.Threading.DispatcherPriority.Background);
+            }
         }
 
         private void ChartTabView_EnsureChartType(object sender, RoutedEventArgs e)
@@ -41,8 +51,12 @@ namespace TradeIt.Charts
                 ChartTypeComboBox.SelectedIndex = 0;
             }
 
+            ApplyHorizontalAxisLabels();
+
             if (_bars.Count > 0)
                 DrawChart();
+
+            ApplyHorizontalAxisLabels();
         }
 
         private void CrosshairFixes_PreviewMouseMove(object sender, WpfMouseEventArgs e)
@@ -58,10 +72,12 @@ namespace TradeIt.Charts
             if (nearestIndex < 0)
                 return;
 
-            double snappedX = GetBarDateTime(_bars[nearestIndex], nearestIndex).ToOADate();
+            double snappedX = GetBarX(_bars[nearestIndex], nearestIndex);
             _crosshair.Position = new ScottPlot.Coordinates(snappedX, coordinates.Y);
             _crosshair.HorizontalLine.Text = coordinates.Y.ToString("N2");
             _crosshair.HorizontalLine.LabelOppositeAxis = false;
+            _crosshair.VerticalLine.Text = GetBarAxisLabel(_bars[nearestIndex], nearestIndex);
+            _crosshair.VerticalLine.LabelOppositeAxis = false;
             _crosshair.IsVisible = true;
             _crosshairMouseInside = true;
 
@@ -86,10 +102,13 @@ namespace TradeIt.Charts
             if (nearestIndex < 0)
                 return;
 
-            double snappedX = GetBarDateTime(_bars[nearestIndex], nearestIndex).ToOADate();
+            double snappedX = GetBarX(_bars[nearestIndex], nearestIndex);
             double y = (mainLimits.Bottom + mainLimits.Top) / 2.0;
+
             _crosshair.Position = new ScottPlot.Coordinates(snappedX, y);
             _crosshair.HorizontalLine.Text = y.ToString("N2");
+            _crosshair.VerticalLine.Text = GetBarAxisLabel(_bars[nearestIndex], nearestIndex);
+            _crosshair.VerticalLine.LabelOppositeAxis = false;
             _crosshair.IsVisible = true;
             _crosshairMouseInside = true;
 
@@ -107,8 +126,9 @@ namespace TradeIt.Charts
 
             for (int i = 0; i < _bars.Count; i++)
             {
-                double barX = GetBarDateTime(_bars[i], i).ToOADate();
+                double barX = GetBarX(_bars[i], i);
                 double distance = Math.Abs(barX - x);
+
                 if (distance < bestDistance)
                 {
                     bestDistance = distance;
@@ -119,16 +139,54 @@ namespace TradeIt.Charts
             return nearest;
         }
 
+        private bool HasRealTimestamp(MarketBar bar)
+        {
+            return bar.Timestamp.HasValue &&
+                   bar.Timestamp.Value > DateTime.MinValue &&
+                   bar.Timestamp.Value < DateTime.MaxValue;
+        }
+
+        private double GetBarX(MarketBar bar, int index)
+        {
+            return HasRealTimestamp(bar)
+                ? bar.Timestamp!.Value.ToOADate()
+                : new DateTime(2000, 1, 1).AddDays(index).ToOADate();
+        }
+
+        private string GetBarAxisLabel(MarketBar bar, int index)
+        {
+            if (!HasRealTimestamp(bar))
+                return $"کندل {index + 1}";
+
+            DateTime timestamp = bar.Timestamp!.Value;
+            return timestamp.TimeOfDay == TimeSpan.Zero
+                ? timestamp.ToString("yyyy/MM/dd")
+                : timestamp.ToString("yyyy/MM/dd HH:mm");
+        }
+
+        private void ApplyHorizontalAxisLabels()
+        {
+            if (_bars.Count == 0)
+                return;
+
+            double[] positions = _bars.Select((bar, index) => GetBarX(bar, index)).ToArray();
+            string[] labels = _bars.Select((bar, index) => GetBarAxisLabel(bar, index)).ToArray();
+
+            if (positions.Length > 0)
+            {
+                Chart.Plot.Axes.Bottom.SetTicks(positions, labels);
+            }
+
+            Chart.Refresh();
+        }
+
         private void UpdateCrosshairBarInformation(int index)
         {
             if (index < 0 || index >= _bars.Count)
                 return;
 
             var bar = _bars[index];
-            DateTime timestamp = GetBarDateTime(bar, index);
-            string dateText = timestamp.TimeOfDay == TimeSpan.Zero
-                ? timestamp.ToString("yyyy/MM/dd")
-                : timestamp.ToString("yyyy/MM/dd HH:mm:ss");
+            string dateText = GetBarAxisLabel(bar, index);
 
             ChartInfoTextBlock.Text =
                 $"{_symbol.Symbol} | O: {bar.Open:N2}  H: {bar.High:N2}  L: {bar.Low:N2}  C: {bar.Close:N2}  V: {bar.Volume:N0} | {dateText}";
