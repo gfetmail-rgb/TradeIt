@@ -24,21 +24,21 @@ namespace TradeIt.Charts
 
         private void DisplayFixes_Loaded(object sender, RoutedEventArgs e)
         {
-            Chart.PreviewMouseMove += DisplayFixes_MouseMove;
-            VolumeChart.PreviewMouseMove += DisplayFixes_VolumeMouseMove;
+            ChartSettingsManager.SettingsChanged -= DisplayFixes_SettingsChanged;
             ChartSettingsManager.SettingsChanged += DisplayFixes_SettingsChanged;
+
+            ConfigureDateAxisLabels();
             ApplyDisplayFixes();
         }
 
         private void DisplayFixes_Unloaded(object sender, RoutedEventArgs e)
         {
-            Chart.PreviewMouseMove -= DisplayFixes_MouseMove;
-            VolumeChart.PreviewMouseMove -= DisplayFixes_VolumeMouseMove;
             ChartSettingsManager.SettingsChanged -= DisplayFixes_SettingsChanged;
         }
 
         private void DisplayFixes_SettingsChanged(object? sender, EventArgs e)
         {
+            _settings = ChartSettingsManager.Current;
             ApplyDisplayFixes();
         }
 
@@ -46,19 +46,24 @@ namespace TradeIt.Charts
         {
             try
             {
-                var current = ChartSettingsManager.Current;
-                _settings = current;
+                ChartSettings settings = ChartSettingsManager.Current;
+                _settings = settings;
 
-                ApplyCrosshairSettings(current);
-                ApplyFinancialLineWidths(current);
-                ApplyGridStyle(current);
+                ApplyCrosshairSettings(settings);
+                ApplyFinancialLineWidths(settings);
+                ApplyGridStyle(settings);
+
+                Chart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(settings.FigureBackground);
+                Chart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(settings.DataBackground);
+                VolumeChart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(settings.FigureBackground);
+                VolumeChart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(settings.DataBackground);
 
                 Chart.Refresh();
-                if (_volumeVisible)
-                    VolumeChart.Refresh();
+                VolumeChart.Refresh();
             }
             catch
             {
+                // Settings changes must never prevent the chart from rendering.
             }
         }
 
@@ -70,6 +75,7 @@ namespace TradeIt.Charts
             _crosshair.LineColor = ScottPlot.Color.FromHtml(settings.CrosshairColor);
             _crosshair.LineWidth = (float)Math.Max(0.1, settings.CrosshairLineWidth);
             _crosshair.LinePattern = ParseDisplayLinePattern(settings.CrosshairPattern);
+
             _crosshair.HorizontalLine.LabelOppositeAxis = true;
             _crosshair.HorizontalLine.TextAlignment = ScottPlot.Alignment.MiddleLeft;
             _crosshair.VerticalLine.LabelOppositeAxis = false;
@@ -138,7 +144,12 @@ namespace TradeIt.Charts
                 PropertyInfo? widthProperty = style?.GetType().GetProperty("Width");
 
                 if (widthProperty?.CanWrite == true)
-                    widthProperty.SetValue(style, (float)Math.Max(0.1, width));
+                {
+                    if (widthProperty.PropertyType == typeof(float))
+                        widthProperty.SetValue(style, (float)Math.Max(0.1, width));
+                    else if (widthProperty.PropertyType == typeof(double))
+                        widthProperty.SetValue(style, Math.Max(0.1, width));
+                }
             }
             catch
             {
@@ -162,73 +173,64 @@ namespace TradeIt.Charts
                     ?? plot.Grid.GetType().GetProperty("MajorLineWidth");
 
                 if (width?.CanWrite == true)
-                    width.SetValue(plot.Grid, (float)Math.Max(0.1, settings.GridLineWidth));
+                {
+                    if (width.PropertyType == typeof(float))
+                        width.SetValue(plot.Grid, (float)Math.Max(0.1, settings.GridLineWidth));
+                    else if (width.PropertyType == typeof(double))
+                        width.SetValue(plot.Grid, Math.Max(0.1, settings.GridLineWidth));
+                }
+
+                plot.Grid.IsVisible = settings.GridVisible;
             }
             catch
             {
             }
         }
 
-        private void DisplayFixes_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        /// <summary>
+        /// Configure the existing DateTime axis without replacing its generator
+        /// with a numeric generator. This avoids the ScottPlot runtime error
+        /// "Date axis must have a ITickGenerator generator".
+        /// </summary>
+        private void ConfigureDateAxisLabels()
         {
             try
             {
-                if (_bars.Count == 0 || _crosshair == null || !_crosshair.IsVisible)
-                    return;
+                var bottom = Chart.Plot.Axes.DateTimeTicksBottom();
+                if (bottom.TickGenerator is ScottPlot.TickGenerators.DateTimeAutomatic automatic)
+                {
+                    automatic.LabelFormatter = FormatChartDateTick;
+                }
 
-                double rawX = _crosshair.Position.X;
-                int index = FindNearestBarIndex(rawX);
-                if (index < 0 || index >= _bars.Count)
-                    return;
-
-                MarketBar bar = _bars[index];
-                double snappedX = GetBarDateTime(bar, index).ToOADate();
-
-                _crosshair.Position = new ScottPlot.Coordinates(snappedX, bar.Close);
-
-                string dateText = GetDisplayDateText(bar, index);
-
-                ChartInfoTextBlock.Text =
-                    $"{_symbol.Symbol}    O: {bar.Open:N2}    H: {bar.High:N2}    L: {bar.Low:N2}    C: {bar.Close:N2}    V: {bar.Volume:N0}";
-
-                _crosshair.HorizontalLine.Text = bar.Close.ToString("N2", CultureInfo.InvariantCulture);
-                _crosshair.VerticalLine.Text = dateText;
-
-                Chart.Refresh();
+                var volumeBottom = VolumeChart.Plot.Axes.DateTimeTicksBottom();
+                if (volumeBottom.TickGenerator is ScottPlot.TickGenerators.DateTimeAutomatic volumeAutomatic)
+                {
+                    volumeAutomatic.LabelFormatter = FormatChartDateTick;
+                }
             }
             catch
             {
             }
         }
 
-        private void DisplayFixes_VolumeMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        private string FormatChartDateTick(DateTime dateTime)
         {
-            try
+            bool hasRealTimestamp = _bars.Any(b =>
+                b.Timestamp.HasValue &&
+                b.Timestamp.Value > DateTime.MinValue &&
+                b.Timestamp.Value < DateTime.MaxValue);
+
+            if (hasRealTimestamp)
             {
-                if (_bars.Count == 0 || _crosshair == null || !_crosshair.IsVisible)
-                    return;
-
-                double rawX = _crosshair.Position.X;
-                int index = FindNearestBarIndex(rawX);
-                if (index < 0 || index >= _bars.Count)
-                    return;
-
-                MarketBar bar = _bars[index];
-                double snappedX = GetBarDateTime(bar, index).ToOADate();
-                var mainLimits = Chart.Plot.Axes.GetLimits();
-                double y = Math.Max(mainLimits.Bottom, Math.Min(mainLimits.Top, bar.Close));
-
-                _crosshair.Position = new ScottPlot.Coordinates(snappedX, y);
-                _crosshair.HorizontalLine.Text = bar.Close.ToString("N2", CultureInfo.InvariantCulture);
-                _crosshair.VerticalLine.Text = GetDisplayDateText(bar, index);
-                ChartInfoTextBlock.Text =
-                    $"{_symbol.Symbol}    O: {bar.Open:N2}    H: {bar.High:N2}    L: {bar.Low:N2}    C: {bar.Close:N2}    V: {bar.Volume:N0}";
-
-                Chart.Refresh();
+                return dateTime.TimeOfDay == TimeSpan.Zero
+                    ? dateTime.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture)
+                    : dateTime.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
             }
-            catch
-            {
-            }
+
+            int nearest = FindNearestBarIndex(dateTime.ToOADate());
+            return nearest >= 0
+                ? $"کندل {nearest + 1}"
+                : string.Empty;
         }
 
         private int FindNearestBarIndex(double x)
@@ -236,14 +238,13 @@ namespace TradeIt.Charts
             if (_bars.Count == 0)
                 return -1;
 
+            int bestIndex = 0;
             double bestDistance = double.MaxValue;
-            int bestIndex = -1;
 
             for (int i = 0; i < _bars.Count; i++)
             {
                 double barX = GetBarDateTime(_bars[i], i).ToOADate();
                 double distance = Math.Abs(barX - x);
-
                 if (distance < bestDistance)
                 {
                     bestDistance = distance;
@@ -252,18 +253,6 @@ namespace TradeIt.Charts
             }
 
             return bestIndex;
-        }
-
-        private static string GetDisplayDateText(MarketBar bar, int index)
-        {
-            if (bar.Timestamp.HasValue &&
-                bar.Timestamp.Value > DateTime.MinValue &&
-                bar.Timestamp.Value < DateTime.MaxValue)
-            {
-                return bar.Timestamp.Value.ToString("yyyy/MM/dd");
-            }
-
-            return $"کندل {index + 1}";
         }
     }
 }
