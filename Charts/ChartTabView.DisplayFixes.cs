@@ -36,20 +36,15 @@ namespace TradeIt.Charts
             if (sender is not ChartTabView chart || chart._crosshair == null || !chart._chartVisible || !chart._crosshairVisible || chart._bars.Count == 0)
                 return;
 
-            if (e.OriginalSource is not System.Windows.DependencyObject source)
-                return;
-
+            if (e.OriginalSource is not System.Windows.DependencyObject source) return;
             ScottPlot.WPF.WpfPlot? plot = FindPlot(source);
-            if (plot == null || (!ReferenceEquals(plot, chart.Chart) && !ReferenceEquals(plot, chart.VolumeChart)))
-                return;
+            if (plot == null || (!ReferenceEquals(plot, chart.Chart) && !ReferenceEquals(plot, chart.VolumeChart))) return;
 
             System.Windows.Point point = e.GetPosition(plot);
-            if (!chart.TryGetChartCoordinates(plot, point, out ScottPlot.Coordinates coordinates))
-                return;
+            if (!chart.TryGetChartCoordinates(plot, point, out ScottPlot.Coordinates coordinates)) return;
 
             int index = chart.FindNearestBarIndex(coordinates.X);
-            if (index < 0 || index >= chart._bars.Count)
-                return;
+            if (index < 0 || index >= chart._bars.Count) return;
 
             double x = chart.GetBarDateTime(chart._bars[index], index).ToOADate();
             var limits = chart.Chart.Plot.Axes.GetLimits();
@@ -89,6 +84,7 @@ namespace TradeIt.Charts
             {
                 dateText = $"کندل {index + 1}";
             }
+
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | O: {bar.Open:N2}  H: {bar.High:N2}  L: {bar.Low:N2}  C: {bar.Close:N2}  V: {bar.Volume:N0}";
             BottomInfoTextBlock.Text = dateText;
         }
@@ -170,12 +166,34 @@ namespace TradeIt.Charts
 
         private void ConfigureDisplayDateAxis(ScottPlot.WPF.WpfPlot plot)
         {
-            if (!_bars.Any(b => b.Timestamp.HasValue && b.Timestamp.Value > DateTime.MinValue && b.Timestamp.Value < DateTime.MaxValue)) return;
+            bool hasRealTimestamp = _bars.Any(b => b.Timestamp.HasValue && b.Timestamp.Value > DateTime.MinValue && b.Timestamp.Value < DateTime.MaxValue);
             try
             {
-                var axis = plot.Plot.Axes.DateTimeTicksBottom();
-                if (axis.TickGenerator is ScottPlot.TickGenerators.DateTimeAutomatic auto)
-                    auto.LabelFormatter = dt => dt.TimeOfDay == TimeSpan.Zero ? dt.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture) : dt.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
+                if (hasRealTimestamp)
+                {
+                    var axis = plot.Plot.Axes.DateTimeTicksBottom();
+                    if (axis.TickGenerator is ScottPlot.TickGenerators.DateTimeAutomatic auto)
+                        auto.LabelFormatter = dt => dt.TimeOfDay == TimeSpan.Zero ? dt.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture) : dt.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
+                }
+                else
+                {
+                    int count = _bars.Count;
+                    if (count == 0) return;
+                    int step = Math.Max(1, count / 8);
+                    var positions = new System.Collections.Generic.List<double>();
+                    var labels = new System.Collections.Generic.List<string>();
+                    for (int i = 0; i < count; i += step)
+                    {
+                        positions.Add(GetBarDateTime(_bars[i], i).ToOADate());
+                        labels.Add($"کندل {i + 1}");
+                    }
+                    if (positions.Count == 0 || positions[^1] != GetBarDateTime(_bars[count - 1], count - 1).ToOADate())
+                    {
+                        positions.Add(GetBarDateTime(_bars[count - 1], count - 1).ToOADate());
+                        labels.Add($"کندل {count}");
+                    }
+                    plot.Plot.Axes.Bottom.TickGenerator = new ScottPlot.TickGenerators.NumericManual(positions.ToArray(), labels.ToArray());
+                }
             }
             catch { }
         }
