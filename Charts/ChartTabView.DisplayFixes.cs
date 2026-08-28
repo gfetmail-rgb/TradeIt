@@ -9,6 +9,9 @@ namespace TradeIt.Charts
     public partial class ChartTabView
     {
         private static readonly bool _displayFixesRegistered = RegisterDisplayFixes();
+        private int _displayFixesLastCrosshairIndex = -1;
+        private bool _displayFixesMouseUpdateQueued;
+        private int _displayFixesQueuedIndex = -1;
 
         private static bool RegisterDisplayFixes()
         {
@@ -43,28 +46,31 @@ namespace TradeIt.Charts
             int index = chart.DisplayFixes_FindNearestBarIndex(coordinates.X);
             if (index < 0 || index >= chart._bars.Count) return;
 
+            // The crosshair is deliberately updated only when the snapped bar changes.
+            // This prevents the axis labels from being re-laid-out on every mouse pixel.
+            if (index == chart._displayFixesLastCrosshairIndex) return;
+            chart._displayFixesQueuedIndex = index;
+            if (chart._displayFixesMouseUpdateQueued) return;
+            chart._displayFixesMouseUpdateQueued = true;
+
             chart.Dispatcher.BeginInvoke(new Action(() =>
             {
-                if (chart._crosshair == null || !chart._chartVisible || !chart._crosshairVisible) return;
+                chart._displayFixesMouseUpdateQueued = false;
+                int snappedIndex = chart._displayFixesQueuedIndex;
+                if (chart._crosshair == null || !chart._chartVisible || !chart._crosshairVisible || snappedIndex < 0 || snappedIndex >= chart._bars.Count) return;
 
-                double x = chart.GetBarDateTime(chart._bars[index], index).ToOADate();
-
-                // Snap both coordinates to the selected candle. The price therefore
-                // stays fixed while the mouse moves inside the same candle.
-                double y = chart._bars[index].Close;
+                double x = chart.GetBarDateTime(chart._bars[snappedIndex], snappedIndex).ToOADate();
+                double y = chart._bars[snappedIndex].Close;
 
                 chart._crosshair.Position = new ScottPlot.Coordinates(x, y);
                 chart._crosshair.IsVisible = true;
                 chart._crosshairMouseInside = true;
-
-                // Put the price label on the primary price axis (left) and the
-                // time/index label on the primary time axis (bottom).
                 chart._crosshair.HorizontalLine.LabelOppositeAxis = false;
                 chart._crosshair.VerticalLine.LabelOppositeAxis = false;
                 chart._crosshair.HorizontalLine.Text = y.ToString("N2", CultureInfo.InvariantCulture);
-                chart._crosshair.VerticalLine.Text = chart.DisplayFixes_GetCrosshairXLabel(index);
-
-                chart.UpdateSnappedMouseInformation(index, y);
+                chart._crosshair.VerticalLine.Text = chart.DisplayFixes_GetCrosshairXLabel(snappedIndex);
+                chart._displayFixesLastCrosshairIndex = snappedIndex;
+                chart.UpdateSnappedMouseInformation(snappedIndex, y);
                 chart.Chart.Refresh();
             }), System.Windows.Threading.DispatcherPriority.Input);
         }
@@ -91,10 +97,7 @@ namespace TradeIt.Charts
                 DateTime dt = GetBarDateTime(bar, index);
                 dateText = dt.TimeOfDay == TimeSpan.Zero ? dt.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture) : dt.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
             }
-            else
-            {
-                dateText = $"کندل {index + 1}";
-            }
+            else dateText = $"کندل {index + 1}";
 
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | O: {bar.Open:N2}  H: {bar.High:N2}  L: {bar.Low:N2}  C: {bar.Close:N2}  V: {bar.Volume:N0}";
             BottomInfoTextBlock.Text = dateText;
