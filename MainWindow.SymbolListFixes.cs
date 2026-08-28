@@ -8,6 +8,11 @@ using System.Windows.Input;
 using TradeIt.Charts;
 using TradeIt.Models;
 
+using WpfButton = System.Windows.Controls.Button;
+using WpfMessageBox = System.Windows.MessageBox;
+using WpfMessageBoxButton = System.Windows.MessageBoxButton;
+using WpfMessageBoxImage = System.Windows.MessageBoxImage;
+
 namespace TradeIt
 {
     public partial class MainWindow
@@ -17,8 +22,8 @@ namespace TradeIt
         private static bool RegisterSymbolListButtonHandler()
         {
             EventManager.RegisterClassHandler(
-                typeof(Button),
-                Button.ClickEvent,
+                typeof(WpfButton),
+                WpfButton.ClickEvent,
                 new RoutedEventHandler(PrepareSymbolListBeforeButtonAction));
 
             return true;
@@ -26,7 +31,7 @@ namespace TradeIt
 
         private static void PrepareSymbolListBeforeButtonAction(object sender, RoutedEventArgs e)
         {
-            if (sender is not Button button || button.Name != "DeleteSymbolsButton")
+            if (sender is not WpfButton button || button.Name != "DeleteSymbolsButton")
                 return;
 
             if (Window.GetWindow(button) is not MainWindow window ||
