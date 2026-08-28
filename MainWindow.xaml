@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:TradeIt"
         mc:Ignorable="d"
-        Title="TradeIt" Height="700" Width="1200" MinHeight="500" MinWidth="900" WindowStartupLocation="CenterScreen">
+        Title="TradeIt" Height="700" Width="1200" MinHeight="500" MinWidth="900" WindowStartupLocation="CenterScreen" WindowState="Maximized">
     <Window.Resources>
         <local:TradeDateConverter x:Key="TradeDateConverter"/>
     </Window.Resources>
@@ -32,7 +32,7 @@
                     <DataGrid x:Name="SymbolsDataGrid" Grid.Row="2" Margin="0,8,0,5" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" HeadersVisibility="Column" SelectionMode="Single" SelectionUnit="FullRow" IsReadOnly="True" AlternationCount="1000000" SelectionChanged="SymbolsDataGrid_SelectionChanged">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="ردیف" Binding="{Binding RowNumber}" Width="50" IsReadOnly="True"/>
-                            <DataGridTemplateColumn Header="نام سهم" Width="*" IsReadOnly="True"><DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding DisplayName}" Cursor="Hand" HorizontalAlignment="Left" VerticalAlignment="Center" Padding="4,0" MouseLeftButtonUp="SymbolNameTextBlock_MouseLeftButtonUp"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="نام سهم" Width="*" IsReadOnly="True"><DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Tag="SymbolName" Text="{Binding DisplayName}" Cursor="Hand" HorizontalAlignment="Left" VerticalAlignment="Center" Padding="4,0" MouseLeftButtonUp="SymbolNameTextBlock_MouseLeftButtonUp"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                             <DataGridTemplateColumn Header="آخرین معامله" Width="110" IsReadOnly="True"><DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock.Text><MultiBinding Converter="{StaticResource TradeDateConverter}"><Binding Path="LastTradeDate"/><Binding RelativeSource="{RelativeSource AncestorType={x:Type Window}}" Path="SelectedPortfolioCalendar"/></MultiBinding></TextBlock.Text></TextBlock></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                             <DataGridTemplateColumn Header="انتخاب" Width="65" IsReadOnly="False"><DataGridTemplateColumn.CellTemplate><DataTemplate><CheckBox HorizontalAlignment="Center" VerticalAlignment="Center" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Click="SymbolCheckBox_Click"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                         </DataGrid.Columns>
