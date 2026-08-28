@@ -20,7 +20,6 @@ namespace TradeIt.Charts
         {
             if (sender is not ChartTabView view)
                 return;
-
             view.ApplyPersistedAppearance();
         }
 
@@ -31,7 +30,6 @@ namespace TradeIt.Charts
                 var settings = ChartSettingsManager.Current;
                 _settings = settings;
                 _gridVisible = settings.GridVisible;
-
                 ApplyGridAppearance(Chart);
                 ApplyGridAppearance(VolumeChart);
 
@@ -45,17 +43,14 @@ namespace TradeIt.Charts
                 Chart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(settings.FigureBackground);
                 Chart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(settings.DataBackground);
                 Chart.Plot.Axes.Color(ScottPlot.Color.FromHtml(settings.AxisColor));
-
                 VolumeChart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(settings.FigureBackground);
                 VolumeChart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(settings.DataBackground);
                 VolumeChart.Plot.Axes.Color(ScottPlot.Color.FromHtml(settings.AxisColor));
-
                 Chart.Refresh();
                 VolumeChart.Refresh();
             }
             catch
             {
-                // User preferences must never prevent a chart from opening.
             }
         }
 
