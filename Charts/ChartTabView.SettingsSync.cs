@@ -50,10 +50,33 @@ namespace TradeIt.Charts
                 VolumeChart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(_settings.FigureBackground);
                 VolumeChart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(_settings.DataBackground);
                 VolumeChart.Plot.Axes.Color(ScottPlot.Color.FromHtml(_settings.AxisColor));
+
+                ApplySeriesThickness();
                 Chart.Refresh();
                 VolumeChart.Refresh();
             }
             catch { }
+        }
+
+        private void ApplySeriesThickness()
+        {
+            foreach (var plottable in Chart.Plot.GetPlottables())
+            {
+                if (plottable is ScottPlot.Plottables.CandlestickPlot candles)
+                {
+                    candles.RisingLineStyle.Width = (float)_settings.CandleLineWidth;
+                    candles.FallingLineStyle.Width = (float)_settings.CandleLineWidth;
+                }
+                else if (plottable is ScottPlot.Plottables.OhlcPlot ohlc)
+                {
+                    ohlc.RisingStyle.Width = (float)_settings.BarLineWidth;
+                    ohlc.FallingStyle.Width = (float)_settings.BarLineWidth;
+                }
+                else if (plottable is ScottPlot.Plottables.Scatter scatter)
+                {
+                    scatter.LineWidth = (float)_settings.LineWidth;
+                }
+            }
         }
 
         private void ApplyGridStyle(ScottPlot.WPF.WpfPlot plot)
