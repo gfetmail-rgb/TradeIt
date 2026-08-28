@@ -17,15 +17,6 @@ namespace TradeIt
 {
     public partial class MainWindow
     {
-        public static readonly DependencyProperty IsAutoScrollSelectionEnabledProperty =
-            DependencyProperty.Register(nameof(IsAutoScrollSelectionEnabled), typeof(bool), typeof(MainWindow), new PropertyMetadata(true));
-
-        public bool IsAutoScrollSelectionEnabled
-        {
-            get => (bool)GetValue(IsAutoScrollSelectionEnabledProperty);
-            set => SetValue(IsAutoScrollSelectionEnabledProperty, value);
-        }
-
         private DispatcherTimer? _order2AutoScrollTimer;
         private bool _order2AutoScrollRunning;
         private bool _order2AutoScrollLoading;
@@ -52,7 +43,6 @@ namespace TradeIt
             _order2AutoScrollIndex = selectedIndex >= 0 ? selectedIndex : 0;
             _order2AutoScrollRunning = true;
             _order2AutoScrollLoading = false;
-            IsAutoScrollSelectionEnabled = false;
             RefreshSymbolsButton.IsEnabled = false;
             DeleteSymbolsButton.IsEnabled = false;
             MakeWatchButton.IsEnabled = false;
@@ -156,7 +146,6 @@ namespace TradeIt
             _order2AutoScrollRunning = false;
             _order2AutoScrollLoading = false;
             _order2AutoScrollIndex = -1;
-            IsAutoScrollSelectionEnabled = true;
             if (_order2AutoScrollTimer != null)
             {
                 _order2AutoScrollTimer.Stop();
