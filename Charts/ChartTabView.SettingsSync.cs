@@ -9,27 +9,16 @@ namespace TradeIt.Charts
 
         private static bool RegisterSettingsSyncHandler()
         {
-            EventManager.RegisterClassHandler(
-                typeof(ChartTabView),
-                FrameworkElement.LoadedEvent,
-                new RoutedEventHandler(ChartTabView_Loaded));
-
-            EventManager.RegisterClassHandler(
-                typeof(ChartTabView),
-                FrameworkElement.UnloadedEvent,
-                new RoutedEventHandler(ChartTabView_Unloaded));
-
+            EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.LoadedEvent, new RoutedEventHandler(ChartTabView_Loaded));
+            EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.UnloadedEvent, new RoutedEventHandler(ChartTabView_Unloaded));
             return true;
         }
 
         private static void ChartTabView_Loaded(object sender, RoutedEventArgs e)
         {
-            if (sender is not ChartTabView chart)
-                return;
-
+            if (sender is not ChartTabView chart) return;
             ChartSettingsManager.SettingsChanged -= chart.ChartSettingsManager_SettingsChanged;
             ChartSettingsManager.SettingsChanged += chart.ChartSettingsManager_SettingsChanged;
-
             chart.ApplyStoredChartSettings();
         }
 
@@ -41,10 +30,8 @@ namespace TradeIt.Charts
 
         private void ChartSettingsManager_SettingsChanged(object? sender, EventArgs e)
         {
-            if (Dispatcher.CheckAccess())
-                ApplyStoredChartSettings();
-            else
-                Dispatcher.InvokeAsync(ApplyStoredChartSettings);
+            if (Dispatcher.CheckAccess()) ApplyStoredChartSettings();
+            else Dispatcher.InvokeAsync(ApplyStoredChartSettings);
         }
 
         private void ApplyStoredChartSettings()
@@ -53,27 +40,20 @@ namespace TradeIt.Charts
             {
                 _settings = ChartSettingsManager.Current;
                 _gridVisible = _settings.GridVisible;
-
                 ApplyGridStyle(Chart);
                 ApplyGridStyle(VolumeChart);
-
                 ApplyCrosshairStyle();
 
                 Chart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(_settings.FigureBackground);
                 Chart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(_settings.DataBackground);
                 Chart.Plot.Axes.Color(ScottPlot.Color.FromHtml(_settings.AxisColor));
-
                 VolumeChart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(_settings.FigureBackground);
                 VolumeChart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(_settings.DataBackground);
                 VolumeChart.Plot.Axes.Color(ScottPlot.Color.FromHtml(_settings.AxisColor));
-
                 Chart.Refresh();
                 VolumeChart.Refresh();
             }
-            catch
-            {
-                // A chart may be unloaded while settings are being changed.
-            }
+            catch { }
         }
 
         private void ApplyGridStyle(ScottPlot.WPF.WpfPlot plot)
@@ -87,9 +67,7 @@ namespace TradeIt.Charts
 
         private void ApplyCrosshairStyle()
         {
-            if (_crosshair == null)
-                return;
-
+            if (_crosshair == null) return;
             _crosshair.LineColor = ScottPlot.Color.FromHtml(_settings.CrosshairColor);
             _crosshair.LineWidth = (float)_settings.CrosshairLineWidth;
             _crosshair.LinePattern = ParseLinePattern(_settings.CrosshairPattern);
@@ -102,7 +80,6 @@ namespace TradeIt.Charts
                 "Dotted" => ScottPlot.LinePattern.Dotted,
                 "Dashed" => ScottPlot.LinePattern.Dashed,
                 "DenselyDashed" => ScottPlot.LinePattern.DenselyDashed,
-                "DashDot" => ScottPlot.LinePattern.DashDot,
                 _ => ScottPlot.LinePattern.Solid
             };
         }
