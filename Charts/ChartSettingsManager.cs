@@ -1,59 +1,100 @@
-﻿namespace TradeIt.Charts
+using System;
+using System.IO;
+using System.Text.Json;
+
+namespace TradeIt.Charts
 {
     public static class ChartSettingsManager
     {
-        // =========================================================
-        // آخرین تنظیمات ذخیره‌شده
-        //
-        // فقط Chart های جدید از این تنظیمات استفاده می‌کنند.
-        // Chart های باز قبلی هیچ تغییری نمی‌کنند.
-        // =========================================================
+        private static readonly object Sync = new();
+        private static readonly string SettingsDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "TradeIt");
+        private static readonly string SettingsFile = Path.Combine(SettingsDirectory, "ChartSettings.json");
 
-        private static ChartSettings _current =
-            new ChartSettings();
+        private static ChartSettings _current = LoadOrCreateDefaults();
 
+        public static ChartSettings Current => _current.Clone();
 
-        // =========================================================
-        // آخرین تنظیمات
-        // =========================================================
-
-        public static ChartSettings Current
-        {
-            get
-            {
-                return _current.Clone();
-            }
-        }
-
-
-        // =========================================================
-        // ثبت تنظیمات جدید
-        // =========================================================
-
-        public static void SetDefaults(
-            ChartSettings settings)
+        public static void SetDefaults(ChartSettings settings)
         {
             if (settings == null)
                 return;
 
-            _current =
-                settings.Clone();
+            lock (Sync)
+            {
+                _current = settings.Clone();
+            }
         }
 
+        public static ChartSettings Clone(ChartSettings settings)
+        {
+            return settings?.Clone() ?? new ChartSettings();
+        }
 
-        // =========================================================
-        // Clone
-        //
-        // برای سازگاری با کدهای فعلی پروژه
-        // =========================================================
-
-        public static ChartSettings Clone(
-            ChartSettings settings)
+        public static void Save(ChartSettings settings)
         {
             if (settings == null)
-                return new ChartSettings();
+                return;
 
-            return settings.Clone();
+            lock (Sync)
+            {
+                _current = settings.Clone();
+                Directory.CreateDirectory(SettingsDirectory);
+                string json = JsonSerializer.Serialize(_current, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+                File.WriteAllText(SettingsFile, json);
+            }
+        }
+
+        public static void Save()
+        {
+            Save(_current);
+        }
+
+        private static ChartSettings LoadOrCreateDefaults()
+        {
+            try
+            {
+                if (File.Exists(SettingsFile))
+                {
+                    string json = File.ReadAllText(SettingsFile);
+                    ChartSettings? saved = JsonSerializer.Deserialize<ChartSettings>(json);
+                    if (saved != null)
+                        return saved;
+                }
+            }
+            catch
+            {
+                // A corrupt settings file must not prevent the application from starting.
+            }
+
+            // First application run: the requested initial chart appearance.
+            var firstRun = new ChartSettings
+            {
+                GridVisible = false,
+                CrosshairColor = "#909090",
+                CrosshairLineWidth = 1,
+                CrosshairPattern = "Dotted"
+            };
+
+            try
+            {
+                Directory.CreateDirectory(SettingsDirectory);
+                string json = JsonSerializer.Serialize(firstRun, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+                File.WriteAllText(SettingsFile, json);
+            }
+            catch
+            {
+                // Continue with in-memory defaults if the settings file cannot be written.
+            }
+
+            return firstRun;
         }
     }
 }
