@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using WpfButton = System.Windows.Controls.Button;
 
 using TradeIt.Models;
 
@@ -10,13 +11,9 @@ namespace TradeIt
     {
         static MainWindow()
         {
-            // این handler قبل از handler معمولی Click اجرا می‌شود.
-            // برای Delete، فهرست واقعی نمادهای نمایش‌داده‌شده را به
-            // فهرست صریح سبد منتقل می‌کند تا حذف روی سبدهای قدیمی
-            // که UseExplicitSymbolList=false دارند نیز قطعی باشد.
             EventManager.RegisterClassHandler(
-                typeof(Button),
-                Button.ClickEvent,
+                typeof(WpfButton),
+                WpfButton.ClickEvent,
                 new RoutedEventHandler(PrepareSymbolListBeforeButtonAction));
         }
 
@@ -24,7 +21,7 @@ namespace TradeIt
             object sender,
             RoutedEventArgs e)
         {
-            if (sender is not Button button ||
+            if (sender is not WpfButton button ||
                 button.Name != "DeleteSymbolsButton")
             {
                 return;
@@ -38,9 +35,6 @@ namespace TradeIt
                 return;
             }
 
-            // همیشه یک snapshot کامل از نمادهای فعلی سبد می‌سازیم.
-            // handler اصلی Delete سپس نمادهای تیک‌خورده را از همین
-            // فهرست حذف کرده و Save می‌کند.
             window._selectedPortfolio.Symbols =
                 window._allSymbols
                     .Select(CloneSymbol)
