@@ -46,26 +46,40 @@ namespace TradeIt.Portfolios
                 return;
             }
 
+            if (button.Name == "LoadPreviewButton")
+            {
+                string path = window.PathTextBox.Text.Trim();
+                string[] files = GetSelectedFiles(window);
+
+                if (files.Length <= 1)
+                    return;
+
+                e.Handled = true;
+                string originalPath = path;
+                window.PathTextBox.Text = files[0];
+                window.LoadPreviewButton_Click(window, e);
+                window.PathTextBox.Text = originalPath;
+                return;
+            }
+
             if (button.Content?.ToString() != "ذخیره سبد")
                 return;
 
-            string[] files = GetSelectedFiles(window);
-            if (files.Length <= 1)
+            string[] selectedFiles = GetSelectedFiles(window);
+            if (selectedFiles.Length <= 1)
                 return;
 
-            string folder = Path.GetDirectoryName(files[0]) ?? "";
-            if (files.Any(x => !string.Equals(Path.GetDirectoryName(x), folder, StringComparison.OrdinalIgnoreCase)))
+            string folder = Path.GetDirectoryName(selectedFiles[0]) ?? "";
+            if (selectedFiles.Any(x => !string.Equals(Path.GetDirectoryName(x), folder, StringComparison.OrdinalIgnoreCase)))
             {
                 MessageBox.Show(window, "برای انتخاب چند فایل، فایل‌ها باید در یک پوشه باشند.", "منبع داده", MessageBoxButton.OK, MessageBoxImage.Warning);
                 e.Handled = true;
                 return;
             }
 
-            // این handler قبل از SaveButton_Click اجرا می‌شود؛ بنابراین منطق اصلی Save را
-            // مستقیماً اجرا می‌کنیم و سپس نتیجه را به لیست صریح فایل‌های انتخاب‌شده تبدیل می‌کنیم.
             e.Handled = true;
 
-            string originalPath = window.PathTextBox.Text;
+            string original = window.PathTextBox.Text;
             window.PathTextBox.Text = folder;
             window.SaveButton_Click(window, e);
 
@@ -74,7 +88,7 @@ namespace TradeIt.Portfolios
                 window.ResultPortfolio.DataSource.SourceType = "Folder";
                 window.ResultPortfolio.DataSource.Path = folder;
                 window.ResultPortfolio.UseExplicitSymbolList = true;
-                window.ResultPortfolio.Symbols = files
+                window.ResultPortfolio.Symbols = selectedFiles
                     .Select(file => new Models.SymbolInfo
                     {
                         Symbol = Path.GetFileNameWithoutExtension(file),
@@ -84,7 +98,7 @@ namespace TradeIt.Portfolios
                     .ToList();
             }
 
-            window.PathTextBox.Text = originalPath;
+            window.PathTextBox.Text = original;
         }
 
         private static string[] GetSelectedFiles(PortfolioEditorWindow window)
@@ -115,10 +129,8 @@ namespace TradeIt.Portfolios
             if (window.DataTypeComboBox.Parent is Grid grid)
             {
                 int column = Grid.GetColumn(window.DataTypeComboBox);
-
                 if (column >= 0 && column < grid.ColumnDefinitions.Count)
                     grid.ColumnDefinitions[column].Width = new GridLength(0);
-
                 if (column > 0 && column - 1 < grid.ColumnDefinitions.Count)
                     grid.ColumnDefinitions[column - 1].Width = new GridLength(0);
 
