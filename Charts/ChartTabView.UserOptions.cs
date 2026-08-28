@@ -68,16 +68,5 @@ namespace TradeIt.Charts
             chart.Plot.Grid.MajorLineWidth = (float)settings.GridLineWidth;
             chart.Plot.Grid.MinorLineWidth = (float)settings.GridLineWidth;
         }
-
-        private static ScottPlot.LinePattern ParseLinePattern(string? value)
-        {
-            return value?.ToLowerInvariant() switch
-            {
-                "dotted" => ScottPlot.LinePattern.Dotted,
-                "dashed" => ScottPlot.LinePattern.Dashed,
-                "denselydashed" => ScottPlot.LinePattern.DenselyDashed,
-                _ => ScottPlot.LinePattern.Solid
-            };
-        }
     }
 }
