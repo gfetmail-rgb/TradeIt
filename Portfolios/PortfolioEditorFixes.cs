@@ -6,7 +6,6 @@ using System.Windows.Controls;
 using System.Windows.Threading;
 using WpfButton = System.Windows.Controls.Button;
 using WpfTextBox = System.Windows.Controls.TextBox;
-using WpfTextBlock = System.Windows.Controls.TextBlock;
 using WpfMessageBox = System.Windows.MessageBox;
 using WpfMessageBoxButton = System.Windows.MessageBoxButton;
 using WpfMessageBoxImage = System.Windows.MessageBoxImage;
@@ -19,7 +18,6 @@ namespace TradeIt.Portfolios
         {
             EventManager.RegisterClassHandler(typeof(PortfolioEditorWindow), WpfButton.ClickEvent, new RoutedEventHandler(PortfolioEditor_ButtonClicked));
             EventManager.RegisterClassHandler(typeof(PortfolioEditorWindow), WpfTextBox.TextChangedEvent, new TextChangedEventHandler(PortfolioEditor_PathChanged));
-            EventManager.RegisterClassHandler(typeof(PortfolioEditorWindow), FrameworkElement.LoadedEvent, new RoutedEventHandler(PortfolioEditor_Loaded));
         }
 
         private static void PortfolioEditor_ButtonClicked(object sender, RoutedEventArgs e)
@@ -27,41 +25,14 @@ namespace TradeIt.Portfolios
             if (sender is not WpfButton button || Window.GetWindow(button) is not PortfolioEditorWindow window)
                 return;
 
-            if (button.Name == "BrowseButton")
-            {
-                if (window.FolderRadio.IsChecked == true)
-                {
-                    QueuePreview(window);
-                    return;
-                }
-
-                var dialog = new Microsoft.Win32.OpenFileDialog
-                {
-                    Title = "انتخاب فایل‌های داده",
-                    Multiselect = true,
-                    Filter = "Data Files (*.txt;*.csv)|*.txt;*.csv|All Files (*.*)|*.*"
-                };
-
-                if (dialog.ShowDialog() == true)
-                {
-                    window.PathTextBox.Text = string.Join(";", dialog.FileNames);
-                    QueuePreview(window);
-                }
-
-                e.Handled = true;
-                return;
-            }
-
             if (button.Name == "LoadPreviewButton")
             {
-                string path = window.PathTextBox.Text.Trim();
                 string[] files = GetSelectedFiles(window);
-
                 if (files.Length <= 1)
                     return;
 
                 e.Handled = true;
-                string originalPath = path;
+                string originalPath = window.PathTextBox.Text;
                 window.PathTextBox.Text = files[0];
                 window.LoadPreviewButton_Click(window, e);
                 window.PathTextBox.Text = originalPath;
@@ -84,7 +55,6 @@ namespace TradeIt.Portfolios
             }
 
             e.Handled = true;
-
             string original = window.PathTextBox.Text;
             window.PathTextBox.Text = folder;
             window.SaveButton_Click(window, e);
@@ -94,14 +64,12 @@ namespace TradeIt.Portfolios
                 window.ResultPortfolio.DataSource.SourceType = "Folder";
                 window.ResultPortfolio.DataSource.Path = folder;
                 window.ResultPortfolio.UseExplicitSymbolList = true;
-                window.ResultPortfolio.Symbols = selectedFiles
-                    .Select(file => new Models.SymbolInfo
-                    {
-                        Symbol = Path.GetFileNameWithoutExtension(file),
-                        DisplayName = Path.GetFileNameWithoutExtension(file),
-                        FilePath = file
-                    })
-                    .ToList();
+                window.ResultPortfolio.Symbols = selectedFiles.Select(file => new Models.SymbolInfo
+                {
+                    Symbol = Path.GetFileNameWithoutExtension(file),
+                    DisplayName = Path.GetFileNameWithoutExtension(file),
+                    FilePath = file
+                }).ToList();
             }
 
             window.PathTextBox.Text = original;
@@ -125,55 +93,28 @@ namespace TradeIt.Portfolios
             QueuePreview(window);
         }
 
-        private static void PortfolioEditor_Loaded(object sender, RoutedEventArgs e)
-        {
-            if (sender is not PortfolioEditorWindow window || window.DataTypeComboBox == null)
-                return;
-
-            window.DataTypeComboBox.Visibility = Visibility.Collapsed;
-
-            if (window.DataTypeComboBox.Parent is Grid grid)
-            {
-                int column = Grid.GetColumn(window.DataTypeComboBox);
-                if (column >= 0 && column < grid.ColumnDefinitions.Count)
-                    grid.ColumnDefinitions[column].Width = new GridLength(0);
-                if (column > 0 && column - 1 < grid.ColumnDefinitions.Count)
-                    grid.ColumnDefinitions[column - 1].Width = new GridLength(0);
-
-                foreach (WpfTextBlock text in grid.Children.OfType<WpfTextBlock>())
-                {
-                    if (text.Text == "داده:")
-                        text.Visibility = Visibility.Collapsed;
-                }
-            }
-        }
-
         private static void QueuePreview(PortfolioEditorWindow window)
         {
-            window.Dispatcher.BeginInvoke(
-                DispatcherPriority.ContextIdle,
-                new Action(() =>
-                {
-                    string path = window.PathTextBox.Text.Trim();
-                    string previewFile = path.Split(';')
-                        .Select(x => x.Trim())
-                        .FirstOrDefault(File.Exists) ?? "";
+            window.Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(() =>
+            {
+                string path = window.PathTextBox.Text.Trim();
+                string previewFile = path.Split(';').Select(x => x.Trim()).FirstOrDefault(File.Exists) ?? "";
 
-                    if (string.IsNullOrWhiteSpace(previewFile) && Directory.Exists(path))
-                        previewFile = path;
+                if (string.IsNullOrWhiteSpace(previewFile) && Directory.Exists(path))
+                    previewFile = path;
 
-                    if (string.IsNullOrWhiteSpace(previewFile))
-                        return;
+                if (string.IsNullOrWhiteSpace(previewFile))
+                    return;
 
-                    string original = window.PathTextBox.Text;
-                    if (!File.Exists(original))
-                        window.PathTextBox.Text = previewFile;
+                string original = window.PathTextBox.Text;
+                if (!File.Exists(original))
+                    window.PathTextBox.Text = previewFile;
 
-                    window.LoadPreviewButton_Click(window, new RoutedEventArgs());
+                window.LoadPreviewButton_Click(window, new RoutedEventArgs());
 
-                    if (!string.Equals(window.PathTextBox.Text, original, StringComparison.Ordinal))
-                        window.PathTextBox.Text = original;
-                }));
+                if (!string.Equals(window.PathTextBox.Text, original, StringComparison.Ordinal))
+                    window.PathTextBox.Text = original;
+            }));
         }
     }
 }
