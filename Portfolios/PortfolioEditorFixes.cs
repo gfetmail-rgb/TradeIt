@@ -4,6 +4,12 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using WpfButton = System.Windows.Controls.Button;
+using WpfTextBox = System.Windows.Controls.TextBox;
+using WpfTextBlock = System.Windows.Controls.TextBlock;
+using WpfMessageBox = System.Windows.MessageBox;
+using WpfMessageBoxButton = System.Windows.MessageBoxButton;
+using WpfMessageBoxImage = System.Windows.MessageBoxImage;
 
 namespace TradeIt.Portfolios
 {
@@ -11,14 +17,14 @@ namespace TradeIt.Portfolios
     {
         static PortfolioEditorWindow()
         {
-            EventManager.RegisterClassHandler(typeof(PortfolioEditorWindow), Button.ClickEvent, new RoutedEventHandler(PortfolioEditor_ButtonClicked));
-            EventManager.RegisterClassHandler(typeof(PortfolioEditorWindow), TextBox.TextChangedEvent, new TextChangedEventHandler(PortfolioEditor_PathChanged));
+            EventManager.RegisterClassHandler(typeof(PortfolioEditorWindow), WpfButton.ClickEvent, new RoutedEventHandler(PortfolioEditor_ButtonClicked));
+            EventManager.RegisterClassHandler(typeof(PortfolioEditorWindow), WpfTextBox.TextChangedEvent, new TextChangedEventHandler(PortfolioEditor_PathChanged));
             EventManager.RegisterClassHandler(typeof(PortfolioEditorWindow), FrameworkElement.LoadedEvent, new RoutedEventHandler(PortfolioEditor_Loaded));
         }
 
         private static void PortfolioEditor_ButtonClicked(object sender, RoutedEventArgs e)
         {
-            if (sender is not Button button || Window.GetWindow(button) is not PortfolioEditorWindow window)
+            if (sender is not WpfButton button || Window.GetWindow(button) is not PortfolioEditorWindow window)
                 return;
 
             if (button.Name == "BrowseButton")
@@ -72,7 +78,7 @@ namespace TradeIt.Portfolios
             string folder = Path.GetDirectoryName(selectedFiles[0]) ?? "";
             if (selectedFiles.Any(x => !string.Equals(Path.GetDirectoryName(x), folder, StringComparison.OrdinalIgnoreCase)))
             {
-                MessageBox.Show(window, "برای انتخاب چند فایل، فایل‌ها باید در یک پوشه باشند.", "منبع داده", MessageBoxButton.OK, MessageBoxImage.Warning);
+                WpfMessageBox.Show(window, "برای انتخاب چند فایل، فایل‌ها باید در یک پوشه باشند.", "منبع داده", WpfMessageBoxButton.OK, WpfMessageBoxImage.Warning);
                 e.Handled = true;
                 return;
             }
@@ -113,7 +119,7 @@ namespace TradeIt.Portfolios
 
         private static void PortfolioEditor_PathChanged(object sender, TextChangedEventArgs e)
         {
-            if (sender is not TextBox textBox || Window.GetWindow(textBox) is not PortfolioEditorWindow window)
+            if (sender is not WpfTextBox textBox || Window.GetWindow(textBox) is not PortfolioEditorWindow window)
                 return;
 
             QueuePreview(window);
@@ -134,7 +140,7 @@ namespace TradeIt.Portfolios
                 if (column > 0 && column - 1 < grid.ColumnDefinitions.Count)
                     grid.ColumnDefinitions[column - 1].Width = new GridLength(0);
 
-                foreach (TextBlock text in grid.Children.OfType<TextBlock>())
+                foreach (WpfTextBlock text in grid.Children.OfType<WpfTextBlock>())
                 {
                     if (text.Text == "داده:")
                         text.Visibility = Visibility.Collapsed;
