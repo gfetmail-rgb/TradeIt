@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 
 namespace TradeIt.Charts
@@ -13,6 +14,11 @@ namespace TradeIt.Charts
                 FrameworkElement.LoadedEvent,
                 new RoutedEventHandler(ApplyUserChartSettings),
                 true);
+            EventManager.RegisterClassHandler(
+                typeof(ChartTabView),
+                FrameworkElement.UnloadedEvent,
+                new RoutedEventHandler(RemoveSettingsHandler),
+                true);
             return true;
         }
 
@@ -20,7 +26,21 @@ namespace TradeIt.Charts
         {
             if (sender is not ChartTabView view)
                 return;
+
+            ChartSettingsManager.SettingsChanged -= view.ChartSettingsManager_SettingsChanged;
+            ChartSettingsManager.SettingsChanged += view.ChartSettingsManager_SettingsChanged;
             view.ApplyPersistedAppearance();
+        }
+
+        private static void RemoveSettingsHandler(object sender, RoutedEventArgs e)
+        {
+            if (sender is ChartTabView view)
+                ChartSettingsManager.SettingsChanged -= view.ChartSettingsManager_SettingsChanged;
+        }
+
+        private void ChartSettingsManager_SettingsChanged(object? sender, EventArgs e)
+        {
+            Dispatcher.InvokeAsync(ApplyPersistedAppearance);
         }
 
         private void ApplyPersistedAppearance()
@@ -30,6 +50,7 @@ namespace TradeIt.Charts
                 var settings = ChartSettingsManager.Current;
                 _settings = settings;
                 _gridVisible = settings.GridVisible;
+
                 ApplyGridAppearance(Chart);
                 ApplyGridAppearance(VolumeChart);
 
@@ -46,6 +67,7 @@ namespace TradeIt.Charts
                 VolumeChart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(settings.FigureBackground);
                 VolumeChart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(settings.DataBackground);
                 VolumeChart.Plot.Axes.Color(ScottPlot.Color.FromHtml(settings.AxisColor));
+
                 Chart.Refresh();
                 VolumeChart.Refresh();
             }
