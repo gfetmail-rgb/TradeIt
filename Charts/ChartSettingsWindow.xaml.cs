@@ -7,13 +7,11 @@ namespace TradeIt.Charts
     public partial class ChartSettingsWindow : Window
     {
         public ChartSettings Settings { get; private set; }
-        private string _settingsCrosshairColor = "#909090";
 
         public ChartSettingsWindow(ChartSettings settings)
         {
             InitializeComponent();
             Settings = settings.Clone();
-            _settingsCrosshairColor = Settings.CrosshairColor;
             LoadSettings();
         }
 
@@ -26,15 +24,15 @@ namespace TradeIt.Charts
             SetPreviewColor(DataBackgroundPreview, Settings.DataBackground);
             SetPreviewColor(GridColorPreview, Settings.GridColor);
             SetPreviewColor(AxisColorPreview, Settings.AxisColor);
-            SelectComboValue(LineWidthComboBox, Settings.LineWidth);
-            SelectComboValue(CandleLineWidthComboBox, Settings.CandleLineWidth);
-            SelectComboValue(BarLineWidthComboBox, Settings.BarLineWidth);
-            SelectComboValue(GridLineWidthComboBox, Settings.GridLineWidth);
-            SelectTag(GridPatternComboBox, Settings.GridPattern);
+            SelectMainComboValue(LineWidthComboBox, Settings.LineWidth);
+            SelectMainComboValue(CandleLineWidthComboBox, Settings.CandleLineWidth);
+            SelectMainComboValue(BarLineWidthComboBox, Settings.BarLineWidth);
+            SelectMainComboValue(GridLineWidthComboBox, Settings.GridLineWidth);
+            SelectMainTag(GridPatternComboBox, Settings.GridPattern);
             OpenChartInNewTabCheckBox.IsChecked = Settings.OpenChartInNewTab;
         }
 
-        private static void SelectComboValue(System.Windows.Controls.ComboBox combo, double value)
+        private static void SelectMainComboValue(System.Windows.Controls.ComboBox combo, double value)
         {
             foreach (System.Windows.Controls.ComboBoxItem item in combo.Items)
             {
@@ -47,7 +45,7 @@ namespace TradeIt.Charts
             if (combo.Items.Count > 0) combo.SelectedIndex = 0;
         }
 
-        private static void SelectTag(System.Windows.Controls.ComboBox combo, string? tag)
+        private static void SelectMainTag(System.Windows.Controls.ComboBox combo, string? tag)
         {
             foreach (System.Windows.Controls.ComboBoxItem item in combo.Items)
             {
@@ -64,15 +62,8 @@ namespace TradeIt.Charts
             try
             {
                 var color = System.Drawing.ColorTranslator.FromHtml(currentColor);
-                using var dialog = new System.Windows.Forms.ColorDialog
-                {
-                    Color = color,
-                    FullOpen = true,
-                    AnyColor = true
-                };
-                return dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK
-                    ? $"#{dialog.Color.R:X2}{dialog.Color.G:X2}{dialog.Color.B:X2}"
-                    : null;
+                using var dialog = new System.Windows.Forms.ColorDialog { Color = color, FullOpen = true, AnyColor = true };
+                return dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK ? $"#{dialog.Color.R:X2}{dialog.Color.G:X2}{dialog.Color.B:X2}" : null;
             }
             catch { return null; }
         }
@@ -105,33 +96,21 @@ namespace TradeIt.Charts
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
-            Settings.LineWidth = ReadComboValue(LineWidthComboBox, Settings.LineWidth);
-            Settings.CandleLineWidth = ReadComboValue(CandleLineWidthComboBox, Settings.CandleLineWidth);
-            Settings.BarLineWidth = ReadComboValue(BarLineWidthComboBox, Settings.BarLineWidth);
-            Settings.GridLineWidth = ReadComboValue(GridLineWidthComboBox, Settings.GridLineWidth);
-
+            Settings.LineWidth = ReadMainComboValue(LineWidthComboBox, Settings.LineWidth);
+            Settings.CandleLineWidth = ReadMainComboValue(CandleLineWidthComboBox, Settings.CandleLineWidth);
+            Settings.BarLineWidth = ReadMainComboValue(BarLineWidthComboBox, Settings.BarLineWidth);
+            Settings.GridLineWidth = ReadMainComboValue(GridLineWidthComboBox, Settings.GridLineWidth);
             if (GridPatternComboBox.SelectedItem is System.Windows.Controls.ComboBoxItem gridPattern)
                 Settings.GridPattern = gridPattern.Tag?.ToString() ?? "Solid";
-
-            if (_crosshairPatternComboBox?.SelectedItem is System.Windows.Controls.ComboBoxItem crossPattern)
-                Settings.CrosshairPattern = crossPattern.Tag?.ToString() ?? "Dotted";
-
-            if (_crosshairLineWidthComboBox?.SelectedItem is System.Windows.Controls.ComboBoxItem crossWidth &&
-                double.TryParse(crossWidth.Tag?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double cw))
-                Settings.CrosshairLineWidth = cw;
-
-            Settings.CrosshairColor = _settingsCrosshairColor;
             Settings.OpenChartInNewTab = OpenChartInNewTabCheckBox.IsChecked == true;
             Settings.HasUserSavedSettings = true;
             ChartSettingsManager.Save(Settings);
             DialogResult = true;
         }
 
-        private static double ReadComboValue(System.Windows.Controls.ComboBox combo, double fallback)
+        private static double ReadMainComboValue(System.Windows.Controls.ComboBox combo, double fallback)
         {
-            if (combo.SelectedItem is System.Windows.Controls.ComboBoxItem item &&
-                double.TryParse(item.Tag?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
-                return value;
+            if (combo.SelectedItem is System.Windows.Controls.ComboBoxItem item && double.TryParse(item.Tag?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) return value;
             return fallback;
         }
 
