@@ -102,7 +102,7 @@
                             <DataGridTemplateColumn Header="انتخاب" Width="65" IsReadOnly="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <CheckBox HorizontalAlignment="Center" VerticalAlignment="Center" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Click="SymbolCheckBox_Click"/>
+                                        <CheckBox HorizontalAlignment="Center" VerticalAlignment="Center" IsEnabled="{Binding RelativeSource={RelativeSource AncestorType={x:Type Window}}, Path=IsAutoScrollActive, Converter={StaticResource InverseBooleanConverter}}" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Click="SymbolCheckBox_Click"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
