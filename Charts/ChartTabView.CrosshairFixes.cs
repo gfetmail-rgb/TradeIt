@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using TradeIt.Models;
 
 namespace TradeIt.Charts
@@ -8,9 +6,9 @@ namespace TradeIt.Charts
     public partial class ChartTabView
     {
         /// <summary>
-        /// Updates the bottom axis labels without assigning a generic TickGenerator
-        /// to a DateTime axis. ScottPlot requires a DateTime-compatible generator
-        /// whenever the bottom axis is a date axis.
+        /// Moves the crosshair to the actual X coordinate used by the chart.
+        /// The chart currently uses DateTime/OADate coordinates, so the bar index
+        /// must never be assigned directly as the X coordinate.
         /// </summary>
         private void UpdateCrosshairAxisLabel(int barIndex)
         {
@@ -20,14 +18,13 @@ namespace TradeIt.Charts
             if (_crosshair == null)
                 return;
 
-            double x = barIndex;
-            _crosshair.Position = new ScottPlot.Coordinates(x, _crosshair.Position.Y);
+            DateTime barTime = GetBarDateTime(_bars[barIndex], barIndex);
 
-            string label = GetCrosshairXLabel(barIndex);
+            _crosshair.Position = new ScottPlot.Coordinates(
+                barTime.ToOADate(),
+                _crosshair.Position.Y);
 
-            // Use the crosshair's own annotation rather than replacing the axis
-            // TickGenerator. This works for both numeric and DateTime axes.
-            _crosshair.VerticalLine.Text = label;
+            _crosshair.VerticalLine.Text = GetCrosshairXLabel(barIndex);
         }
 
         private string GetCrosshairXLabel(int barIndex)
@@ -37,46 +34,26 @@ namespace TradeIt.Charts
 
             MarketBar bar = _bars[barIndex];
 
-            // Prefer an actual timestamp when the data contains one.
-            DateTime? timestamp = TryGetBarTimestamp(bar);
-            if (timestamp.HasValue)
-                return timestamp.Value.ToString("yyyy/MM/dd");
+            if (bar.Timestamp.HasValue &&
+                bar.Timestamp.Value > DateTime.MinValue &&
+                bar.Timestamp.Value < DateTime.MaxValue)
+            {
+                return bar.Timestamp.Value.ToString("yyyy/MM/dd");
+            }
 
             return $"کندل {barIndex + 1}";
         }
 
         /// <summary>
-        /// Returns the bar timestamp only when the data actually contains one.
-        /// No artificial time is created for date-less data.
-        /// </summary>
-        private static DateTime? TryGetBarTimestamp(MarketBar bar)
-        {
-            // MarketBar in the current project exposes its date/time through
-            // the DateTime property. Keep the check centralized so callers do
-            // not accidentally treat candle index as a timestamp.
-            DateTime value = bar.DateTime;
-            return value == default ? null : value;
-        }
-
-        /// <summary>
-        /// Configure the bottom axis according to the actual data type.
-        /// IMPORTANT: never assign a generic TickGenerator to a DateTime axis.
+        /// The main chart is already configured as a DateTime axis by its
+        /// Candlestick/Line/Bar drawing code. Do not replace its TickGenerator
+        /// here. Replacing it while the axis is a DateTime axis causes the
+        /// runtime exception: Date axis must have a ITickGenerator generator.
         /// </summary>
         private void ConfigureBottomAxisForCrosshair()
         {
-            if (_bars == null || _bars.Count == 0)
-                return;
-
-            bool hasDateTime = _bars.Any(b => TryGetBarTimestamp(b).HasValue);
-
-            if (hasDateTime)
-            {
-                Chart.Plot.Axes.DateTimeTicksBottom();
-            }
-            else
-            {
-                Chart.Plot.Axes.NumericTicksBottom();
-            }
+            // Intentionally empty.
+            // DrawChart() owns the axis type and TickGenerator.
         }
     }
 }
