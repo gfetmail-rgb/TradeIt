@@ -4,6 +4,11 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using TradeIt.Models;
 
+using WpfCheckBox = System.Windows.Controls.CheckBox;
+using WpfKey = System.Windows.Input.Key;
+using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
+using WpfKeyEventHandler = System.Windows.Input.KeyEventHandler;
+
 namespace TradeIt
 {
     public partial class MainWindow
@@ -15,14 +20,14 @@ namespace TradeIt
             EventManager.RegisterClassHandler(
                 typeof(DataGrid),
                 UIElement.PreviewKeyDownEvent,
-                new KeyEventHandler(SymbolGrid_PreviewKeyDown),
+                new WpfKeyEventHandler(SymbolGrid_PreviewKeyDown),
                 true);
             return true;
         }
 
-        private static async void SymbolGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+        private static async void SymbolGrid_PreviewKeyDown(object sender, WpfKeyEventArgs e)
         {
-            if (e.Key != Key.Enter && e.Key != Key.Space)
+            if (e.Key != WpfKey.Enter && e.Key != WpfKey.Space)
                 return;
 
             if (sender is not DataGrid grid ||
@@ -31,7 +36,7 @@ namespace TradeIt
                 grid.Items.Count == 0)
                 return;
 
-            if (e.OriginalSource is CheckBox)
+            if (e.OriginalSource is WpfCheckBox)
                 return;
 
             int currentIndex = grid.SelectedIndex;
