@@ -16,16 +16,15 @@ namespace TradeIt.Charts
 
         public static ChartSettings Current => _current.Clone();
 
+        public static void SetCurrent(ChartSettings settings)
+        {
+            if (settings == null) return;
+            lock (Sync) _current = settings.Clone();
+        }
+
         public static void SetDefaults(ChartSettings settings)
         {
-            if (settings == null)
-                return;
-
-            lock (Sync)
-            {
-                _current = settings.Clone();
-                _current.HasUserSavedSettings = false;
-            }
+            SetCurrent(settings);
         }
 
         public static ChartSettings Clone(ChartSettings settings)
@@ -35,26 +34,18 @@ namespace TradeIt.Charts
 
         public static void Save(ChartSettings settings)
         {
-            if (settings == null)
-                return;
-
+            if (settings == null) return;
             lock (Sync)
             {
                 _current = settings.Clone();
                 _current.HasUserSavedSettings = true;
                 Directory.CreateDirectory(SettingsDirectory);
-                string json = JsonSerializer.Serialize(_current, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
+                string json = JsonSerializer.Serialize(_current, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(SettingsFile, json);
             }
         }
 
-        public static void Save()
-        {
-            Save(_current);
-        }
+        public static void Save() => Save(_current);
 
         private static ChartSettings LoadOrCreateDefaults()
         {
@@ -64,17 +55,11 @@ namespace TradeIt.Charts
                 {
                     string json = File.ReadAllText(SettingsFile);
                     ChartSettings? saved = JsonSerializer.Deserialize<ChartSettings>(json);
-
-                    if (saved != null && saved.HasUserSavedSettings)
-                        return saved;
+                    if (saved != null && saved.HasUserSavedSettings) return saved;
                 }
             }
-            catch
-            {
-                // A corrupt settings file must not prevent the application from starting.
-            }
+            catch { }
 
-            // First application run: requested initial chart appearance.
             var firstRun = new ChartSettings
             {
                 GridVisible = false,
@@ -83,20 +68,6 @@ namespace TradeIt.Charts
                 CrosshairPattern = "Dotted",
                 HasUserSavedSettings = false
             };
-
-            try
-            {
-                Directory.CreateDirectory(SettingsDirectory);
-                string json = JsonSerializer.Serialize(firstRun, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
-                File.WriteAllText(SettingsFile, json);
-            }
-            catch
-            {
-                // Continue with in-memory defaults if the settings file cannot be written.
-            }
 
             return firstRun;
         }
