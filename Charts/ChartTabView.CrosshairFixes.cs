@@ -29,7 +29,9 @@ namespace TradeIt.Charts
         {
             if (IsLoaded)
             {
-                Dispatcher.BeginInvoke(new Action(ApplyHorizontalAxisLabels), System.Windows.Threading.DispatcherPriority.Background);
+                Dispatcher.BeginInvoke(
+                    new Action(ApplyHorizontalAxisLabels),
+                    System.Windows.Threading.DispatcherPriority.Background);
             }
         }
 
@@ -50,8 +52,6 @@ namespace TradeIt.Charts
                 _chartType = ChartDisplayType.Candlestick;
                 ChartTypeComboBox.SelectedIndex = 0;
             }
-
-            ApplyHorizontalAxisLabels();
 
             if (_bars.Count > 0)
                 DrawChart();
@@ -169,12 +169,32 @@ namespace TradeIt.Charts
             if (_bars.Count == 0)
                 return;
 
-            double[] positions = _bars.Select((bar, index) => GetBarX(bar, index)).ToArray();
-            string[] labels = _bars.Select((bar, index) => GetBarAxisLabel(bar, index)).ToArray();
+            // The chart uses DateTime coordinates (including synthetic DateTimes
+            // for data that has no timestamp). Therefore the bottom axis must
+            // receive an IDateTimeTickGenerator. Using SetTicks() here can replace
+            // the generator with NumericManual and causes the runtime exception:
+            // "Date axis must have a ITickGenerator generator".
+            var ticks = new ScottPlot.TickGenerators.DateTimeManual();
 
-            if (positions.Length > 0)
-                Chart.Plot.Axes.Bottom.SetTicks(positions, labels);
+            // Avoid overcrowding the axis. Keep approximately one label per
+            // 80 pixels, with at least the first and last visible candle.
+            int maxTicks = Math.Max(2, (int)(Chart.ActualWidth / 80.0));
+            int step = Math.Max(1, (int)Math.Ceiling((double)_bars.Count / maxTicks));
 
+            for (int i = 0; i < _bars.Count; i += step)
+            {
+                DateTime position = DateTime.FromOADate(GetBarX(_bars[i], i));
+                ticks.AddMajor(position, GetBarAxisLabel(_bars[i], i));
+            }
+
+            int lastIndex = _bars.Count - 1;
+            if (lastIndex >= 0 && lastIndex % step != 0)
+            {
+                DateTime position = DateTime.FromOADate(GetBarX(_bars[lastIndex], lastIndex));
+                ticks.AddMajor(position, GetBarAxisLabel(_bars[lastIndex], lastIndex));
+            }
+
+            Chart.Plot.Axes.Bottom.TickGenerator = ticks;
             Chart.Refresh();
         }
 
