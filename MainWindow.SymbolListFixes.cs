@@ -12,17 +12,16 @@ namespace TradeIt
 {
     public partial class MainWindow
     {
-        static MainWindow()
+        private static readonly bool _symbolListButtonHandlerRegistered = RegisterSymbolListButtonHandler();
+
+        private static bool RegisterSymbolListButtonHandler()
         {
             EventManager.RegisterClassHandler(
                 typeof(Button),
                 Button.ClickEvent,
                 new RoutedEventHandler(PrepareSymbolListBeforeButtonAction));
 
-            EventManager.RegisterClassHandler(
-                typeof(TextBlock),
-                UIElement.MouseLeftButtonUpEvent,
-                new MouseButtonEventHandler(SymbolListTextBlockClicked));
+            return true;
         }
 
         private static void PrepareSymbolListBeforeButtonAction(object sender, RoutedEventArgs e)
