@@ -33,23 +33,17 @@ namespace TradeIt.Charts
 
         private static void DisplayFixes_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            if (sender is not ChartTabView chart || chart._crosshair == null || !chart._chartVisible || !chart._crosshairVisible || chart._bars.Count == 0)
-                return;
-
+            if (sender is not ChartTabView chart || chart._crosshair == null || !chart._chartVisible || !chart._crosshairVisible || chart._bars.Count == 0) return;
             if (e.OriginalSource is not System.Windows.DependencyObject source) return;
             ScottPlot.WPF.WpfPlot? plot = FindPlot(source);
             if (plot == null || (!ReferenceEquals(plot, chart.Chart) && !ReferenceEquals(plot, chart.VolumeChart))) return;
-
             System.Windows.Point point = e.GetPosition(plot);
             if (!chart.TryGetChartCoordinates(plot, point, out ScottPlot.Coordinates coordinates)) return;
-
-            int index = chart.FindNearestBarIndex(coordinates.X);
+            int index = chart.DisplayFixes_FindNearestBarIndex(coordinates.X);
             if (index < 0 || index >= chart._bars.Count) return;
-
             double x = chart.GetBarDateTime(chart._bars[index], index).ToOADate();
             var limits = chart.Chart.Plot.Axes.GetLimits();
             double y = ReferenceEquals(plot, chart.Chart) ? coordinates.Y : (limits.Bottom + limits.Top) / 2.0;
-
             chart._crosshair.Position = new ScottPlot.Coordinates(x, y);
             chart._crosshair.IsVisible = true;
             chart._crosshairMouseInside = true;
@@ -80,11 +74,7 @@ namespace TradeIt.Charts
                 DateTime dt = GetBarDateTime(bar, index);
                 dateText = dt.TimeOfDay == TimeSpan.Zero ? dt.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture) : dt.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
             }
-            else
-            {
-                dateText = $"کندل {index + 1}";
-            }
-
+            else dateText = $"کندل {index + 1}";
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | O: {bar.Open:N2}  H: {bar.High:N2}  L: {bar.Low:N2}  C: {bar.Close:N2}  V: {bar.Volume:N0}";
             BottomInfoTextBlock.Text = dateText;
         }
@@ -196,6 +186,20 @@ namespace TradeIt.Charts
                 }
             }
             catch { }
+        }
+
+        private int DisplayFixes_FindNearestBarIndex(double x)
+        {
+            if (_bars.Count == 0) return -1;
+            int bestIndex = 0;
+            double bestDistance = double.MaxValue;
+            for (int i = 0; i < _bars.Count; i++)
+            {
+                double barX = GetBarDateTime(_bars[i], i).ToOADate();
+                double distance = Math.Abs(barX - x);
+                if (distance < bestDistance) { bestDistance = distance; bestIndex = i; }
+            }
+            return bestIndex;
         }
     }
 }
