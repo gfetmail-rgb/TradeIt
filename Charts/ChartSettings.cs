@@ -11,7 +11,9 @@ namespace TradeIt.Charts
         public string GridPattern { get; set; } = "Solid";
         public double GridLineWidth { get; set; } = 1;
         public string AxisColor { get; set; } = "#444444";
-        public double LineWidth { get; set; } = 2;
+        public double LineWidth { get; set; } = 1.5;
+        public double CandleLineWidth { get; set; } = 1;
+        public double BarLineWidth { get; set; } = 1;
         public bool GridVisible { get; set; } = false;
         public int AutoScrollDelayMilliseconds { get; set; } = 1000;
         public bool OpenChartInNewTab { get; set; } = true;
@@ -35,6 +37,8 @@ namespace TradeIt.Charts
                 GridLineWidth = GridLineWidth,
                 AxisColor = AxisColor,
                 LineWidth = LineWidth,
+                CandleLineWidth = CandleLineWidth,
+                BarLineWidth = BarLineWidth,
                 GridVisible = GridVisible,
                 AutoScrollDelayMilliseconds = AutoScrollDelayMilliseconds,
                 OpenChartInNewTab = OpenChartInNewTab,
