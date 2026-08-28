@@ -10,7 +10,6 @@ namespace TradeIt.Charts
     public partial class ChartTabView
     {
         private bool _displayFixesInstalled;
-        private bool _axisLabelsHookInstalled;
 
         private bool InstallDisplayFixes()
         {
@@ -28,7 +27,6 @@ namespace TradeIt.Charts
             Chart.PreviewMouseMove += DisplayFixes_MouseMove;
             VolumeChart.PreviewMouseMove += DisplayFixes_VolumeMouseMove;
             ChartSettingsManager.SettingsChanged += DisplayFixes_SettingsChanged;
-            InstallAxisLabelsHook();
             ApplyDisplayFixes();
         }
 
@@ -54,7 +52,6 @@ namespace TradeIt.Charts
                 ApplyCrosshairSettings(current);
                 ApplyFinancialLineWidths(current);
                 ApplyGridStyle(current);
-                ApplyAxisLabelMode();
 
                 Chart.Refresh();
                 if (_volumeVisible)
@@ -267,62 +264,6 @@ namespace TradeIt.Charts
             }
 
             return $"کندل {index + 1}";
-        }
-
-        private void InstallAxisLabelsHook()
-        {
-            if (_axisLabelsHookInstalled)
-                return;
-
-            Chart.RenderManager.RenderStarting += DisplayFixes_RenderStarting;
-            _axisLabelsHookInstalled = true;
-        }
-
-        private void ApplyAxisLabelMode()
-        {
-        }
-
-        private void DisplayFixes_RenderStarting(object? sender, EventArgs e)
-        {
-            try
-            {
-                if (_bars.Count == 0)
-                    return;
-
-                var ticks = Chart.Plot.Axes.Bottom.TickGenerator.Ticks;
-                if (ticks == null || ticks.Length == 0)
-                    return;
-
-                bool hasRealTimestamp = _bars.Any(x =>
-                    x.Timestamp.HasValue &&
-                    x.Timestamp.Value > DateTime.MinValue &&
-                    x.Timestamp.Value < DateTime.MaxValue);
-
-                for (int i = 0; i < ticks.Length; i++)
-                {
-                    int nearest = FindNearestBarIndex(ticks[i].Position);
-                    if (nearest < 0)
-                        continue;
-
-                    string label;
-                    if (hasRealTimestamp)
-                    {
-                        DateTime dt = GetBarDateTime(_bars[nearest], nearest);
-                        label = dt.TimeOfDay == TimeSpan.Zero
-                            ? dt.ToString("yyyy/MM/dd")
-                            : dt.ToString("yyyy/MM/dd HH:mm");
-                    }
-                    else
-                    {
-                        label = $"کندل {nearest + 1}";
-                    }
-
-                    ticks[i] = new ScottPlot.Tick(ticks[i].Position, label, ticks[i].IsMajor);
-                }
-            }
-            catch
-            {
-            }
         }
     }
 }
