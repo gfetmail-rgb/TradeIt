@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using WpfButton = System.Windows.Controls.Button;
 
 namespace TradeIt.Charts
 {
@@ -12,7 +13,7 @@ namespace TradeIt.Charts
         {
             EventManager.RegisterClassHandler(
                 typeof(ChartSettingsWindow),
-                Button.ClickEvent,
+                WpfButton.ClickEvent,
                 new RoutedEventHandler(ChartSettingsSaveHandler),
                 true);
             return true;
@@ -21,7 +22,7 @@ namespace TradeIt.Charts
         private static void ChartSettingsSaveHandler(object sender, RoutedEventArgs e)
         {
             if (sender is ChartSettingsWindow window &&
-                e.OriginalSource is Button button &&
+                e.OriginalSource is WpfButton button &&
                 button.Content?.ToString() == "ذخیره" &&
                 window.OpenChartInNewTabCheckBox != null)
             {
