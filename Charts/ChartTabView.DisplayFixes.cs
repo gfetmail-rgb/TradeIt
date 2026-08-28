@@ -39,17 +39,34 @@ namespace TradeIt.Charts
             if (plot == null || (!ReferenceEquals(plot, chart.Chart) && !ReferenceEquals(plot, chart.VolumeChart))) return;
             System.Windows.Point point = e.GetPosition(plot);
             if (!chart.TryGetChartCoordinates(plot, point, out ScottPlot.Coordinates coordinates)) return;
+
             int index = chart.DisplayFixes_FindNearestBarIndex(coordinates.X);
             if (index < 0 || index >= chart._bars.Count) return;
-            double x = chart.GetBarDateTime(chart._bars[index], index).ToOADate();
-            var limits = chart.Chart.Plot.Axes.GetLimits();
-            double y = ReferenceEquals(plot, chart.Chart) ? coordinates.Y : (limits.Bottom + limits.Top) / 2.0;
-            chart._crosshair.Position = new ScottPlot.Coordinates(x, y);
-            chart._crosshair.IsVisible = true;
-            chart._crosshairMouseInside = true;
-            chart.UpdateSnappedMouseInformation(index, y);
-            chart.Chart.Refresh();
-            e.Handled = true;
+
+            // The normal Chart_PreviewMouseMove handler also runs during this event.
+            // Schedule the final crosshair position after that handler so the snapped
+            // position cannot be overwritten by the raw mouse coordinate.
+            chart.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (chart._crosshair == null || !chart._chartVisible || !chart._crosshairVisible) return;
+
+                double x = chart.GetBarDateTime(chart._bars[index], index).ToOADate();
+                var limits = chart.Chart.Plot.Axes.GetLimits();
+                double y = ReferenceEquals(plot, chart.Chart) ? coordinates.Y : (limits.Bottom + limits.Top) / 2.0;
+
+                chart._crosshair.Position = new ScottPlot.Coordinates(x, y);
+                chart._crosshair.IsVisible = true;
+                chart._crosshairMouseInside = true;
+
+                // Show both labels at the ends of the crosshair.
+                chart._crosshair.HorizontalLine.LabelOppositeAxis = true;
+                chart._crosshair.VerticalLine.LabelOppositeAxis = true;
+                chart._crosshair.HorizontalLine.Text = y.ToString("N2", CultureInfo.InvariantCulture);
+                chart._crosshair.VerticalLine.Text = chart.GetCrosshairXLabel(index);
+
+                chart.UpdateSnappedMouseInformation(index, y);
+                chart.Chart.Refresh();
+            }), System.Windows.Threading.DispatcherPriority.Input);
         }
 
         private static ScottPlot.WPF.WpfPlot? FindPlot(System.Windows.DependencyObject source)
@@ -74,7 +91,11 @@ namespace TradeIt.Charts
                 DateTime dt = GetBarDateTime(bar, index);
                 dateText = dt.TimeOfDay == TimeSpan.Zero ? dt.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture) : dt.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
             }
-            else dateText = $"کندل {index + 1}";
+            else
+            {
+                dateText = $"کندل {index + 1}";
+            }
+
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | O: {bar.Open:N2}  H: {bar.High:N2}  L: {bar.Low:N2}  C: {bar.Close:N2}  V: {bar.Volume:N0}";
             BottomInfoTextBlock.Text = dateText;
         }
@@ -106,7 +127,7 @@ namespace TradeIt.Charts
             _crosshair.LineWidth = (float)Math.Max(0.01, _settings.CrosshairLineWidth);
             _crosshair.LinePattern = ParseDisplayPattern(_settings.CrosshairPattern);
             _crosshair.HorizontalLine.LabelOppositeAxis = true;
-            _crosshair.VerticalLine.LabelOppositeAxis = false;
+            _crosshair.VerticalLine.LabelOppositeAxis = true;
         }
 
         private static ScottPlot.LinePattern ParseDisplayPattern(string? value) => value?.Trim().ToLowerInvariant() switch
@@ -200,6 +221,18 @@ namespace TradeIt.Charts
                 if (distance < bestDistance) { bestDistance = distance; bestIndex = i; }
             }
             return bestIndex;
+        }
+
+        private string DisplayFixes_GetCrosshairXLabel(int index)
+        {
+            if (index < 0 || index >= _bars.Count) return string.Empty;
+            MarketBar bar = _bars[index];
+            if (bar.Timestamp.HasValue && bar.Timestamp.Value > DateTime.MinValue && bar.Timestamp.Value < DateTime.MaxValue)
+            {
+                DateTime dt = GetBarDateTime(bar, index);
+                return dt.TimeOfDay == TimeSpan.Zero ? dt.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture) : dt.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
+            }
+            return $"کندل {index + 1}";
         }
     }
 }
