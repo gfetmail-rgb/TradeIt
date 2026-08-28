@@ -28,7 +28,6 @@ namespace TradeIt.Charts
 
         private void ChartSettingsManager_SettingsChanged(object? sender, EventArgs e)
         {
-            _settings = ChartSettingsManager.Current;
             ApplyStoredChartSettings();
         }
 
