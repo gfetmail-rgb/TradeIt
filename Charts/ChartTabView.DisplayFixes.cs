@@ -43,26 +43,26 @@ namespace TradeIt.Charts
             int index = chart.DisplayFixes_FindNearestBarIndex(coordinates.X);
             if (index < 0 || index >= chart._bars.Count) return;
 
-            // The normal Chart_PreviewMouseMove handler also runs during this event.
-            // Schedule the final crosshair position after that handler so the snapped
-            // position cannot be overwritten by the raw mouse coordinate.
             chart.Dispatcher.BeginInvoke(new Action(() =>
             {
                 if (chart._crosshair == null || !chart._chartVisible || !chart._crosshairVisible) return;
 
                 double x = chart.GetBarDateTime(chart._bars[index], index).ToOADate();
-                var limits = chart.Chart.Plot.Axes.GetLimits();
-                double y = ReferenceEquals(plot, chart.Chart) ? coordinates.Y : (limits.Bottom + limits.Top) / 2.0;
+
+                // Snap both coordinates to the selected candle. The price therefore
+                // stays fixed while the mouse moves inside the same candle.
+                double y = chart._bars[index].Close;
 
                 chart._crosshair.Position = new ScottPlot.Coordinates(x, y);
                 chart._crosshair.IsVisible = true;
                 chart._crosshairMouseInside = true;
 
-                // Show both labels at the ends of the crosshair.
-                chart._crosshair.HorizontalLine.LabelOppositeAxis = true;
-                chart._crosshair.VerticalLine.LabelOppositeAxis = true;
+                // Put the price label on the primary price axis (left) and the
+                // time/index label on the primary time axis (bottom).
+                chart._crosshair.HorizontalLine.LabelOppositeAxis = false;
+                chart._crosshair.VerticalLine.LabelOppositeAxis = false;
                 chart._crosshair.HorizontalLine.Text = y.ToString("N2", CultureInfo.InvariantCulture);
-                chart._crosshair.VerticalLine.Text = chart.GetCrosshairXLabel(index);
+                chart._crosshair.VerticalLine.Text = chart.DisplayFixes_GetCrosshairXLabel(index);
 
                 chart.UpdateSnappedMouseInformation(index, y);
                 chart.Chart.Refresh();
@@ -126,8 +126,8 @@ namespace TradeIt.Charts
             _crosshair.LineColor = ScottPlot.Color.FromHtml(_settings.CrosshairColor);
             _crosshair.LineWidth = (float)Math.Max(0.01, _settings.CrosshairLineWidth);
             _crosshair.LinePattern = ParseDisplayPattern(_settings.CrosshairPattern);
-            _crosshair.HorizontalLine.LabelOppositeAxis = true;
-            _crosshair.VerticalLine.LabelOppositeAxis = true;
+            _crosshair.HorizontalLine.LabelOppositeAxis = false;
+            _crosshair.VerticalLine.LabelOppositeAxis = false;
         }
 
         private static ScottPlot.LinePattern ParseDisplayPattern(string? value) => value?.Trim().ToLowerInvariant() switch
