@@ -1,4 +1,6 @@
-﻿namespace TradeIt.Models
+using System;
+
+namespace TradeIt.Models
 {
     public class MarketBar
     {
@@ -14,9 +16,19 @@
 
         public double Open { get; set; }
 
-        public double High { get; set; }
+        private double _high;
+        public double High
+        {
+            get => Math.Max(_high, Math.Max(Open, Close));
+            set => _high = value;
+        }
 
-        public double Low { get; set; }
+        private double _low;
+        public double Low
+        {
+            get => Math.Min(_low, Math.Min(Open, Close));
+            set => _low = value;
+        }
 
         public double Close { get; set; }
 
