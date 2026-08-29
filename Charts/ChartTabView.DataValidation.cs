@@ -53,11 +53,11 @@ namespace TradeIt.Charts
             BottomInfoTextBlock.Text =
                 $"چارت نماد «{_symbol.Symbol}» به دلیل خرابی یا ناقص بودن داده‌ها قابل نمایش نیست.";
 
-            MessageBox.Show(
+            System.Windows.MessageBox.Show(
                 $"چارت نماد «{_symbol.Symbol}» به دلیل خرابی یا ناقص بودن داده‌ها قابل نمایش نیست.\n\nداده‌های فایل منبع تغییر داده نشده‌اند.",
                 "داده خراب",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Warning);
         }
 
         private static bool IsFinitePositive(double value)
