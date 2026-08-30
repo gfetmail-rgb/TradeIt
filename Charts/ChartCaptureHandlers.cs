@@ -4,6 +4,11 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
+using WpfMessageBox = System.Windows.MessageBox;
+using WpfMessageBoxButton = System.Windows.MessageBoxButton;
+using WpfMessageBoxImage = System.Windows.MessageBoxImage;
+using WpfPrintDialog = System.Windows.Controls.PrintDialog;
+
 namespace TradeIt.Charts
 {
     public partial class ChartTabView
@@ -12,10 +17,10 @@ namespace TradeIt.Charts
         {
             try
             {
+                ChartPrintArea.UpdateLayout();
+
                 if (ChartPrintArea.ActualWidth <= 0 || ChartPrintArea.ActualHeight <= 0)
                     return;
-
-                ChartPrintArea.UpdateLayout();
 
                 int width = Math.Max(1, (int)Math.Ceiling(ChartPrintArea.ActualWidth));
                 int height = Math.Max(1, (int)Math.Ceiling(ChartPrintArea.ActualHeight));
