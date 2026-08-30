@@ -78,6 +78,12 @@ namespace TradeIt
             }
         }
 
+        // Existing MainWindow code and the ESC handler call this name.
+        private void ExitFullScreen()
+        {
+            ExitChartFullScreen();
+        }
+
         private void ExitChartFullScreen()
         {
             if (!_isFullScreen)
