@@ -14,14 +14,6 @@ namespace TradeIt
 {
     public partial class MainWindow
     {
-        private static readonly bool _symbolFiltersLayoutFixRegistered = RegisterSymbolFiltersLayoutFix();
-
-        private static bool RegisterSymbolFiltersLayoutFix()
-        {
-            EventManager.RegisterClassHandler(typeof(MainWindow), Window.LoadedEvent, new RoutedEventHandler(SymbolFiltersLayoutFix_Loaded));
-            return true;
-        }
-
         private WpfCheckBox? _tradedInDaysEnabledCheckBox;
         private WpfTextBox? _tradedInDaysTextBox;
         private DispatcherTimer? _tradedInDaysApplyTimer;
@@ -108,27 +100,10 @@ namespace TradeIt
 
         private void ApplyTradedInDaysFilter()
         {
-            if (_tradedInDaysEnabledCheckBox?.IsChecked != true ||
-                !int.TryParse(_tradedInDaysTextBox?.Text, out int days) || days <= 0 ||
-                SymbolsDataGrid.ItemsSource is not IEnumerable<SymbolInfo> current)
-                return;
-
-            DateTime latestMarketDate = _allSymbols
-                .Where(s => s.LastTradeDate.HasValue)
-                .Select(s => s.LastTradeDate!.Value.Date)
-                .DefaultIfEmpty()
-                .Max();
-            if (latestMarketDate == default)
-                return;
-
-            DateTime cutoff = latestMarketDate.AddDays(-days);
-            List<SymbolInfo> filtered = current
-                .Where(s => s.LastTradeDate.HasValue && s.LastTradeDate.Value.Date >= cutoff)
-                .ToList();
-
-            for (int i = 0; i < filtered.Count; i++)
-                filtered[i].RowNumber = i + 1;
-            SymbolsDataGrid.ItemsSource = filtered;
+            // The existing MainWindow.SymbolFilters.cs owns filtering and its SymbolInfo type.
+            // This helper only controls layout and adds the UI. The actual filtering is invoked there.
+            if (_tradedInDaysEnabledCheckBox?.IsChecked == true)
+                ApplySymbolFilter();
         }
 
         private void SymbolFiltersLayoutFix_Loaded(object sender, RoutedEventArgs e)
