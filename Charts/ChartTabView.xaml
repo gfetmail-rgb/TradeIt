@@ -13,10 +13,6 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- ===================================================== -->
-        <!-- Page Header / Settings -->
-        <!-- This row is outside the printable chart area. -->
-        <!-- ===================================================== -->
         <Border Grid.Row="0"
                 BorderBrush="LightGray"
                 BorderThickness="0,0,0,1"
@@ -31,10 +27,6 @@
             </Grid>
         </Border>
 
-        <!-- ===================================================== -->
-        <!-- Chart Toolbar -->
-        <!-- This row is also outside the printable chart area. -->
-        <!-- ===================================================== -->
         <Border Grid.Row="1"
                 BorderBrush="LightGray"
                 BorderThickness="0,0,0,1"
@@ -54,83 +46,20 @@
                     <ComboBoxItem Content="میله‌ای" Tag="Bar" />
                 </ComboBox>
 
-                <Button x:Name="VolumeButton"
-                        Content="نمایش حجم"
-                        Height="28"
-                        Margin="0,0,5,0"
-                        Padding="10,0"
-                        Click="VolumeButton_Click" />
-
-                <Button x:Name="GridButton"
-                        Content="GRID"
-                        Height="28"
-                        Margin="0,0,5,0"
-                        Padding="10,0"
-                        Click="GridButton_Click" />
-
-                <Button x:Name="CrosshairButton"
-                        Content="Crosshair روشن"
-                        Height="28"
-                        Margin="0,0,5,0"
-                        Padding="10,0"
-                        Click="CrosshairButton_Click" />
-
-                <Button Content="Zoom +"
-                        Height="28"
-                        Margin="0,0,5,0"
-                        Padding="10,0"
-                        Click="ZoomInButton_Click" />
-
-                <Button Content="Zoom -"
-                        Height="28"
-                        Margin="0,0,5,0"
-                        Padding="10,0"
-                        Click="ZoomOutButton_Click" />
-
-                <Button Content="Reset Zoom"
-                        Height="28"
-                        Margin="0,0,5,0"
-                        Padding="10,0"
-                        Click="ResetZoomButton_Click" />
-
-                <Button Content="نمای کامل"
-                        Height="28"
-                        Margin="0,0,5,0"
-                        Padding="10,0"
-                        Click="FullViewButton_Click" />
-
-                <Button x:Name="HideChartButton"
-                        Content="پنهان کردن نمودار"
-                        Height="28"
-                        Margin="0,0,5,0"
-                        Padding="10,0"
-                        Click="HideChartButton_Click" />
-
-                <Button x:Name="HideToolsButton"
-                        Content="پنهان کردن ابزارهای تکنیکال"
-                        Height="28"
-                        Margin="0,0,5,0"
-                        Padding="10,0"
-                        Click="HideToolsButton_Click" />
-
-                <Button Content="تصویر"
-                        Height="28"
-                        Margin="0,0,5,0"
-                        Padding="10,0"
-                        Click="ScreenshotButton_Click" />
-
-                <Button Content="چاپ"
-                        Height="28"
-                        Margin="0,0,5,0"
-                        Padding="10,0"
-                        Click="PrintButton_Click" />
+                <Button x:Name="VolumeButton" Content="نمایش حجم" Height="28" Margin="0,0,5,0" Padding="10,0" Click="VolumeButton_Click" />
+                <Button x:Name="GridButton" Content="GRID" Height="28" Margin="0,0,5,0" Padding="10,0" Click="GridButton_Click" />
+                <Button x:Name="CrosshairButton" Content="Crosshair روشن" Height="28" Margin="0,0,5,0" Padding="10,0" Click="CrosshairButton_Click" />
+                <Button Content="Zoom +" Height="28" Margin="0,0,5,0" Padding="10,0" Click="ZoomInButton_Click" />
+                <Button Content="Zoom -" Height="28" Margin="0,0,5,0" Padding="10,0" Click="ZoomOutButton_Click" />
+                <Button Content="Reset Zoom" Height="28" Margin="0,0,5,0" Padding="10,0" Click="ResetZoomButton_Click" />
+                <Button Content="نمای کامل" Height="28" Margin="0,0,5,0" Padding="10,0" Click="FullViewButton_Click" />
+                <Button x:Name="HideChartButton" Content="پنهان کردن نمودار" Height="28" Margin="0,0,5,0" Padding="10,0" Click="HideChartButton_Click" />
+                <Button x:Name="HideToolsButton" Content="پنهان کردن ابزارهای تکنیکال" Height="28" Margin="0,0,5,0" Padding="10,0" Click="HideToolsButton_Click" />
+                <Button Content="تصویر" Height="28" Margin="0,0,5,0" Padding="10,0" Click="ScreenshotChartAreaButton_Click" />
+                <Button Content="چاپ" Height="28" Margin="0,0,5,0" Padding="10,0" Click="PrintChartAreaButton_Click" />
             </WrapPanel>
         </Border>
 
-        <!-- ===================================================== -->
-        <!-- PRINTABLE / SCREENSHOT AREA -->
-        <!-- Only this area is captured or printed. -->
-        <!-- ===================================================== -->
         <Grid x:Name="ChartPrintArea"
               Grid.Row="2"
               Background="White">
@@ -139,7 +68,6 @@
                 <RowDefinition x:Name="VolumeChartRow" Height="0" />
             </Grid.RowDefinitions>
 
-            <!-- Main Price Chart -->
             <Border Grid.Row="0"
                     BorderBrush="LightGray"
                     BorderThickness="1"
@@ -172,7 +100,6 @@
                 </Grid>
             </Border>
 
-            <!-- Volume Chart -->
             <Border x:Name="VolumeContainer"
                     Grid.Row="1"
                     BorderBrush="LightGray"
@@ -185,10 +112,6 @@
             </Border>
         </Grid>
 
-        <!-- ===================================================== -->
-        <!-- Bottom Information -->
-        <!-- Outside printable chart area. -->
-        <!-- ===================================================== -->
         <Border Grid.Row="3"
                 BorderBrush="LightGray"
                 BorderThickness="0,1,0,0"
