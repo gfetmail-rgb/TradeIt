@@ -1,4 +1,3 @@
-using System;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -6,14 +5,9 @@ namespace TradeIt
 {
     public partial class MainWindow
     {
-        // Chart fullscreen is a layout mode of the existing MainWindow.
-        // It must NEVER change WindowStyle or create/re-parent a chart Window.
-
-        private GridLength _savedTopToolbarHeight;
-        private GridLength _savedMainContentHeight;
-        private GridLength _savedStatusBarHeight;
-        private GridLength _savedSymbolsPanelWidth;
-        private GridLength _savedChartPanelWidth;
+        // Chart fullscreen is implemented by changing the layout of the
+        // existing MainWindow. No second Window is created and no chart
+        // control is re-parented. This prevents the blank-window problem.
 
         private void FullScreenButton_Click(object sender, RoutedEventArgs e)
         {
@@ -43,21 +37,28 @@ namespace TradeIt
             if (_isFullScreen)
                 return;
 
-            _savedTopToolbarHeight = RootLayout.RowDefinitions[0].Height;
-            _savedMainContentHeight = RootLayout.RowDefinitions[1].Height;
-            _savedStatusBarHeight = RootLayout.RowDefinitions[2].Height;
-            _savedSymbolsPanelWidth = SymbolsPanelColumn.Width;
-            _savedChartPanelWidth = ChartPanelColumn.Width;
+            // Save the actual position of MainContent in RootLayout.
+            _previousMainContentRow = Grid.GetRow(MainContent);
+            _previousMainContentColumn = Grid.GetColumn(MainContent);
+            _previousMainContentRowSpan = Grid.GetRowSpan(MainContent);
+            _previousMainContentColumnSpan = Grid.GetColumnSpan(MainContent);
+
+            _previousSymbolsColumnWidth = SymbolsPanelColumn.Width;
+            _previousChartColumnWidth = ChartPanelColumn.Width;
 
             _isFullScreen = true;
 
+            // MainContent now occupies the complete client area of the
+            // existing maximized MainWindow. The other root-level controls
+            // are hidden, while ChartArea remains the same visual tree.
             TopToolbar.Visibility = Visibility.Collapsed;
             StatusBar.Visibility = Visibility.Collapsed;
             SymbolsPanel.Visibility = Visibility.Collapsed;
 
-            RootLayout.RowDefinitions[0].Height = new GridLength(0);
-            RootLayout.RowDefinitions[1].Height = new GridLength(1, GridUnitType.Star);
-            RootLayout.RowDefinitions[2].Height = new GridLength(0);
+            Grid.SetRow(MainContent, 0);
+            Grid.SetRowSpan(MainContent, 3);
+            Grid.SetColumn(MainContent, 0);
+            Grid.SetColumnSpan(MainContent, 2);
 
             SymbolsPanelColumn.Width = new GridLength(0);
             ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
@@ -68,17 +69,21 @@ namespace TradeIt
             FullScreenExitButton.Visibility = Visibility.Visible;
             Panel.SetZIndex(FullScreenExitButton, 10000);
 
+            MainContent.UpdateLayout();
             ChartArea.UpdateLayout();
             ChartTabs.UpdateLayout();
 
+            // Force the selected chart control to recalculate its WPF size.
             if (ChartTabs.SelectedItem is TabItem tab && tab.Content is FrameworkElement content)
             {
+                content.Visibility = Visibility.Visible;
                 content.UpdateLayout();
+                content.InvalidateVisual();
                 content.Focus();
             }
         }
 
-        // Existing MainWindow code and the ESC handler call this name.
+        // Kept because MainWindow_PreviewKeyDown already calls this name.
         private void ExitFullScreen()
         {
             ExitChartFullScreen();
@@ -92,26 +97,30 @@ namespace TradeIt
             _isFullScreen = false;
             FullScreenExitButton.Visibility = Visibility.Collapsed;
 
-            SymbolsPanelColumn.Width = _savedSymbolsPanelWidth;
-            ChartPanelColumn.Width = _savedChartPanelWidth;
+            // Restore MainContent exactly where it was before fullscreen.
+            Grid.SetRow(MainContent, _previousMainContentRow);
+            Grid.SetColumn(MainContent, _previousMainContentColumn);
+            Grid.SetRowSpan(MainContent, _previousMainContentRowSpan);
+            Grid.SetColumnSpan(MainContent, _previousMainContentColumnSpan);
 
-            RootLayout.RowDefinitions[0].Height = _savedTopToolbarHeight;
-            RootLayout.RowDefinitions[1].Height = _savedMainContentHeight;
-            RootLayout.RowDefinitions[2].Height = _savedStatusBarHeight;
+            SymbolsPanelColumn.Width = _previousSymbolsColumnWidth;
+            ChartPanelColumn.Width = _previousChartColumnWidth;
 
-            SymbolsPanel.Visibility = Visibility.Visible;
             TopToolbar.Visibility = Visibility.Visible;
             StatusBar.Visibility = Visibility.Visible;
+            SymbolsPanel.Visibility = Visibility.Visible;
 
             ChartArea.Visibility = Visibility.Visible;
             ChartTabs.Visibility = Visibility.Visible;
 
+            MainContent.UpdateLayout();
             ChartArea.UpdateLayout();
             ChartTabs.UpdateLayout();
 
             if (ChartTabs.SelectedItem is TabItem tab && tab.Content is FrameworkElement content)
             {
                 content.UpdateLayout();
+                content.InvalidateVisual();
                 content.Focus();
             }
         }
