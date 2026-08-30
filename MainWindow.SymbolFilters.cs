@@ -31,6 +31,8 @@ namespace TradeIt
         private WpfTextBox? _nameFilterTextBox;
         private WpfCheckBox? _daysWithoutTradeCheckBox;
         private WpfTextBox? _daysWithoutTradeTextBox;
+        private WpfCheckBox? _daysWithTradeCheckBox;
+        private WpfTextBox? _daysWithTradeTextBox;
         private WpfCheckBox? _volumeFilterCheckBox;
         private WpfTextBox? _volumeAverageDaysTextBox;
         private WpfTextBox? _volumeMultiplierTextBox;
@@ -112,14 +114,21 @@ namespace TradeIt
             _nameFilterComboBox.SelectionChanged += SymbolFilterInputChanged;
             stack.Children.Add(LabeledControl("نام سهم:", Inline(_nameFilterComboBox, _nameFilterTextBox)));
 
-            _daysWithoutTradeCheckBox = new WpfCheckBox { Content = "فعال", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) };
+            _daysWithoutTradeCheckBox = new WpfCheckBox { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) };
             _daysWithoutTradeTextBox = new WpfTextBox { Width = 55, Height = 27, Text = "5", HorizontalContentAlignment = WpfHorizontalAlignment.Center };
             _daysWithoutTradeCheckBox.Checked += SymbolFilterInputChanged;
             _daysWithoutTradeCheckBox.Unchecked += SymbolFilterInputChanged;
             _daysWithoutTradeTextBox.TextChanged += SymbolFilterInputChanged;
             stack.Children.Add(LabeledControl("فاقد معامله در X روز گذشته:", Inline(_daysWithoutTradeCheckBox, _daysWithoutTradeTextBox)));
 
-            _volumeFilterCheckBox = new WpfCheckBox { Content = "فعال", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) };
+            _daysWithTradeCheckBox = new WpfCheckBox { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) };
+            _daysWithTradeTextBox = new WpfTextBox { Width = 55, Height = 27, Text = "5", HorizontalContentAlignment = WpfHorizontalAlignment.Center };
+            _daysWithTradeCheckBox.Checked += SymbolFilterInputChanged;
+            _daysWithTradeCheckBox.Unchecked += SymbolFilterInputChanged;
+            _daysWithTradeTextBox.TextChanged += SymbolFilterInputChanged;
+            stack.Children.Add(LabeledControl("دارای معامله در X روز گذشته:", Inline(_daysWithTradeCheckBox, _daysWithTradeTextBox)));
+
+            _volumeFilterCheckBox = new WpfCheckBox { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) };
             _volumeAverageDaysTextBox = new WpfTextBox { Width = 48, Height = 27, Text = "20", HorizontalContentAlignment = WpfHorizontalAlignment.Center };
             _volumeMultiplierTextBox = new WpfTextBox { Width = 48, Height = 27, Text = "2", HorizontalContentAlignment = WpfHorizontalAlignment.Center };
             _volumeFilterCheckBox.Checked += SymbolFilterInputChanged;
@@ -158,7 +167,7 @@ namespace TradeIt
             days.TextChanged += SymbolFilterInputChanged;
             _priceFilterControls.Add((enabled, field, comparison, days));
 
-            return Inline(new TextBlock { Text = "فیلتر:", Width = 40, VerticalAlignment = VerticalAlignment.Center }, enabled, field, comparison,
+            return Inline(enabled, field, comparison,
                 new TextBlock { Text = "روز قبل:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 2, 0) }, days);
         }
 
@@ -202,6 +211,7 @@ namespace TradeIt
             _nameFilterComboBox!.SelectedIndex = 0;
             _nameFilterTextBox!.Text = "";
             _daysWithoutTradeCheckBox!.IsChecked = false;
+            _daysWithTradeCheckBox!.IsChecked = false;
             _volumeFilterCheckBox!.IsChecked = false;
             foreach (var row in _priceFilterControls)
                 row.Enabled.IsChecked = false;
@@ -254,6 +264,12 @@ namespace TradeIt
                     query = query.Where(x => !x.LastTradeDate.HasValue || x.LastTradeDate.Value.Date < cutoff);
                 }
 
+                if (settings.DaysWithTradeEnabled && settings.DaysWithTrade > 0 && marketDate.HasValue)
+                {
+                    DateTime cutoff = marketDate.Value.AddDays(-settings.DaysWithTrade);
+                    query = query.Where(x => x.LastTradeDate.HasValue && x.LastTradeDate.Value.Date >= cutoff);
+                }
+
                 bool needsBars = settings.VolumeFilterEnabled || settings.PriceFilters.Any(x => x.Enabled);
                 List<SymbolInfo> candidates = query.ToList();
                 if (needsBars)
@@ -283,6 +299,8 @@ namespace TradeIt
             _symbolFilterSettings.NameText = _nameFilterTextBox!.Text.Trim();
             _symbolFilterSettings.DaysWithoutTradeEnabled = _daysWithoutTradeCheckBox!.IsChecked == true;
             _symbolFilterSettings.DaysWithoutTrade = ParsePositiveInt(_daysWithoutTradeTextBox!.Text, 0);
+            _symbolFilterSettings.DaysWithTradeEnabled = _daysWithTradeCheckBox!.IsChecked == true;
+            _symbolFilterSettings.DaysWithTrade = ParsePositiveInt(_daysWithTradeTextBox!.Text, 0);
             _symbolFilterSettings.VolumeFilterEnabled = _volumeFilterCheckBox!.IsChecked == true;
             _symbolFilterSettings.VolumeAverageDays = ParsePositiveInt(_volumeAverageDaysTextBox!.Text, 20);
             _symbolFilterSettings.VolumeMultiplier = ParsePositiveDouble(_volumeMultiplierTextBox!.Text, 2.0);
