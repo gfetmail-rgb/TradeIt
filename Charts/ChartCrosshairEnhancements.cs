@@ -1,14 +1,24 @@
-using System;
-using System.Windows.Input;
+using System.Windows;
+using WpfPoint = System.Windows.Point;
+using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
 
 namespace TradeIt.Charts
 {
     public partial class ChartTabView
     {
-        // This partial class adds the crosshair behavior without changing
-        // the existing chart drawing code.
-        // X is snapped to the nearest candle while Y follows the mouse smoothly.
-        protected override void OnMouseMove(MouseEventArgs e)
+        // =========================================================
+        // Crosshair Mouse Move
+        // =========================================================
+        //
+        // X is snapped to the nearest candle.
+        // Y follows the mouse continuously.
+        //
+        // The two axis labels move with the crosshair:
+        //   - Horizontal axis: date or candle number
+        //   - Vertical axis: price
+        // =========================================================
+
+        protected override void OnMouseMove(WpfMouseEventArgs e)
         {
             base.OnMouseMove(e);
 
@@ -26,7 +36,8 @@ namespace TradeIt.Charts
             {
                 sourceChart = Chart;
             }
-            else if (_volumeVisible && VolumeChart.IsMouseOver)
+            else if (_volumeVisible &&
+                     VolumeChart.IsMouseOver)
             {
                 sourceChart = VolumeChart;
             }
@@ -45,14 +56,18 @@ namespace TradeIt.Charts
                 return;
             }
 
+            // -----------------------------------------------------
+            // Snap X to the nearest candle.
+            // Y remains continuous and follows the mouse.
+            // -----------------------------------------------------
+
             double snappedX =
-                GetNearestCandleX(mouseCoordinates.X);
+                GetNearestCandleX(
+                    mouseCoordinates.X);
 
             double snappedY =
                 mouseCoordinates.Y;
 
-            // Keep the crosshair on a real candle position horizontally.
-            // The vertical position remains continuous and follows the mouse.
             _crosshair.Position =
                 new ScottPlot.Coordinates(
                     snappedX,
@@ -60,8 +75,10 @@ namespace TradeIt.Charts
 
             _crosshair.IsVisible = true;
 
-            // The Crosshair exposes its VerticalLine and HorizontalLine.
-            // Their labels are rendered directly on the corresponding axes.
+            // -----------------------------------------------------
+            // Axis labels
+            // -----------------------------------------------------
+
             _crosshair.VerticalLine.Label.IsVisible = true;
             _crosshair.HorizontalLine.Label.IsVisible = true;
 
@@ -71,15 +88,17 @@ namespace TradeIt.Charts
             _crosshair.HorizontalLine.Label.Text =
                 snappedY.ToString("N2");
 
-            // Keep the labels readable and visually consistent with the
-            // existing crosshair styling.
-            _crosshair.VerticalLine.Label.BackColor =
+            // -----------------------------------------------------
+            // Label appearance
+            // -----------------------------------------------------
+
+            _crosshair.VerticalLine.Label.BackgroundColor =
                 ScottPlot.Color.FromHtml("#202020");
 
             _crosshair.VerticalLine.Label.ForeColor =
                 ScottPlot.Color.FromHtml("#FFFFFF");
 
-            _crosshair.HorizontalLine.Label.BackColor =
+            _crosshair.HorizontalLine.Label.BackgroundColor =
                 ScottPlot.Color.FromHtml("#202020");
 
             _crosshair.HorizontalLine.Label.ForeColor =
@@ -88,68 +107,16 @@ namespace TradeIt.Charts
             _crosshair.VerticalLine.ExcludeFromLegend = true;
             _crosshair.HorizontalLine.ExcludeFromLegend = true;
 
-            // Preserve the existing information box, but make its X value
-            // agree with the snapped crosshair position.
+            // -----------------------------------------------------
+            // Existing information box
+            // -----------------------------------------------------
+
             UpdateMouseInformation(
                 new ScottPlot.Coordinates(
                     snappedX,
                     snappedY));
 
             Chart.Refresh();
-        }
-
-        private double GetNearestCandleX(double mouseX)
-        {
-            if (_bars.Count == 0)
-                return mouseX;
-
-            double bestX =
-                GetBarDateTime(_bars[0], 0).ToOADate();
-
-            double bestDistance =
-                Math.Abs(bestX - mouseX);
-
-            for (int i = 1; i < _bars.Count; i++)
-            {
-                double x =
-                    GetBarDateTime(_bars[i], i).ToOADate();
-
-                double distance =
-                    Math.Abs(x - mouseX);
-
-                if (distance < bestDistance)
-                {
-                    bestDistance = distance;
-                    bestX = x;
-                }
-            }
-
-            return bestX;
-        }
-
-        private string FormatCrosshairX(double x)
-        {
-            if (!HasRealDates)
-            {
-                int candleNumber =
-                    GetNearestCandleIndex(x);
-
-                return $"کندل {candleNumber}";
-            }
-
-            try
-            {
-                DateTime dateTime =
-                    DateTime.FromOADate(x);
-
-                return dateTime.TimeOfDay == TimeSpan.Zero
-                    ? dateTime.ToString("yyyy/MM/dd")
-                    : dateTime.ToString("yyyy/MM/dd HH:mm");
-            }
-            catch
-            {
-                return x.ToString("N2");
-            }
         }
     }
 }
