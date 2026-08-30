@@ -15,6 +15,9 @@ namespace TradeIt.Charts
         // By default non-trading days are not displayed on the chart.
         public bool ShowNonTradingDays { get; set; } = false;
 
+        // By default each symbol opens in its own chart tab.
+        public bool OpenSymbolsInSharedChart { get; set; } = false;
+
         public int AutoScrollDelayMilliseconds { get; set; } = 1000;
 
         public ChartSettings Clone()
@@ -31,6 +34,7 @@ namespace TradeIt.Charts
                 LineWidth = LineWidth,
                 GridVisible = GridVisible,
                 ShowNonTradingDays = ShowNonTradingDays,
+                OpenSymbolsInSharedChart = OpenSymbolsInSharedChart,
                 AutoScrollDelayMilliseconds = AutoScrollDelayMilliseconds
             };
         }
