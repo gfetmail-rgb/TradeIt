@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="تنظیمات نمودار"
         Width="460"
-        Height="680"
+        Height="590"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize">
 
@@ -104,23 +104,6 @@
                                   IsChecked="False"
                                   Margin="0,2,0,2"/>
                         <TextBlock Text="در حالت خاموش، فاصله زمانی بین کندل‌ها حذف می‌شود و محور بر اساس کندل‌ها نمایش داده می‌شود."
-                                   TextWrapping="Wrap"
-                                   Foreground="Gray"
-                                   Margin="20,4,0,0"/>
-                    </StackPanel>
-                </GroupBox>
-
-                <GroupBox Header="باز شدن چارت با کلیک روی نام سهم" Margin="0,0,0,10">
-                    <StackPanel Margin="10">
-                        <RadioButton x:Name="OpenSymbolsInSeparateChartsRadioButton"
-                                     Content="هر سهم در تب چارت جداگانه"
-                                     GroupName="ChartOpeningMode"
-                                     Margin="0,2,0,6"/>
-                        <RadioButton x:Name="OpenSymbolsInSharedChartRadioButton"
-                                     Content="همه سهم‌ها در یک تب چارت مشترک"
-                                     GroupName="ChartOpeningMode"
-                                     Margin="0,2,0,2"/>
-                        <TextBlock Text="در حالت مشترک، با کلیک روی سهم بعدی همان تب قبلی با اطلاعات سهم جدید جایگزین می‌شود."
                                    TextWrapping="Wrap"
                                    Foreground="Gray"
                                    Margin="20,4,0,0"/>

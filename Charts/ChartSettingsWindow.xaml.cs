@@ -39,8 +39,6 @@ namespace TradeIt.Charts
                 LineWidthComboBox.SelectedIndex = 2;
 
             ShowNonTradingDaysCheckBox.IsChecked = Settings.ShowNonTradingDays;
-            OpenSymbolsInSharedChartRadioButton.IsChecked = Settings.OpenSymbolsInSharedChart;
-            OpenSymbolsInSeparateChartsRadioButton.IsChecked = !Settings.OpenSymbolsInSharedChart;
         }
 
         private string? SelectColor(string currentColor)
@@ -146,9 +144,6 @@ namespace TradeIt.Charts
 
             Settings.ShowNonTradingDays =
                 ShowNonTradingDaysCheckBox.IsChecked == true;
-
-            Settings.OpenSymbolsInSharedChart =
-                OpenSymbolsInSharedChartRadioButton.IsChecked == true;
 
             DialogResult = true;
         }
