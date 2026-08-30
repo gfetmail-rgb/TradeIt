@@ -5,9 +5,9 @@ namespace TradeIt
 {
     public partial class MainWindow
     {
-        // Chart fullscreen is implemented by changing the layout of the
-        // existing MainWindow. No second Window is created and no chart
-        // control is re-parented. This prevents the blank-window problem.
+        // Chart fullscreen is implemented inside the existing MainWindow.
+        // MainContent is NOT moved between Grid rows. This is important for
+        // ScottPlot/WPF rendering and prevents the blank-chart problem.
 
         private void FullScreenButton_Click(object sender, RoutedEventArgs e)
         {
@@ -16,11 +16,11 @@ namespace TradeIt
 
             if (ChartTabs.SelectedItem is not TabItem)
             {
-                System.Windows.MessageBox.Show(
+                WpfMessageBox.Show(
                     "ابتدا یک چارت را باز و انتخاب کنید.",
                     "تمام صفحه",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                    WpfMessageBoxButton.OK,
+                    WpfMessageBoxImage.Information);
                 return;
             }
 
@@ -37,49 +37,59 @@ namespace TradeIt
             if (_isFullScreen)
                 return;
 
-            // Save the actual position of MainContent in RootLayout.
-            _previousMainContentRow = Grid.GetRow(MainContent);
-            _previousMainContentColumn = Grid.GetColumn(MainContent);
-            _previousMainContentRowSpan = Grid.GetRowSpan(MainContent);
-            _previousMainContentColumnSpan = Grid.GetColumnSpan(MainContent);
+            // Save the current root layout. MainContent itself stays in row 1.
+            _previousRootRow0Height = TopToolbarRow.Height;
+            _previousRootRow1Height = MainContentRow.Height;
+            _previousRootRow2Height = StatusBarRow.Height;
 
             _previousSymbolsColumnWidth = SymbolsPanelColumn.Width;
             _previousChartColumnWidth = ChartPanelColumn.Width;
 
+            _previousWindowState = WindowState;
+            _previousWindowStyle = WindowStyle;
+            _previousResizeMode = ResizeMode;
+
             _isFullScreen = true;
 
-            // MainContent now occupies the complete client area of the
-            // existing maximized MainWindow. The other root-level controls
-            // are hidden, while ChartArea remains the same visual tree.
+            // Hide the normal application chrome.
             TopToolbar.Visibility = Visibility.Collapsed;
             StatusBar.Visibility = Visibility.Collapsed;
             SymbolsPanel.Visibility = Visibility.Collapsed;
 
-            Grid.SetRow(MainContent, 0);
-            Grid.SetRowSpan(MainContent, 3);
-            Grid.SetColumn(MainContent, 0);
-            Grid.SetColumnSpan(MainContent, 2);
+            // Keep MainContent in its original Grid row, but make that row
+            // occupy the entire client area.
+            TopToolbarRow.Height = new GridLength(0);
+            MainContentRow.Height = new GridLength(1, GridUnitType.Star);
+            StatusBarRow.Height = new GridLength(0);
 
             SymbolsPanelColumn.Width = new GridLength(0);
             ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
 
+            // Real window fullscreen: no title bar/borders, maximized.
+            WindowStyle = WindowStyle.None;
+            ResizeMode = ResizeMode.NoResize;
+            WindowState = WindowState.Maximized;
+
             ChartArea.Visibility = Visibility.Visible;
             ChartTabs.Visibility = Visibility.Visible;
-
             FullScreenExitButton.Visibility = Visibility.Visible;
             Panel.SetZIndex(FullScreenExitButton, 10000);
 
+            UpdateLayout();
             MainContent.UpdateLayout();
             ChartArea.UpdateLayout();
             ChartTabs.UpdateLayout();
 
-            // Force the selected chart control to recalculate its WPF size.
-            if (ChartTabs.SelectedItem is TabItem tab && tab.Content is FrameworkElement content)
+            // ScottPlot keeps its existing visual tree. Only force a normal
+            // WPF layout/visual refresh after the available size changes.
+            if (ChartTabs.SelectedItem is TabItem tab &&
+                tab.Content is FrameworkElement content)
             {
                 content.Visibility = Visibility.Visible;
                 content.UpdateLayout();
+                content.InvalidateMeasure();
+                content.InvalidateArrange();
                 content.InvalidateVisual();
-                content.Focus();
             }
         }
 
@@ -95,13 +105,13 @@ namespace TradeIt
                 return;
 
             _isFullScreen = false;
+
             FullScreenExitButton.Visibility = Visibility.Collapsed;
 
-            // Restore MainContent exactly where it was before fullscreen.
-            Grid.SetRow(MainContent, _previousMainContentRow);
-            Grid.SetColumn(MainContent, _previousMainContentColumn);
-            Grid.SetRowSpan(MainContent, _previousMainContentRowSpan);
-            Grid.SetColumnSpan(MainContent, _previousMainContentColumnSpan);
+            // Restore root layout exactly as it was.
+            TopToolbarRow.Height = _previousRootRow0Height;
+            MainContentRow.Height = _previousRootRow1Height;
+            StatusBarRow.Height = _previousRootRow2Height;
 
             SymbolsPanelColumn.Width = _previousSymbolsColumnWidth;
             ChartPanelColumn.Width = _previousChartColumnWidth;
@@ -113,15 +123,22 @@ namespace TradeIt
             ChartArea.Visibility = Visibility.Visible;
             ChartTabs.Visibility = Visibility.Visible;
 
+            WindowStyle = _previousWindowStyle;
+            ResizeMode = _previousResizeMode;
+            WindowState = _previousWindowState;
+
+            UpdateLayout();
             MainContent.UpdateLayout();
             ChartArea.UpdateLayout();
             ChartTabs.UpdateLayout();
 
-            if (ChartTabs.SelectedItem is TabItem tab && tab.Content is FrameworkElement content)
+            if (ChartTabs.SelectedItem is TabItem tab &&
+                tab.Content is FrameworkElement content)
             {
                 content.UpdateLayout();
+                content.InvalidateMeasure();
+                content.InvalidateArrange();
                 content.InvalidateVisual();
-                content.Focus();
             }
         }
 
