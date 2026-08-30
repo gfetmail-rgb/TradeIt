@@ -6,30 +6,40 @@
              MinHeight="350">
 
     <Grid Background="White">
-
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition x:Name="MainChartRow"
-                           Height="*" />
-            <RowDefinition x:Name="VolumeChartRow"
-                           Height="0" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition x:Name="ChartAreaRow" Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-
         <!-- ===================================================== -->
-        <!-- Toolbar -->
+        <!-- Page Header / Settings -->
+        <!-- This row is outside the printable chart area. -->
         <!-- ===================================================== -->
-
         <Border Grid.Row="0"
                 BorderBrush="LightGray"
                 BorderThickness="0,0,0,1"
                 Background="White">
+            <Grid Margin="5">
+                <Button x:Name="SettingsButton"
+                        Content="تنظیمات"
+                        HorizontalAlignment="Right"
+                        Height="30"
+                        Padding="14,0"
+                        Click="SettingsButton_Click" />
+            </Grid>
+        </Border>
 
+        <!-- ===================================================== -->
+        <!-- Chart Toolbar -->
+        <!-- This row is also outside the printable chart area. -->
+        <!-- ===================================================== -->
+        <Border Grid.Row="1"
+                BorderBrush="LightGray"
+                BorderThickness="0,0,0,1"
+                Background="White">
             <WrapPanel Margin="5">
-
-                <!-- Chart Type -->
-
                 <TextBlock Text="نوع نمودار:"
                            VerticalAlignment="Center"
                            Margin="4,0,4,0" />
@@ -39,20 +49,10 @@
                           Height="28"
                           Margin="0,0,8,0"
                           SelectionChanged="ChartTypeComboBox_SelectionChanged">
-
-                    <ComboBoxItem Content="کندل"
-                                  Tag="Candlestick" />
-
-                    <ComboBoxItem Content="خطی"
-                                  Tag="Line" />
-
-                    <ComboBoxItem Content="میله‌ای"
-                                  Tag="Bar" />
-
+                    <ComboBoxItem Content="کندل" Tag="Candlestick" />
+                    <ComboBoxItem Content="خطی" Tag="Line" />
+                    <ComboBoxItem Content="میله‌ای" Tag="Bar" />
                 </ComboBox>
-
-
-                <!-- Volume -->
 
                 <Button x:Name="VolumeButton"
                         Content="نمایش حجم"
@@ -61,18 +61,12 @@
                         Padding="10,0"
                         Click="VolumeButton_Click" />
 
-
-                <!-- Grid -->
-
                 <Button x:Name="GridButton"
                         Content="GRID"
                         Height="28"
                         Margin="0,0,5,0"
                         Padding="10,0"
                         Click="GridButton_Click" />
-
-
-                <!-- Crosshair -->
 
                 <Button x:Name="CrosshairButton"
                         Content="Crosshair روشن"
@@ -81,17 +75,11 @@
                         Padding="10,0"
                         Click="CrosshairButton_Click" />
 
-
-                <!-- Zoom In -->
-
                 <Button Content="Zoom +"
                         Height="28"
                         Margin="0,0,5,0"
                         Padding="10,0"
                         Click="ZoomInButton_Click" />
-
-
-                <!-- Zoom Out -->
 
                 <Button Content="Zoom -"
                         Height="28"
@@ -99,26 +87,17 @@
                         Padding="10,0"
                         Click="ZoomOutButton_Click" />
 
-
-                <!-- Reset -->
-
                 <Button Content="Reset Zoom"
                         Height="28"
                         Margin="0,0,5,0"
                         Padding="10,0"
                         Click="ResetZoomButton_Click" />
 
-
-                <!-- Full View -->
-
                 <Button Content="نمای کامل"
                         Height="28"
                         Margin="0,0,5,0"
                         Padding="10,0"
                         Click="FullViewButton_Click" />
-
-
-                <!-- Hide Chart -->
 
                 <Button x:Name="HideChartButton"
                         Content="پنهان کردن نمودار"
@@ -127,9 +106,6 @@
                         Padding="10,0"
                         Click="HideChartButton_Click" />
 
-
-                <!-- Hide Tools -->
-
                 <Button x:Name="HideToolsButton"
                         Content="پنهان کردن ابزارهای تکنیکال"
                         Height="28"
@@ -137,117 +113,91 @@
                         Padding="10,0"
                         Click="HideToolsButton_Click" />
 
-
-                <!-- Settings -->
-
-                <Button Content="تنظیمات"
-                        Height="28"
-                        Margin="0,0,5,0"
-                        Padding="10,0"
-                        Click="SettingsButton_Click" />
-
-
-                <!-- Screenshot -->
-
                 <Button Content="تصویر"
                         Height="28"
                         Margin="0,0,5,0"
                         Padding="10,0"
                         Click="ScreenshotButton_Click" />
 
-
-                <!-- Print -->
-
                 <Button Content="چاپ"
                         Height="28"
                         Margin="0,0,5,0"
                         Padding="10,0"
                         Click="PrintButton_Click" />
-
             </WrapPanel>
-
         </Border>
 
-
         <!-- ===================================================== -->
-        <!-- Main Price Chart -->
+        <!-- PRINTABLE / SCREENSHOT AREA -->
+        <!-- Only this area is captured or printed. -->
         <!-- ===================================================== -->
+        <Grid x:Name="ChartPrintArea"
+              Grid.Row="2"
+              Background="White">
+            <Grid.RowDefinitions>
+                <RowDefinition x:Name="MainChartRow" Height="*" />
+                <RowDefinition x:Name="VolumeChartRow" Height="0" />
+            </Grid.RowDefinitions>
 
-        <Border Grid.Row="1"
-                BorderBrush="LightGray"
-                BorderThickness="1"
-                Margin="2">
+            <!-- Main Price Chart -->
+            <Border Grid.Row="0"
+                    BorderBrush="LightGray"
+                    BorderThickness="1"
+                    Margin="2">
+                <Grid>
+                    <ScottPlot:WpfPlot x:Name="Chart" />
 
-            <Grid>
+                    <TextBlock x:Name="ChartInfoTextBlock"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Top"
+                               Margin="10"
+                               Padding="6,3"
+                               Background="#DDFFFFFF"
+                               Foreground="Black"
+                               FontSize="12"
+                               IsHitTestVisible="False" />
 
-                <ScottPlot:WpfPlot x:Name="Chart" />
+                    <TextBlock x:Name="InvalidDataWarningTextBlock"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               Margin="10"
+                               Padding="8,4"
+                               Background="#DDFFFFFF"
+                               Foreground="Red"
+                               FontWeight="Bold"
+                               FontSize="12"
+                               Text="⚠ این چارت دارای داده‌های نامعتبر است. داده‌های نامعتبر با خط قرمز مشخص شده‌اند."
+                               Visibility="Collapsed"
+                               IsHitTestVisible="False" />
+                </Grid>
+            </Border>
 
-                <!-- Information at top-right -->
-                <TextBlock x:Name="ChartInfoTextBlock"
-               HorizontalAlignment="Right"
-               VerticalAlignment="Top"
-               Margin="10"
-               Padding="6,3"
-               Background="#DDFFFFFF"
-               Foreground="Black"
-               FontSize="12"
-               IsHitTestVisible="False" />
-
-                <!-- Warning for invalid market data -->
-                <TextBlock x:Name="InvalidDataWarningTextBlock"
-               HorizontalAlignment="Left"
-               VerticalAlignment="Top"
-               Margin="10"
-               Padding="8,4"
-               Background="#DDFFFFFF"
-               Foreground="Red"
-               FontWeight="Bold"
-               FontSize="12"
-               Text="⚠ این چارت دارای داده‌های نامعتبر است. داده‌های نامعتبر با خط قرمز مشخص شده‌اند."
-               Visibility="Collapsed"
-               IsHitTestVisible="False" />
-
-            </Grid>
-        </Border>
-
-
-        <!-- ===================================================== -->
-        <!-- Volume Chart -->
-        <!-- ===================================================== -->
-
-        <Border x:Name="VolumeContainer"
-                Grid.Row="2"
-                BorderBrush="LightGray"
-                BorderThickness="1"
-                Margin="2"
-                Visibility="Collapsed">
-
-            <Grid>
-
-                <ScottPlot:WpfPlot x:Name="VolumeChart" />
-
-            </Grid>
-
-        </Border>
-
+            <!-- Volume Chart -->
+            <Border x:Name="VolumeContainer"
+                    Grid.Row="1"
+                    BorderBrush="LightGray"
+                    BorderThickness="1"
+                    Margin="2"
+                    Visibility="Collapsed">
+                <Grid>
+                    <ScottPlot:WpfPlot x:Name="VolumeChart" />
+                </Grid>
+            </Border>
+        </Grid>
 
         <!-- ===================================================== -->
         <!-- Bottom Information -->
+        <!-- Outside printable chart area. -->
         <!-- ===================================================== -->
-
         <Border Grid.Row="3"
                 BorderBrush="LightGray"
                 BorderThickness="0,1,0,0"
                 Background="White">
-
             <TextBlock x:Name="BottomInfoTextBlock"
                        Margin="8,4"
                        Text=""
                        Foreground="DimGray"
                        FontSize="12" />
-
         </Border>
-
     </Grid>
-
 </UserControl>
