@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:TradeIt"
         mc:Ignorable="d"
         Title="TradeIt" Height="700" Width="1200" MinHeight="500" MinWidth="900" WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
         Loaded="MainWindow_SymbolGroupsCollapseLoaded">
     <Window.Resources>
         <local:TradeDateConverter x:Key="TradeDateConverter"/>
