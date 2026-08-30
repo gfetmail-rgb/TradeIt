@@ -25,6 +25,7 @@ namespace TradeIt
             InitializeSymbolGroupsCollapseState();
             DockSymbolGroupButtons();
             EnsureClearFiltersButton();
+            EnterFullScreen();
         }
 
         private void InitializeSymbolGroupsCollapseState()
@@ -56,16 +57,32 @@ namespace TradeIt
             while (groupGrid.RowDefinitions.Count < 3)
                 groupGrid.RowDefinitions.Add(new WpfRowDefinition { Height = GridLength.Auto });
 
+            WpfGrid? headerGrid = null;
             foreach (WpfUIElement child in groupGrid.Children)
             {
-                if (child is WpfStackPanel panel && panel.Children.Contains(SymbolFilterCollapseButton))
+                if (child is WpfGrid grid && grid.Children.Contains(SymbolFilterCollapseButton))
                 {
-                    WpfGrid.SetRow(panel, 2);
-                    panel.HorizontalAlignment = System.Windows.HorizontalAlignment.Right;
-                    panel.VerticalAlignment = System.Windows.VerticalAlignment.Center;
-                    return;
+                    headerGrid = grid;
+                    break;
                 }
             }
+
+            if (headerGrid == null)
+                return;
+
+            headerGrid.Children.Remove(SymbolFilterCollapseButton);
+
+            var bottomPanel = new WpfStackPanel
+            {
+                Orientation = System.Windows.Controls.Orientation.Horizontal,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 2, 0, 0)
+            };
+
+            bottomPanel.Children.Add(SymbolFilterCollapseButton);
+            WpfGrid.SetRow(bottomPanel, 2);
+            groupGrid.Children.Add(bottomPanel);
         }
 
         private void DockOperationsButtonToBottom()
@@ -76,9 +93,32 @@ namespace TradeIt
             while (groupGrid.RowDefinitions.Count < 3)
                 groupGrid.RowDefinitions.Add(new WpfRowDefinition { Height = GridLength.Auto });
 
-            WpfGrid.SetRow(SymbolOperationsCollapseButton, 2);
-            SymbolOperationsCollapseButton.HorizontalAlignment = System.Windows.HorizontalAlignment.Right;
-            SymbolOperationsCollapseButton.VerticalAlignment = System.Windows.VerticalAlignment.Center;
+            WpfGrid? headerGrid = null;
+            foreach (WpfUIElement child in groupGrid.Children)
+            {
+                if (child is WpfGrid grid && grid.Children.Contains(SymbolOperationsCollapseButton))
+                {
+                    headerGrid = grid;
+                    break;
+                }
+            }
+
+            if (headerGrid == null)
+                return;
+
+            headerGrid.Children.Remove(SymbolOperationsCollapseButton);
+
+            var bottomPanel = new WpfStackPanel
+            {
+                Orientation = System.Windows.Controls.Orientation.Horizontal,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 2, 0, 0)
+            };
+
+            bottomPanel.Children.Add(SymbolOperationsCollapseButton);
+            WpfGrid.SetRow(bottomPanel, 2);
+            groupGrid.Children.Add(bottomPanel);
         }
 
         private void EnsureClearFiltersButton()
@@ -86,30 +126,37 @@ namespace TradeIt
             if (SymbolFilterGroup.Child is not WpfGrid groupGrid)
                 return;
 
+            WpfStackPanel? bottomPanel = null;
             foreach (WpfUIElement child in groupGrid.Children)
             {
                 if (child is WpfStackPanel panel && panel.Children.Contains(SymbolFilterCollapseButton))
                 {
-                    if (_clearSymbolFiltersButton == null)
-                    {
-                        _clearSymbolFiltersButton = new WpfButton
-                        {
-                            Content = "پاک کردن همه",
-                            Width = 90,
-                            Height = 25,
-                            Padding = new Thickness(4, 0, 4, 0),
-                            Margin = new Thickness(0, 0, 4, 0),
-                            ToolTip = "پاک کردن همه فیلترها"
-                        };
-                        _clearSymbolFiltersButton.Click += ClearSymbolFiltersButton_Click;
-                        panel.Children.Insert(0, _clearSymbolFiltersButton);
-                    }
-                    _clearSymbolFiltersButton.Visibility = _symbolFilterGroupCollapsed
-                        ? Visibility.Collapsed
-                        : Visibility.Visible;
-                    return;
+                    bottomPanel = panel;
+                    break;
                 }
             }
+
+            if (bottomPanel == null)
+                return;
+
+            if (_clearSymbolFiltersButton == null)
+            {
+                _clearSymbolFiltersButton = new WpfButton
+                {
+                    Content = "پاک کردن همه",
+                    Width = 90,
+                    Height = 25,
+                    Padding = new Thickness(4, 0, 4, 0),
+                    Margin = new Thickness(0, 0, 4, 0),
+                    ToolTip = "پاک کردن همه فیلترها"
+                };
+                _clearSymbolFiltersButton.Click += ClearSymbolFiltersButton_Click;
+                bottomPanel.Children.Insert(0, _clearSymbolFiltersButton);
+            }
+
+            _clearSymbolFiltersButton.Visibility = _symbolFilterGroupCollapsed
+                ? Visibility.Collapsed
+                : Visibility.Visible;
         }
 
         private void ClearSymbolFiltersButton_Click(object sender, RoutedEventArgs e)
