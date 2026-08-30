@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using WpfComboBox = System.Windows.Controls.ComboBox;
 using WpfSelectionChangedEventArgs = System.Windows.Controls.SelectionChangedEventArgs;
+using WpfSelectionChangedEventHandler = System.Windows.Controls.SelectionChangedEventHandler;
 
 namespace TradeIt
 {
