@@ -1,7 +1,6 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 
 namespace TradeIt
 {
@@ -9,7 +8,6 @@ namespace TradeIt
     {
         // Chart fullscreen is a layout mode of the existing MainWindow.
         // It must NEVER change WindowStyle or create/re-parent a chart Window.
-        private bool _isFullScreen;
 
         private GridLength _savedTopToolbarHeight;
         private GridLength _savedMainContentHeight;
@@ -45,8 +43,6 @@ namespace TradeIt
             if (_isFullScreen)
                 return;
 
-            // Save only the layout dimensions. The native MainWindow state is
-            // intentionally left untouched (normally it is already Maximized).
             _savedTopToolbarHeight = RootLayout.RowDefinitions[0].Height;
             _savedMainContentHeight = RootLayout.RowDefinitions[1].Height;
             _savedStatusBarHeight = RootLayout.RowDefinitions[2].Height;
@@ -66,15 +62,12 @@ namespace TradeIt
             SymbolsPanelColumn.Width = new GridLength(0);
             ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
 
-            // ChartArea remains exactly where it was. Only its left panel is
-            // collapsed, so ScottPlot is never removed from its visual tree.
             ChartArea.Visibility = Visibility.Visible;
             ChartTabs.Visibility = Visibility.Visible;
 
             FullScreenExitButton.Visibility = Visibility.Visible;
             Panel.SetZIndex(FullScreenExitButton, 10000);
 
-            // Ensure the selected chart gets the newly available space.
             ChartArea.UpdateLayout();
             ChartTabs.UpdateLayout();
 
@@ -91,7 +84,6 @@ namespace TradeIt
                 return;
 
             _isFullScreen = false;
-
             FullScreenExitButton.Visibility = Visibility.Collapsed;
 
             SymbolsPanelColumn.Width = _savedSymbolsPanelWidth;
@@ -115,15 +107,6 @@ namespace TradeIt
             {
                 content.UpdateLayout();
                 content.Focus();
-            }
-        }
-
-        private void MainWindow_PreviewKeyDown_ChartFullScreen(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Escape && _isFullScreen)
-            {
-                ExitChartFullScreen();
-                e.Handled = true;
             }
         }
 
