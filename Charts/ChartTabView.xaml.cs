@@ -54,6 +54,15 @@ namespace TradeIt.Charts
 
         private bool _crosshairVisible = true;
 
+        // =========================================================
+        // تشخیص وجود تاریخ واقعی
+        // =========================================================
+
+        private bool HasRealDates =>
+            _bars.Any(x =>
+                x.Timestamp.HasValue &&
+                x.Timestamp.Value > DateTime.MinValue &&
+                x.Timestamp.Value < DateTime.MaxValue);
 
         // =========================================================
         // Axis Drag
@@ -72,13 +81,11 @@ namespace TradeIt.Charts
         private double _axisDragStartX;
         private double _axisDragStartY;
 
-
         private const double LeftAxisWidth = 75.0;
 
         private const double RightAxisWidth = 30.0;
 
         private const double BottomAxisHeight = 55.0;
-
 
         // =========================================================
         // Constructor
@@ -98,24 +105,9 @@ namespace TradeIt.Charts
             _settings =
                 ChartSettingsManager.Current;
 
-
-            // -----------------------------------------------------
-            // Default chart type
-            // -----------------------------------------------------
-
             ChartTypeComboBox.SelectedIndex = 0;
 
-
-            // -----------------------------------------------------
-            // Interaction
-            // -----------------------------------------------------
-
             ConfigureInteraction();
-
-
-            // -----------------------------------------------------
-            // Main chart events
-            // -----------------------------------------------------
 
             Chart.PreviewMouseWheel +=
                 Chart_PreviewMouseWheel;
@@ -132,11 +124,6 @@ namespace TradeIt.Charts
             Chart.MouseLeave +=
                 Chart_MouseLeave;
 
-
-            // -----------------------------------------------------
-            // Volume chart events
-            // -----------------------------------------------------
-
             VolumeChart.PreviewMouseWheel +=
                 VolumeChart_PreviewMouseWheel;
 
@@ -146,31 +133,15 @@ namespace TradeIt.Charts
             VolumeChart.MouseLeave +=
                 VolumeChart_MouseLeave;
 
-
-            // -----------------------------------------------------
-            // Initial volume state
-            // -----------------------------------------------------
-
             VolumeContainer.Visibility =
                 Visibility.Collapsed;
 
             VolumeChartRow.Height =
                 new GridLength(0);
 
-
-            // -----------------------------------------------------
-            // Crosshair
-            // -----------------------------------------------------
-
             InitializeCrosshair();
 
-
-            // -----------------------------------------------------
-            // Draw
-            // -----------------------------------------------------
-
             DrawChart();
-
 
             SetGridVisibility(
                 Chart,
@@ -179,7 +150,6 @@ namespace TradeIt.Charts
             SetGridVisibility(
                 VolumeChart,
                 _gridVisible);
-
 
             CrosshairButton.Content =
                 "Crosshair روشن";
@@ -196,7 +166,6 @@ namespace TradeIt.Charts
             HideToolsButton.Content =
                 "پنهان کردن ابزارهای تکنیکال";
         }
-
 
         // =========================================================
         // Configure Interaction
@@ -222,7 +191,6 @@ namespace TradeIt.Charts
             input.RemoveAll<
                 ScottPlot.Interactivity.UserActionResponses.MouseWheelZoom>();
         }
-
 
         // =========================================================
         // Clear Main Chart
@@ -254,7 +222,6 @@ namespace TradeIt.Charts
             }
         }
 
-
         // =========================================================
         // Clear Volume Chart
         // =========================================================
@@ -272,7 +239,6 @@ namespace TradeIt.Charts
                     plottable);
             }
         }
-
 
         // =========================================================
         // Crosshair
@@ -334,7 +300,6 @@ namespace TradeIt.Charts
                 true;
         }
 
-
         // =========================================================
         // Try Get Chart Coordinates
         // =========================================================
@@ -371,9 +336,7 @@ namespace TradeIt.Charts
                 chart.DisplayScale;
 
             if (scale <= 0)
-            {
                 scale = 1.0;
-            }
 
             try
             {
@@ -393,7 +356,6 @@ namespace TradeIt.Charts
                 return false;
             }
         }
-
 
         // =========================================================
         // Update Crosshair
@@ -443,7 +405,6 @@ namespace TradeIt.Charts
 
             Chart.Refresh();
         }
-
 
         // =========================================================
         // Update Crosshair From Volume
@@ -509,7 +470,6 @@ namespace TradeIt.Charts
             Chart.Refresh();
         }
 
-
         // =========================================================
         // Mouse Information
         // =========================================================
@@ -519,24 +479,36 @@ namespace TradeIt.Charts
         {
             try
             {
-                DateTime dateTime =
-                    DateTime.FromOADate(
-                        coordinates.X);
+                string xText;
 
-                string dateText;
-
-                if (dateTime.TimeOfDay ==
-                    TimeSpan.Zero)
+                if (HasRealDates)
                 {
-                    dateText =
-                        dateTime.ToString(
-                            "yyyy/MM/dd");
+                    DateTime dateTime =
+                        DateTime.FromOADate(
+                            coordinates.X);
+
+                    if (dateTime.TimeOfDay ==
+                        TimeSpan.Zero)
+                    {
+                        xText =
+                            dateTime.ToString(
+                                "yyyy/MM/dd");
+                    }
+                    else
+                    {
+                        xText =
+                            dateTime.ToString(
+                                "yyyy/MM/dd HH:mm");
+                    }
                 }
                 else
                 {
-                    dateText =
-                        dateTime.ToString(
-                            "yyyy/MM/dd HH:mm");
+                    int candleNumber =
+                        GetNearestCandleIndex(
+                            coordinates.X);
+
+                    xText =
+                        $"کندل {candleNumber}";
                 }
 
                 string priceText =
@@ -544,7 +516,7 @@ namespace TradeIt.Charts
                         "N2");
 
                 ChartInfoTextBlock.Text =
-                    $"{_symbol.Symbol} | زمان: {dateText} | قیمت: {priceText}";
+                    $"{_symbol.Symbol} | زمان: {xText} | قیمت: {priceText}";
             }
             catch
             {
@@ -553,6 +525,61 @@ namespace TradeIt.Charts
             }
         }
 
+        // =========================================================
+        // تبدیل X به شماره کندل
+        // =========================================================
+
+        private int GetNearestCandleIndex(
+            double x)
+        {
+            if (_bars.Count == 0)
+                return 0;
+
+            if (!HasRealDates)
+            {
+                int index =
+                    (int)Math.Round(x);
+
+                index =
+                    Math.Max(
+                        0,
+                        Math.Min(
+                            _bars.Count - 1,
+                            index));
+
+                return index + 1;
+            }
+
+            double bestDistance =
+                double.MaxValue;
+
+            int bestIndex = 0;
+
+            for (int i = 0;
+                 i < _bars.Count;
+                 i++)
+            {
+                DateTime time =
+                    GetBarDateTime(
+                        _bars[i],
+                        i);
+
+                double distance =
+                    Math.Abs(
+                        time.ToOADate() - x);
+
+                if (distance < bestDistance)
+                {
+                    bestDistance =
+                        distance;
+
+                    bestIndex =
+                        i;
+                }
+            }
+
+            return bestIndex + 1;
+        }
 
         // =========================================================
         // Mouse Leave - Main
@@ -577,7 +604,6 @@ namespace TradeIt.Charts
                 $"{_symbol.Symbol} | {_bars.Count:N0} داده";
         }
 
-
         // =========================================================
         // Mouse Leave - Volume
         // =========================================================
@@ -601,7 +627,6 @@ namespace TradeIt.Charts
                 $"{_symbol.Symbol} | {_bars.Count:N0} داده";
         }
 
-
         // =========================================================
         // Mouse Wheel - Main
         // =========================================================
@@ -619,7 +644,6 @@ namespace TradeIt.Charts
                 true;
         }
 
-
         // =========================================================
         // Mouse Wheel - Volume
         // =========================================================
@@ -636,7 +660,6 @@ namespace TradeIt.Charts
             e.Handled =
                 true;
         }
-
 
         // =========================================================
         // Zoom X
@@ -715,7 +738,6 @@ namespace TradeIt.Charts
             }
         }
 
-
         // =========================================================
         // Main Chart Mouse Down
         // =========================================================
@@ -763,7 +785,6 @@ namespace TradeIt.Charts
             e.Handled =
                 true;
         }
-
 
         // =========================================================
         // Main Chart Mouse Move
@@ -829,7 +850,6 @@ namespace TradeIt.Charts
                 true;
         }
 
-
         // =========================================================
         // Volume Mouse Move
         // =========================================================
@@ -844,7 +864,6 @@ namespace TradeIt.Charts
 
             UpdateCrosshairFromVolume(p);
         }
-
 
         // =========================================================
         // Main Chart Mouse Up
@@ -866,7 +885,6 @@ namespace TradeIt.Charts
                 true;
         }
 
-
         // =========================================================
         // End Axis Drag
         // =========================================================
@@ -881,7 +899,6 @@ namespace TradeIt.Charts
                 Chart.ReleaseMouseCapture();
             }
         }
-
 
         // =========================================================
         // Get Axis Drag Mode
@@ -912,15 +929,13 @@ namespace TradeIt.Charts
 
             if (x <= LeftAxisWidth ||
                 x >=
-                width -
-                RightAxisWidth)
+                width - RightAxisWidth)
             {
                 return AxisDragMode.PriceAxis;
             }
 
             return AxisDragMode.None;
         }
-
 
         // =========================================================
         // Horizontal Axis Zoom
@@ -996,7 +1011,6 @@ namespace TradeIt.Charts
             }
         }
 
-
         // =========================================================
         // Vertical Axis Zoom
         // =========================================================
@@ -1064,7 +1078,6 @@ namespace TradeIt.Charts
             Chart.Refresh();
         }
 
-
         // =========================================================
         // Auto Fit Price
         // =========================================================
@@ -1096,13 +1109,10 @@ namespace TradeIt.Charts
                  i < _bars.Count;
                  i++)
             {
-                DateTime time =
-                    GetBarDateTime(
+                double x =
+                    GetBarX(
                         _bars[i],
                         i);
-
-                double x =
-                    time.ToOADate();
 
                 if (x < visibleXMin ||
                     x > visibleXMax)
@@ -1110,15 +1120,23 @@ namespace TradeIt.Charts
                     continue;
                 }
 
-                minPrice =
-                    Math.Min(
-                        minPrice,
-                        _bars[i].Low);
+                if (double.IsFinite(
+                        _bars[i].Low))
+                {
+                    minPrice =
+                        Math.Min(
+                            minPrice,
+                            _bars[i].Low);
+                }
 
-                maxPrice =
-                    Math.Max(
-                        maxPrice,
-                        _bars[i].High);
+                if (double.IsFinite(
+                        _bars[i].High))
+                {
+                    maxPrice =
+                        Math.Max(
+                            maxPrice,
+                            _bars[i].High);
+                }
             }
 
             if (minPrice ==
@@ -1163,7 +1181,6 @@ namespace TradeIt.Charts
             Chart.Refresh();
         }
 
-
         // =========================================================
         // Draw Chart
         // =========================================================
@@ -1178,6 +1195,12 @@ namespace TradeIt.Charts
 
                 _hasInitialView =
                     false;
+
+                if (InvalidDataWarningTextBlock != null)
+                {
+                    InvalidDataWarningTextBlock.Visibility =
+                        Visibility.Collapsed;
+                }
 
                 Chart.Refresh();
 
@@ -1205,21 +1228,15 @@ namespace TradeIt.Charts
             switch (_chartType)
             {
                 case ChartDisplayType.Candlestick:
-
                     DrawCandlestick();
-
                     break;
 
                 case ChartDisplayType.Line:
-
                     DrawLine();
-
                     break;
 
                 case ChartDisplayType.Bar:
-
                     DrawBar();
-
                     break;
             }
 
@@ -1280,78 +1297,101 @@ namespace TradeIt.Charts
             }
         }
 
-
         // =========================================================
         // Candlestick
         // =========================================================
 
-        
-private void DrawCandlestick()
+        private void DrawCandlestick()
         {
-            var candles = new List<ScottPlot.OHLC>();
-            var invalidTimes = new List<DateTime>();
+            var candles =
+                new List<ScottPlot.OHLC>();
 
-            for (int i = 0; i < _bars.Count; i++)
+            var invalidTimes =
+                new List<double>();
+
+            for (int i = 0;
+                 i < _bars.Count;
+                 i++)
             {
-                MarketBar bar = _bars[i];
+                MarketBar bar =
+                    _bars[i];
 
-                DateTime time = GetBarDateTime(bar, i);
+                double x =
+                    GetBarX(
+                        bar,
+                        i);
 
-                double open = bar.Open;
-                double high = bar.High;
-                double low = bar.Low;
-                double close = bar.Close;
+                double open =
+                    bar.Open;
 
-                // اعتبارسنجی زمان
-                bool invalidTime =
-                    time == DateTime.MinValue ||
-                    time == DateTime.MaxValue ||
-                    !double.IsFinite(time.ToOADate());
+                double high =
+                    bar.High;
 
-                // اعتبارسنجی کامل OHLC
+                double low =
+                    bar.Low;
+
+                double close =
+                    bar.Close;
+
+                bool invalidX =
+                    !double.IsFinite(x);
+
                 bool invalidOhlc =
                     !double.IsFinite(open) ||
                     !double.IsFinite(high) ||
                     !double.IsFinite(low) ||
                     !double.IsFinite(close) ||
 
-                    // رابطه صحیح High و Low
                     high < low ||
 
-                    // Low باید از Open و Close بیشتر نباشد
                     low > open ||
                     low > close ||
 
-                    // High باید از Open و Close کمتر نباشد
                     high < open ||
                     high < close;
 
-                if (invalidTime || invalidOhlc)
+                if (invalidX ||
+                    invalidOhlc)
                 {
-                    // هیچ تغییری در bar ایجاد نمی‌کنیم.
-                    // فقط زمان این رکورد را برای علامت‌گذاری نگه می‌داریم.
-                    if (!invalidTime)
-                        invalidTimes.Add(time);
+                    if (!invalidX)
+                        invalidTimes.Add(x);
 
                     continue;
                 }
 
-                // فقط داده معتبر به ScottPlot داده می‌شود.
+                DateTime candleTime;
+
+                if (HasRealDates)
+                {
+                    candleTime =
+                        bar.Timestamp!.Value;
+                }
+                else
+                {
+                    // تاریخ فقط برای ساختار داخلی ScottPlot است.
+                    // این تاریخ هرگز به کاربر نمایش داده نمی‌شود.
+                    candleTime =
+                        new DateTime(
+                            2000,
+                            1,
+                            1).AddDays(i);
+                }
+
                 candles.Add(
                     new ScottPlot.OHLC(
                         open,
                         high,
                         low,
                         close,
-                        time,
+                        candleTime,
                         TimeSpan.FromDays(1)));
             }
 
-            // رسم کندل‌های معتبر
             if (candles.Count > 0)
             {
                 var candlePlot =
-                    Chart.Plot.Add.Candlestick(candles);
+                    Chart.Plot.Add.Candlestick(
+                        candles);
 
                 candlePlot.RisingColor =
                     ScottPlot.Color.FromHtml(
@@ -1362,74 +1402,91 @@ private void DrawCandlestick()
                         _settings.FallingColor);
             }
 
-            // محدوده عمودی برای نمایش خطاها
-            double minY = double.PositiveInfinity;
-            double maxY = double.NegativeInfinity;
+            double minY =
+                double.PositiveInfinity;
+
+            double maxY =
+                double.NegativeInfinity;
 
             foreach (var candle in candles)
             {
-                minY = Math.Min(minY, candle.Low);
-                maxY = Math.Max(maxY, candle.High);
+                minY =
+                    Math.Min(
+                        minY,
+                        candle.Low);
+
+                maxY =
+                    Math.Max(
+                        maxY,
+                        candle.High);
             }
 
-            // اگر هیچ کندل سالمی نداریم، از مقادیر عددی موجود
-            // در داده‌های خراب فقط برای تعیین محل نمایش خط استفاده می‌کنیم.
-            // خود داده‌ها کاملاً دست‌نخورده باقی می‌مانند.
-            if (!double.IsFinite(minY) || !double.IsFinite(maxY))
+            if (!double.IsFinite(minY) ||
+                !double.IsFinite(maxY))
             {
                 foreach (var bar in _bars)
                 {
                     double[] values =
                     {
-                bar.Open,
-                bar.High,
-                bar.Low,
-                bar.Close
-            };
+                        bar.Open,
+                        bar.High,
+                        bar.Low,
+                        bar.Close
+                    };
 
                     foreach (double value in values)
                     {
                         if (double.IsFinite(value))
                         {
-                            minY = Math.Min(minY, value);
-                            maxY = Math.Max(maxY, value);
+                            minY =
+                                Math.Min(
+                                    minY,
+                                    value);
+
+                            maxY =
+                                Math.Max(
+                                    maxY,
+                                    value);
                         }
                     }
                 }
             }
 
-            // اگر حداقل یک مقدار قیمت قابل استفاده داریم،
-            // محدوده را کمی باز می‌کنیم تا خط کاملاً قابل مشاهده باشد.
-            if (double.IsFinite(minY) && double.IsFinite(maxY))
+            if (double.IsFinite(minY) &&
+                double.IsFinite(maxY))
             {
-                if (Math.Abs(maxY - minY) < double.Epsilon)
+                if (Math.Abs(maxY - minY) <
+                    double.Epsilon)
                 {
                     double padding =
-                        Math.Max(Math.Abs(minY) * 0.01, 1.0);
+                        Math.Max(
+                            Math.Abs(minY) * 0.01,
+                            1.0);
 
                     minY -= padding;
                     maxY += padding;
                 }
 
-                foreach (DateTime errorTime in invalidTimes)
+                foreach (double errorX in invalidTimes)
                 {
                     var errorLine =
                         Chart.Plot.Add.Line(
                             new ScottPlot.Coordinates(
-                                errorTime.ToOADate(),
+                                errorX,
                                 minY),
                             new ScottPlot.Coordinates(
-                                errorTime.ToOADate(),
+                                errorX,
                                 maxY));
 
                     errorLine.Color =
-                        ScottPlot.Color.FromHtml("#FF0000");
+                        ScottPlot.Color.FromHtml(
+                            "#FF0000");
 
-                    errorLine.LineWidth = 2;
+                    errorLine.LineWidth =
+                        2;
                 }
             }
 
-            // نمایش هشدار فقط در صورت وجود داده نامعتبر
             if (InvalidDataWarningTextBlock != null)
             {
                 InvalidDataWarningTextBlock.Visibility =
@@ -1438,11 +1495,8 @@ private void DrawCandlestick()
                         : Visibility.Collapsed;
             }
 
-            Chart.Plot.Axes.DateTimeTicksBottom();
+            ConfigureBottomAxis();
         }
-
-
-
 
         // =========================================================
         // Line
@@ -1451,7 +1505,7 @@ private void DrawCandlestick()
         private void DrawLine()
         {
             var xs =
-                new DateTime[_bars.Count];
+                new double[_bars.Count];
 
             var ys =
                 new double[_bars.Count];
@@ -1461,7 +1515,7 @@ private void DrawCandlestick()
                  i++)
             {
                 xs[i] =
-                    GetBarDateTime(
+                    GetBarX(
                         _bars[i],
                         i);
 
@@ -1484,9 +1538,8 @@ private void DrawCandlestick()
                 ScottPlot.Color.FromHtml(
                     _settings.LineColor);
 
-            Chart.Plot.Axes.DateTimeTicksBottom();
+            ConfigureBottomAxis();
         }
-
 
         // =========================================================
         // Bar
@@ -1504,17 +1557,54 @@ private void DrawCandlestick()
                 MarketBar bar =
                     _bars[i];
 
-                DateTime time =
-                    GetBarDateTime(
-                        bar,
-                        i);
+                double open =
+                    bar.Open;
+
+                double high =
+                    bar.High;
+
+                double low =
+                    bar.Low;
+
+                double close =
+                    bar.Close;
+
+                bool invalid =
+                    !double.IsFinite(open) ||
+                    !double.IsFinite(high) ||
+                    !double.IsFinite(low) ||
+                    !double.IsFinite(close) ||
+                    high < low ||
+                    low > open ||
+                    low > close ||
+                    high < open ||
+                    high < close;
+
+                if (invalid)
+                    continue;
+
+                DateTime time;
+
+                if (HasRealDates)
+                {
+                    time =
+                        bar.Timestamp!.Value;
+                }
+                else
+                {
+                    time =
+                        new DateTime(
+                            2000,
+                            1,
+                            1).AddDays(i);
+                }
 
                 ohlcs.Add(
                     new ScottPlot.OHLC(
-                        bar.Open,
-                        bar.High,
-                        bar.Low,
-                        bar.Close,
+                        open,
+                        high,
+                        low,
+                        close,
                         time,
                         TimeSpan.FromDays(1)));
             }
@@ -1534,9 +1624,8 @@ private void DrawCandlestick()
                 ScottPlot.Color.FromHtml(
                     _settings.FallingColor);
 
-            Chart.Plot.Axes.DateTimeTicksBottom();
+            ConfigureBottomAxis();
         }
-
 
         // =========================================================
         // Volume
@@ -1559,8 +1648,8 @@ private void DrawCandlestick()
                 MarketBar marketBar =
                     _bars[i];
 
-                DateTime time =
-                    GetBarDateTime(
+                double x =
+                    GetBarX(
                         marketBar,
                         i);
 
@@ -1568,8 +1657,7 @@ private void DrawCandlestick()
                     marketBar.Volume /
                     VolumeScale;
 
-                if (double.IsNaN(volumeK) ||
-                    double.IsInfinity(volumeK) ||
+                if (!double.IsFinite(volumeK) ||
                     volumeK < 0)
                 {
                     volumeK = 0;
@@ -1578,11 +1666,9 @@ private void DrawCandlestick()
                 bars.Add(
                     new ScottPlot.Bar
                     {
-                        Position =
-                            time.ToOADate(),
+                        Position = x,
 
-                        Value =
-                            volumeK,
+                        Value = volumeK,
 
                         FillColor =
                             marketBar.Close >=
@@ -1596,8 +1682,7 @@ private void DrawCandlestick()
                             ScottPlot.Color.FromHtml(
                                 _settings.AxisColor),
 
-                        LineWidth =
-                            0
+                        LineWidth = 0
                     });
             }
 
@@ -1606,9 +1691,6 @@ private void DrawCandlestick()
 
             VolumeChart.Plot.Add.Bars(
                 bars);
-
-            VolumeChart.Plot.Axes
-                .DateTimeTicksBottom();
 
             ConfigureVolumeAxes();
 
@@ -1652,7 +1734,6 @@ private void DrawCandlestick()
                 _gridVisible);
         }
 
-
         // =========================================================
         // Volume Axes
         // =========================================================
@@ -1675,6 +1756,28 @@ private void DrawCandlestick()
                 .IsVisible = false;
         }
 
+        // =========================================================
+        // Get Bar X
+        // =========================================================
+
+        private double GetBarX(
+            MarketBar bar,
+            int index)
+        {
+            if (HasRealDates &&
+                bar.Timestamp.HasValue &&
+                bar.Timestamp.Value >
+                    DateTime.MinValue &&
+                bar.Timestamp.Value <
+                    DateTime.MaxValue)
+            {
+                return bar.Timestamp.Value.ToOADate();
+            }
+
+            // در داده بدون تاریخ:
+            // X = شماره داخلی کندل
+            return index;
+        }
 
         // =========================================================
         // Get Bar DateTime
@@ -1699,6 +1802,47 @@ private void DrawCandlestick()
                 1).AddDays(index);
         }
 
+        // =========================================================
+        // Configure Bottom Axis
+        // =========================================================
+
+        private void ConfigureBottomAxis()
+        {
+            if (HasRealDates)
+            {
+                Chart.Plot.Axes
+                    .DateTimeTicksBottom();
+
+                return;
+            }
+
+            /*
+             * در داده‌های بدون تاریخ، کندل‌ها در محور X
+             * با اندیس 0..N رسم می‌شوند.
+             *
+             * به‌جای DateTimeTicksBottom، محور عددی استفاده می‌شود
+             * تا تاریخ مصنوعی هرگز به کاربر نمایش داده نشود.
+             */
+
+            Chart.Plot.Axes.Bottom.TickGenerator =
+                new ScottPlot.TickGenerators.NumericAutomatic
+                {
+                    LabelFormatter = x =>
+                    {
+                        int index =
+                            (int)Math.Round(x);
+
+                        if (index < 0 ||
+                            index >= _bars.Count)
+                        {
+                            return "";
+                        }
+
+                        return
+                            (index + 1).ToString();
+                    }
+                };
+        }
 
         // =========================================================
         // Apply Settings
@@ -1722,7 +1866,6 @@ private void DrawCandlestick()
                 ScottPlot.Color.FromHtml(
                     _settings.AxisColor));
 
-
             VolumeChart.Plot.FigureBackground.Color =
                 ScottPlot.Color.FromHtml(
                     _settings.FigureBackground);
@@ -1739,7 +1882,6 @@ private void DrawCandlestick()
                 ScottPlot.Color.FromHtml(
                     _settings.AxisColor));
 
-
             SetGridVisibility(
                 Chart,
                 _gridVisible);
@@ -1748,7 +1890,6 @@ private void DrawCandlestick()
                 VolumeChart,
                 _gridVisible);
         }
-
 
         // =========================================================
         // Save Initial View
@@ -1774,7 +1915,6 @@ private void DrawCandlestick()
             _hasInitialView =
                 true;
         }
-
 
         // =========================================================
         // Sync Volume X Axis
@@ -1819,7 +1959,6 @@ private void DrawCandlestick()
             ConfigureVolumeAxes();
         }
 
-
         // =========================================================
         // Volume Button
         // =========================================================
@@ -1832,7 +1971,6 @@ private void DrawCandlestick()
                 !_volumeVisible,
                 true);
         }
-
 
         // =========================================================
         // Set Volume Visible
@@ -1895,7 +2033,6 @@ private void DrawCandlestick()
             }
         }
 
-
         // =========================================================
         // Grid Button
         // =========================================================
@@ -1928,7 +2065,6 @@ private void DrawCandlestick()
             }
         }
 
-
         // =========================================================
         // Grid Visibility
         // =========================================================
@@ -1940,7 +2076,6 @@ private void DrawCandlestick()
             plot.Plot.Grid.IsVisible =
                 visible;
         }
-
 
         // =========================================================
         // Crosshair Button
@@ -1968,7 +2103,6 @@ private void DrawCandlestick()
 
             Chart.Refresh();
         }
-
 
         // =========================================================
         // Screenshot
@@ -2067,7 +2201,6 @@ private void DrawCandlestick()
             }
         }
 
-
         // =========================================================
         // Print
         // =========================================================
@@ -2100,7 +2233,6 @@ private void DrawCandlestick()
                     WpfMessageBoxImage.Error);
             }
         }
-
 
         // =========================================================
         // Chart Type
@@ -2139,7 +2271,6 @@ private void DrawCandlestick()
             }
         }
 
-
         // =========================================================
         // Settings
         // =========================================================
@@ -2150,7 +2281,6 @@ private void DrawCandlestick()
         {
             OpenSettings();
         }
-
 
         private void OpenSettings()
         {
@@ -2174,7 +2304,6 @@ private void DrawCandlestick()
                 DrawChart();
             }
         }
-
 
         // =========================================================
         // Hide Chart
@@ -2217,7 +2346,6 @@ private void DrawCandlestick()
                     : "نمایش نمودار";
         }
 
-
         // =========================================================
         // Hide Tools
         // =========================================================
@@ -2235,7 +2363,6 @@ private void DrawCandlestick()
                     : "نمایش ابزارهای تکنیکال";
         }
 
-
         // =========================================================
         // Zoom In
         // =========================================================
@@ -2247,7 +2374,6 @@ private void DrawCandlestick()
             ZoomXAxis(0.80);
         }
 
-
         // =========================================================
         // Zoom Out
         // =========================================================
@@ -2258,7 +2384,6 @@ private void DrawCandlestick()
         {
             ZoomXAxis(1.25);
         }
-
 
         // =========================================================
         // Reset Zoom
@@ -2287,7 +2412,6 @@ private void DrawCandlestick()
             }
         }
 
-
         // =========================================================
         // Full View
         // =========================================================
@@ -2313,7 +2437,6 @@ private void DrawCandlestick()
             }
         }
     }
-
 
     // =============================================================
     // Chart Display Type
