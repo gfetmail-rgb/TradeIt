@@ -8,29 +8,26 @@ namespace TradeIt
     {
         static MainWindow()
         {
-            // Apply the normal application-window state at the earliest WPF
-            // lifecycle point. This prevents any chart/fullscreen layout from
-            // appearing during startup.
+            // Initialized runs early enough to establish the application
+            // window state before normal Loaded processing begins.
             EventManager.RegisterClassHandler(
                 typeof(MainWindow),
-                FrameworkElement.SourceInitializedEvent,
-                new EventHandler(MainWindow_StartupWindowInitialized));
+                FrameworkElement.InitializedEvent,
+                new RoutedEventHandler(MainWindow_StartupWindowInitialized));
 
-            // Keep the selection cleanup at Loaded, after the named controls
-            // created by XAML are available.
             EventManager.RegisterClassHandler(
                 typeof(MainWindow),
                 FrameworkElement.LoadedEvent,
                 new RoutedEventHandler(MainWindow_StartupFixLoaded));
         }
 
-        private static void MainWindow_StartupWindowInitialized(object? sender, EventArgs e)
+        private static void MainWindow_StartupWindowInitialized(object sender, RoutedEventArgs e)
         {
             if (sender is not MainWindow window)
                 return;
 
             // Startup is NORMAL MAXIMIZED application mode.
-            // This is deliberately unrelated to chart fullscreen mode.
+            // Chart fullscreen is an explicit user action only.
             window._isFullScreen = false;
             window.WindowStyle = WindowStyle.SingleBorderWindow;
             window.ResizeMode = ResizeMode.CanResize;
