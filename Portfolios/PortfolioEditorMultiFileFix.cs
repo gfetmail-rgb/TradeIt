@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using WpfButtonBase = System.Windows.Controls.Primitives.ButtonBase;
 
 using TradeIt.Models;
 
@@ -13,21 +14,15 @@ namespace TradeIt.Portfolios
     {
         private readonly List<string> _selectedFilePaths = new();
 
+        // The DataType selector was intentionally removed from the UI.
+        // Keep the historical default internally for existing persistence.
+        private string DataTypeComboBox => "TseDaily";
+
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             BrowseButton.AddHandler(
                 UIElement.PreviewMouseLeftButtonDownEvent,
                 new System.Windows.Input.MouseButtonEventHandler(BrowseMultiFilePreview),
-                true);
-
-            PreviewGrid.AddHandler(
-                ButtonBase.ClickEvent,
-                new RoutedEventHandler(PreviewMultiFileClick),
-                true);
-
-            SaveButton.AddHandler(
-                ButtonBase.ClickEvent,
-                new RoutedEventHandler(SaveMultiFileClick),
                 true);
         }
 
@@ -55,52 +50,6 @@ namespace TradeIt.Portfolios
                     .Distinct(StringComparer.OrdinalIgnoreCase));
 
             PathTextBox.Text = string.Join(Environment.NewLine, _selectedFilePaths);
-        }
-
-        private void PreviewMultiFileClick(object sender, RoutedEventArgs e)
-        {
-            if (_selectedFilePaths.Count <= 1 || FileRadio.IsChecked != true)
-                return;
-
-            e.Handled = true;
-
-            string original = PathTextBox.Text;
-            try
-            {
-                PathTextBox.Text = _selectedFilePaths[0];
-                LoadPreviewButton_Click(sender, new RoutedEventArgs());
-            }
-            finally
-            {
-                PathTextBox.Text = string.Join(Environment.NewLine, _selectedFilePaths);
-            }
-        }
-
-        private void SaveMultiFileClick(object sender, RoutedEventArgs e)
-        {
-            if (_selectedFilePaths.Count <= 1 || FileRadio.IsChecked != true)
-                return;
-
-            // SaveButton_Click has already run. Replace its single-file result
-            // with an explicit file list before the dialog closes completely.
-            if (ResultPortfolio == null)
-                return;
-
-            string firstDirectory =
-                Path.GetDirectoryName(_selectedFilePaths[0]) ?? "";
-
-            ResultPortfolio.DataSource.SourceType = "Folder";
-            ResultPortfolio.DataSource.Path = firstDirectory;
-            ResultPortfolio.Symbols = _selectedFilePaths
-                .Select(path => new SymbolInfo
-                {
-                    Symbol = Path.GetFileNameWithoutExtension(path),
-                    DisplayName = Path.GetFileNameWithoutExtension(path),
-                    FilePath = path,
-                    IsSelected = false
-                })
-                .ToList();
-            ResultPortfolio.UseExplicitSymbolList = true;
         }
     }
 }
