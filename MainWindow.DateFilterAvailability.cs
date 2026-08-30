@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
-using System.Windows.Controls;
+using WpfComboBox = System.Windows.Controls.ComboBox;
+using WpfSelectionChangedEventArgs = System.Windows.Controls.SelectionChangedEventArgs;
 
 namespace TradeIt
 {
@@ -11,7 +12,7 @@ namespace TradeIt
         private static bool RegisterDateFilterAvailabilityHandler()
         {
             EventManager.RegisterClassHandler(typeof(MainWindow), Window.LoadedEvent, new RoutedEventHandler(UpdateDateFilterAvailabilityOnLoaded));
-            EventManager.RegisterClassHandler(typeof(ComboBox), ComboBox.SelectionChangedEvent, new SelectionChangedEventHandler(UpdateDateFilterAvailabilityOnPortfolioChanged));
+            EventManager.RegisterClassHandler(typeof(WpfComboBox), WpfComboBox.SelectionChangedEvent, new WpfSelectionChangedEventHandler(UpdateDateFilterAvailabilityOnPortfolioChanged));
             return true;
         }
 
@@ -21,9 +22,9 @@ namespace TradeIt
                 window.Dispatcher.BeginInvoke(new Action(window.UpdateDateFilterAvailability), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
-        private static void UpdateDateFilterAvailabilityOnPortfolioChanged(object sender, SelectionChangedEventArgs e)
+        private static void UpdateDateFilterAvailabilityOnPortfolioChanged(object sender, WpfSelectionChangedEventArgs e)
         {
-            if (sender is not ComboBox combo || combo.Name != "PortfolioComboBox")
+            if (sender is not WpfComboBox combo || combo.Name != "PortfolioComboBox")
                 return;
             if (Window.GetWindow(combo) is MainWindow window)
                 window.Dispatcher.BeginInvoke(new Action(window.UpdateDateFilterAvailability), System.Windows.Threading.DispatcherPriority.DataBind);
