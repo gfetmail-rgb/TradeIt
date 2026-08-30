@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using WpfPoint = System.Windows.Point;
 using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
 using TradeIt.Models;
 
@@ -22,7 +23,7 @@ namespace TradeIt.Charts
                 if (_bars.Count == 0 || ChartOhlcTextBlock == null)
                     return;
 
-                Point p = e.GetPosition(Chart);
+                WpfPoint p = e.GetPosition(Chart);
                 if (!TryGetChartCoordinates(Chart, p, out var coordinates))
                     return;
 
