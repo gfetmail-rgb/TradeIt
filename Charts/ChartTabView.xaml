@@ -10,34 +10,50 @@
             <RowDefinition x:Name="ChartAreaRow" Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
+
+        <!-- Chart tools. Settings is intentionally NOT here; it is on MainWindow. -->
         <Border Grid.Row="0" BorderBrush="LightGray" BorderThickness="0,0,0,1" Background="White">
-            <Grid Margin="5">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <Grid Grid.Row="0">
-                    <TextBlock x:Name="ChartTitleTextBlock" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="4,0" Foreground="Black" FontSize="14" FontWeight="SemiBold" />
-                    <TextBlock x:Name="ChartOhlcTextBlock" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="4,0" Foreground="Black" FontSize="12" IsHitTestVisible="False" />
-                </Grid>
-                <TextBlock x:Name="InvalidDataWarningTextBlock" Grid.Row="1" HorizontalAlignment="Left" Margin="4,2,4,0" Padding="4,2" Foreground="Red" FontWeight="Bold" FontSize="12" Text="⚠ این چارت دارای داده‌های نامعتبر است. داده‌های نامعتبر با خط قرمز مشخص شده‌اند." Visibility="Collapsed" IsHitTestVisible="False" />
-            </Grid>
+            <WrapPanel Margin="5">
+                <TextBlock Text="نوع نمودار:" VerticalAlignment="Center" Margin="4,0,4,0" />
+                <ComboBox x:Name="ChartTypeComboBox" Width="130" Height="28" Margin="0,0,8,0" SelectionChanged="ChartTypeComboBox_SelectionChanged">
+                    <ComboBoxItem Content="کندل" Tag="Candlestick" />
+                    <ComboBoxItem Content="خطی" Tag="Line" />
+                    <ComboBoxItem Content="میله‌ای" Tag="Bar" />
+                </ComboBox>
+                <Button x:Name="VolumeButton" Content="نمایش حجم" Height="28" Margin="0,0,5,0" Padding="10,0" Click="VolumeButton_Click" />
+                <Button x:Name="GridButton" Content="GRID" Height="28" Margin="0,0,5,0" Padding="10,0" Click="GridButton_Click" />
+                <Button x:Name="CrosshairButton" Content="Crosshair روشن" Height="28" Margin="0,0,5,0" Padding="10,0" Click="CrosshairButton_Click" />
+                <Button Content="Zoom +" Height="28" Margin="0,0,5,0" Padding="10,0" Click="ZoomInButton_Click" />
+                <Button Content="Zoom -" Height="28" Margin="0,0,5,0" Padding="10,0" Click="ZoomOutButton_Click" />
+                <Button Content="Reset Zoom" Height="28" Margin="0,0,5,0" Padding="10,0" Click="ResetZoomButton_Click" />
+                <Button Content="نمای کامل" Height="28" Margin="0,0,5,0" Padding="10,0" Click="FullViewButton_Click" />
+                <Button x:Name="HideChartButton" Content="پنهان کردن نمودار" Height="28" Margin="0,0,5,0" Padding="10,0" Click="HideChartButton_Click" />
+                <Button x:Name="HideToolsButton" Content="پنهان کردن ابزارهای تکنیکال" Height="28" Margin="0,0,5,0" Padding="10,0" Click="HideToolsButton_Click" />
+                <Button Content="تصویر" Height="28" Margin="0,0,5,0" Padding="10,0" Click="ScreenshotChartAreaButton_Click" />
+                <Button Content="چاپ" Height="28" Margin="0,0,5,0" Padding="10,0" Click="PrintChartAreaButton_Click" />
+            </WrapPanel>
         </Border>
+
         <Grid x:Name="ChartPrintArea" Grid.Row="1" Background="White" MouseMove="ChartPrintArea_MouseMove" MouseLeave="ChartPrintArea_MouseLeave">
             <Grid.RowDefinitions>
                 <RowDefinition x:Name="MainChartRow" Height="*" />
                 <RowDefinition x:Name="VolumeChartRow" Height="0" />
             </Grid.RowDefinitions>
+
             <Border Grid.Row="0" BorderBrush="LightGray" BorderThickness="1" Margin="2">
                 <Grid>
                     <ScottPlot:WpfPlot x:Name="Chart" />
                     <TextBlock x:Name="ChartInfoTextBlock" Visibility="Collapsed" IsHitTestVisible="False" />
                 </Grid>
             </Border>
+
             <Border x:Name="VolumeContainer" Grid.Row="1" BorderBrush="LightGray" BorderThickness="1" Margin="2" Visibility="Collapsed">
-                <Grid><ScottPlot:WpfPlot x:Name="VolumeChart" /></Grid>
+                <Grid>
+                    <ScottPlot:WpfPlot x:Name="VolumeChart" />
+                </Grid>
             </Border>
         </Grid>
+
         <Border Grid.Row="2" BorderBrush="LightGray" BorderThickness="0,1,0,0" Background="White">
             <TextBlock x:Name="BottomInfoTextBlock" Margin="8,4" Text="" Foreground="DimGray" FontSize="12" />
         </Border>
