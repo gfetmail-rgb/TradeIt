@@ -26,6 +26,22 @@ namespace TradeIt
             if (sender is not MainWindow window)
                 return;
 
+            // Startup must always be normal maximized application mode.
+            // Chart fullscreen is an explicit user action only.
+            window._isFullScreen = false;
+            window.WindowStyle = WindowStyle.SingleBorderWindow;
+            window.ResizeMode = ResizeMode.CanResize;
+            window.WindowState = WindowState.Maximized;
+
+            if (window.FullScreenExitButton != null)
+                window.FullScreenExitButton.Visibility = Visibility.Collapsed;
+
+            window.TopToolbar.Visibility = Visibility.Visible;
+            window.StatusBar.Visibility = Visibility.Visible;
+            window.SymbolsPanel.Visibility = Visibility.Visible;
+            window.MainContent.Visibility = Visibility.Visible;
+            window.ChartArea.Visibility = Visibility.Visible;
+
             window._startupEmptyListPending = true;
 
             window.Dispatcher.BeginInvoke(
