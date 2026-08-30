@@ -1,6 +1,9 @@
 using System.Windows;
 using System.Windows.Controls;
 using TradeIt.Charts;
+using WpfMessageBox = System.Windows.MessageBox;
+using WpfMessageBoxButton = System.Windows.MessageBoxButton;
+using WpfMessageBoxImage = System.Windows.MessageBoxImage;
 
 namespace TradeIt
 {
