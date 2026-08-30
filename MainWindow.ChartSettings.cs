@@ -1,9 +1,5 @@
 using System.Windows;
-using System.Windows.Controls;
 using TradeIt.Charts;
-using WpfMessageBox = System.Windows.MessageBox;
-using WpfMessageBoxButton = System.Windows.MessageBoxButton;
-using WpfMessageBoxImage = System.Windows.MessageBoxImage;
 
 namespace TradeIt
 {
@@ -11,17 +7,17 @@ namespace TradeIt
     {
         private void ChartSettingsButton_Click(object sender, RoutedEventArgs e)
         {
-            if (ChartTabs.SelectedItem is TabItem tab && tab.Content is ChartTabView chartView)
+            var window = new ChartSettingsWindow(ChartSettingsManager.Current)
             {
-                chartView.ShowSettings();
-                return;
-            }
+                Owner = this
+            };
 
-            WpfMessageBox.Show(
-                "ابتدا یک نمودار را انتخاب کنید.",
-                "تنظیمات چارت",
-                WpfMessageBoxButton.OK,
-                WpfMessageBoxImage.Information);
+            if (window.ShowDialog() == true)
+            {
+                ChartSettingsManager.SetDefaults(window.Settings);
+                ChartSettingsStore.Update(window.Settings);
+                StatusTextBlock.Text = "تنظیمات چارت ذخیره شد.";
+            }
         }
     }
 }
