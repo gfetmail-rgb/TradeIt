@@ -9,12 +9,17 @@ namespace TradeIt
 {
     public partial class MainWindow
     {
-        static MainWindow()
+        private static readonly bool _symbolListHandlerRegistered =
+            RegisterSymbolListHandler();
+
+        private static bool RegisterSymbolListHandler()
         {
             EventManager.RegisterClassHandler(
                 typeof(WpfButton),
                 WpfButton.ClickEvent,
                 new RoutedEventHandler(PrepareSymbolListBeforeButtonAction));
+
+            return true;
         }
 
         private static void PrepareSymbolListBeforeButtonAction(
