@@ -7,6 +7,9 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using TradeIt.Models;
 using TradeIt.Charts;
+using WpfMessageBox = System.Windows.MessageBox;
+using WpfMessageBoxButton = System.Windows.MessageBoxButton;
+using WpfMessageBoxImage = System.Windows.MessageBoxImage;
 using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 
 namespace TradeIt
@@ -120,11 +123,11 @@ namespace TradeIt
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                WpfMessageBox.Show(
                     ex.ToString(),
                     "خطا در خواندن داده نماد",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+                    WpfMessageBoxButton.OK,
+                    WpfMessageBoxImage.Error);
             }
             finally
             {
