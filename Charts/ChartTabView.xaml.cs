@@ -38,6 +38,7 @@ namespace TradeIt.Charts
         private const double LeftAxisWidth = 75, RightAxisWidth = 30, BottomAxisHeight = 55;
 
         private bool ShowNonTradingDays => _settings.ShowNonTradingDays;
+        private bool _lastShowNonTradingDays;
 
         public ChartTabView(SymbolInfo symbol, List<MarketBar> bars)
         {
@@ -46,6 +47,7 @@ namespace TradeIt.Charts
             _bars = bars ?? new List<MarketBar>();
             _settings = ChartSettingsManager.Current;
             _gridVisible = _settings.GridVisible;
+            _lastShowNonTradingDays = ShowNonTradingDays;
 
             ChartTypeComboBox.SelectedIndex = 0;
             ConfigureInteraction();
@@ -88,19 +90,10 @@ namespace TradeIt.Charts
         private void ClearMainChart()
         {
             foreach (var p in Chart.Plot.GetPlottables().ToList())
-            {
-                if (!ReferenceEquals(p, _crosshair))
-                    Chart.Plot.Remove(p);
-            }
+                Chart.Plot.Remove(p);
 
-            if (_crosshair != null)
-            {
-                _crosshair.IsVisible = false;
-                _crosshair.VerticalLine.IsVisible = false;
-                _crosshair.HorizontalLine.IsVisible = false;
-                _crosshair.VerticalLine.Label.IsVisible = false;
-                _crosshair.HorizontalLine.Label.IsVisible = false;
-            }
+            _crosshair = null;
+            _crosshairMouseInside = false;
         }
 
         private void ClearVolumeChart()
@@ -190,7 +183,6 @@ namespace TradeIt.Charts
             _crosshair.HorizontalLine.Text = yText;
             _crosshair.VerticalLine.Label.Text = xText;
             _crosshair.HorizontalLine.Label.Text = yText;
-
             _crosshair.VerticalLine.Label.IsVisible = true;
             _crosshair.HorizontalLine.Label.IsVisible = true;
 
@@ -207,7 +199,6 @@ namespace TradeIt.Charts
 
             double x = GetNearestCandleX(m.X);
             double y = m.Y;
-
             _crosshairMouseInside = true;
             ShowCrosshair(x, y);
             Chart.Refresh();
@@ -227,7 +218,6 @@ namespace TradeIt.Charts
 
             double x = GetNearestCandleX(v.X);
             double y = (l.Bottom + l.Top) / 2.0;
-
             _crosshairMouseInside = true;
             ShowCrosshair(x, y);
             Chart.Refresh();
@@ -456,12 +446,20 @@ namespace TradeIt.Charts
                 return;
             }
 
-            bool preserve = _hasInitialView && Chart.ActualWidth > 0 && Chart.ActualHeight > 0;
+            bool modeChanged = _lastShowNonTradingDays != ShowNonTradingDays;
+            bool preserve = !modeChanged && _hasInitialView && Chart.ActualWidth > 0 && Chart.ActualHeight > 0;
             ScottPlot.AxisLimits old = default;
             if (preserve)
                 old = Chart.Plot.Axes.GetLimits();
 
             ClearMainChart();
+
+            // ScottPlot keeps the axis type when only the tick generator is changed.
+            // Recreate the correct bottom axis before adding plottables so switching
+            // between DateTime and sequential indexes is safe and does not leave
+            // plottables attached to the previous axis.
+            ConfigureBottomAxis();
+            InitializeCrosshair();
 
             switch (_chartType)
             {
@@ -471,7 +469,6 @@ namespace TradeIt.Charts
             }
 
             ApplySettings();
-            DrawVolume();
 
             if (!preserve)
             {
@@ -483,7 +480,7 @@ namespace TradeIt.Charts
                 Chart.Plot.Axes.SetLimits(old.Left, old.Right, old.Bottom, old.Top);
             }
 
-            ConfigureBottomAxis();
+            DrawVolume();
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | {_bars.Count:N0} داده";
 
             if (_volumeVisible)
@@ -497,6 +494,8 @@ namespace TradeIt.Charts
                 _crosshair.VerticalLine.Label.IsVisible = _crosshair.IsVisible;
                 _crosshair.HorizontalLine.Label.IsVisible = _crosshair.IsVisible;
             }
+
+            _lastShowNonTradingDays = ShowNonTradingDays;
 
             Chart.Refresh();
             if (_volumeVisible)
@@ -571,6 +570,12 @@ namespace TradeIt.Charts
 
                 foreach (var t in invalid)
                 {
+                    // Invalid-data markers are only meaningful when the chart uses real dates.
+                    // In sequential mode they are intentionally omitted because their date X
+                    // coordinate does not belong to the numeric index axis.
+                    if (!ShowNonTradingDays)
+                        continue;
+
                     var line = Chart.Plot.Add.Line(
                         new ScottPlot.Coordinates(t.ToOADate(), min),
                         new ScottPlot.Coordinates(t.ToOADate(), max));
@@ -581,8 +586,6 @@ namespace TradeIt.Charts
 
             if (InvalidDataWarningTextBlock != null)
                 InvalidDataWarningTextBlock.Visibility = invalid.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-
-            ConfigureBottomAxis();
         }
 
         private void DrawLine()
@@ -599,7 +602,6 @@ namespace TradeIt.Charts
             p.MarkerSize = 0;
             p.LineWidth = (float)_settings.LineWidth;
             p.Color = ScottPlot.Color.FromHtml(_settings.LineColor);
-            ConfigureBottomAxis();
         }
 
         private void DrawBar()
@@ -619,7 +621,6 @@ namespace TradeIt.Charts
             p.RisingStyle.Color = ScottPlot.Color.FromHtml(_settings.RisingColor);
             p.FallingStyle.Color = ScottPlot.Color.FromHtml(_settings.FallingColor);
             p.Sequential = !ShowNonTradingDays;
-            ConfigureBottomAxis();
         }
 
         private void DrawVolume()
@@ -695,10 +696,19 @@ namespace TradeIt.Charts
             if (ShowNonTradingDays && HasRealDates)
             {
                 Chart.Plot.Axes.DateTimeTicksBottom();
+                Chart.Plot.Axes.Bottom.IsVisible = true;
+                Chart.Plot.Axes.Bottom.MinimumSize = 55;
                 return;
             }
 
-            var ticks = new ScottPlot.TickGenerators.NumericAutomatic
+            // Important: NumericTicksBottom() replaces the DateTime axis itself.
+            // Merely assigning NumericAutomatic to the existing DateTime axis causes
+            // ScottPlot to throw: "Date axis must have a ITickGenerator generator".
+            var numericAxis = Chart.Plot.Axes.NumericTicksBottom();
+            numericAxis.IsVisible = true;
+            numericAxis.MinimumSize = 55;
+
+            numericAxis.TickGenerator = new ScottPlot.TickGenerators.NumericAutomatic
             {
                 IntegerTicksOnly = true,
                 LabelFormatter = v =>
@@ -718,8 +728,6 @@ namespace TradeIt.Charts
                     return (i + 1).ToString();
                 }
             };
-
-            Chart.Plot.Axes.Bottom.TickGenerator = ticks;
         }
 
         private string FormatCrosshairX(double x)
