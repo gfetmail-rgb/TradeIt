@@ -33,21 +33,25 @@ namespace TradeIt
         private void SymbolsPanelCollapseButton_Click(object sender, RoutedEventArgs e)
         {
             _symbolsPanelCollapsed = !_symbolsPanelCollapsed;
+            SymbolsGroupsContainer.Visibility = _symbolsPanelCollapsed ? Visibility.Collapsed : Visibility.Visible;
+            SymbolsPanelColumn.Width = new GridLength(_symbolsPanelCollapsed ? 32 : 300);
+            SymbolsPanelCollapseButton.Content = _symbolsPanelCollapsed ? "›" : "‹";
+            SymbolsPanelCollapseButton.ToolTip = _symbolsPanelCollapsed ? "نمایش پنل نمادها" : "پنهان کردن پنل نمادها";
+        }
 
-            if (_symbolsPanelCollapsed)
-            {
-                SymbolsGroupsContainer.Visibility = Visibility.Collapsed;
-                SymbolsPanelColumn.Width = new GridLength(32);
-                SymbolsPanelCollapseButton.Content = "›";
-                SymbolsPanelCollapseButton.ToolTip = "نمایش پنل نمادها";
-            }
-            else
-            {
-                SymbolsGroupsContainer.Visibility = Visibility.Visible;
-                SymbolsPanelColumn.Width = new GridLength(300);
-                SymbolsPanelCollapseButton.Content = "‹";
-                SymbolsPanelCollapseButton.ToolTip = "پنهان کردن پنل نمادها";
-            }
+        private void InitializeSymbolGroupsCollapseState()
+        {
+            _symbolTableGroupCollapsed = false;
+            _symbolFilterGroupCollapsed = true;
+            _symbolOperationsGroupCollapsed = true;
+
+            SymbolFilterHost.Visibility = Visibility.Collapsed;
+            SymbolOperationsContent.Visibility = Visibility.Collapsed;
+            SymbolsDataGrid.Visibility = Visibility.Visible;
+
+            SymbolFilterCollapseButton.Content = "▲";
+            SymbolOperationsCollapseButton.Content = "▲";
+            SymbolTableCollapseButton.Content = "▲";
         }
     }
 }
