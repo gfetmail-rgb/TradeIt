@@ -1,35 +1,39 @@
-using System;
 using System.Windows;
-using System.Windows.Threading;
+using System.Windows.Controls;
 
 namespace TradeIt
 {
     public partial class MainWindow
     {
-        private bool _startupSelectionCleared;
+        private bool _suppressInitialPortfolioSelection = true;
 
-        protected override void OnContentRendered(EventArgs e)
+        private static readonly bool _startupSelectionHandlerRegistered = RegisterStartupSelectionHandler();
+
+        private static bool RegisterStartupSelectionHandler()
         {
-            base.OnContentRendered(e);
+            EventManager.RegisterClassHandler(
+                typeof(ComboBox),
+                ComboBox.SelectionChangedEvent,
+                new SelectionChangedEventHandler(SuppressInitialPortfolioSelection));
+            return true;
+        }
 
-            if (_startupSelectionCleared)
+        private static void SuppressInitialPortfolioSelection(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is not ComboBox combo || combo.Name != "PortfolioComboBox")
                 return;
 
-            _startupSelectionCleared = true;
+            if (Window.GetWindow(combo) is not MainWindow window)
+                return;
 
-            Dispatcher.BeginInvoke(
-                new Action(() =>
-                {
-                    _selectedPortfolio = null;
-                    _allSymbols.Clear();
-                    SymbolsDataGrid.ItemsSource = null;
-                    SymbolsDataGrid.SelectedItem = null;
-                    PortfolioComboBox.SelectedIndex = -1;
-                    StatusTextBlock.Text = _portfolios.Count > 0
-                        ? "سبد را انتخاب کنید."
-                        : "هنوز سبدی تعریف نشده است.";
-                }),
-                DispatcherPriority.Loaded);
+            if (!window._suppressInitialPortfolioSelection)
+                return;
+
+            if (combo.SelectedIndex >= 0)
+            {
+                window._suppressInitialPortfolioSelection = false;
+                combo.SelectedIndex = -1;
+            }
         }
     }
 }
