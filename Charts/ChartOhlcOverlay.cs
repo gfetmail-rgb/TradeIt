@@ -1,6 +1,6 @@
 using System;
 using System.Windows;
-using System.Windows.Input;
+using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
 using TradeIt.Models;
 
 namespace TradeIt.Charts
@@ -15,7 +15,7 @@ namespace TradeIt.Charts
             UpdateChartOhlcHeader(_bars.Count > 0 ? _bars.Count - 1 : -1);
         }
 
-        private void ChartPrintArea_MouseMove(object sender, MouseEventArgs e)
+        private void ChartPrintArea_MouseMove(object sender, WpfMouseEventArgs e)
         {
             try
             {
@@ -49,7 +49,7 @@ namespace TradeIt.Charts
                 $"Open: {bar.Open:N2}   High: {bar.High:N2}   Low: {bar.Low:N2}   Close: {bar.Close:N2}   حجم: {bar.Volume / VolumeScale:N0}   |   {date}";
         }
 
-        private void ChartPrintArea_MouseLeave(object sender, MouseEventArgs e)
+        private void ChartPrintArea_MouseLeave(object sender, WpfMouseEventArgs e)
         {
             if (_bars.Count > 0)
                 UpdateChartOhlcHeader(_bars.Count - 1);
