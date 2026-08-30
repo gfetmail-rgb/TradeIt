@@ -3,7 +3,12 @@ using WpfButton = System.Windows.Controls.Button;
 using WpfCheckBox = System.Windows.Controls.CheckBox;
 using WpfComboBox = System.Windows.Controls.ComboBox;
 using WpfTextBox = System.Windows.Controls.TextBox;
-using System.Windows.Media;
+using WpfGrid = System.Windows.Controls.Grid;
+using WpfRowDefinition = System.Windows.Controls.RowDefinition;
+using WpfStackPanel = System.Windows.Controls.StackPanel;
+using WpfRadioButton = System.Windows.Controls.RadioButton;
+using WpfUIElement = System.Windows.UIElement;
+using WpfVisualTreeHelper = System.Windows.Media.VisualTreeHelper;
 
 namespace TradeIt
 {
@@ -45,19 +50,19 @@ namespace TradeIt
 
         private void DockFilterButtonToBottom()
         {
-            if (SymbolFilterGroup.Child is not Grid groupGrid)
+            if (SymbolFilterGroup.Child is not WpfGrid groupGrid)
                 return;
 
             while (groupGrid.RowDefinitions.Count < 3)
-                groupGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                groupGrid.RowDefinitions.Add(new WpfRowDefinition { Height = GridLength.Auto });
 
-            foreach (UIElement child in groupGrid.Children)
+            foreach (WpfUIElement child in groupGrid.Children)
             {
-                if (child is StackPanel panel && panel.Children.Contains(SymbolFilterCollapseButton))
+                if (child is WpfStackPanel panel && panel.Children.Contains(SymbolFilterCollapseButton))
                 {
-                    Grid.SetRow(panel, 2);
-                    panel.HorizontalAlignment = HorizontalAlignment.Right;
-                    panel.VerticalAlignment = VerticalAlignment.Center;
+                    WpfGrid.SetRow(panel, 2);
+                    panel.HorizontalAlignment = System.Windows.HorizontalAlignment.Right;
+                    panel.VerticalAlignment = System.Windows.VerticalAlignment.Center;
                     return;
                 }
             }
@@ -65,25 +70,25 @@ namespace TradeIt
 
         private void DockOperationsButtonToBottom()
         {
-            if (SymbolOperationsGroup.Child is not Grid groupGrid)
+            if (SymbolOperationsGroup.Child is not WpfGrid groupGrid)
                 return;
 
             while (groupGrid.RowDefinitions.Count < 3)
-                groupGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                groupGrid.RowDefinitions.Add(new WpfRowDefinition { Height = GridLength.Auto });
 
-            Grid.SetRow(SymbolOperationsCollapseButton, 2);
-            SymbolOperationsCollapseButton.HorizontalAlignment = HorizontalAlignment.Right;
-            SymbolOperationsCollapseButton.VerticalAlignment = VerticalAlignment.Center;
+            WpfGrid.SetRow(SymbolOperationsCollapseButton, 2);
+            SymbolOperationsCollapseButton.HorizontalAlignment = System.Windows.HorizontalAlignment.Right;
+            SymbolOperationsCollapseButton.VerticalAlignment = System.Windows.VerticalAlignment.Center;
         }
 
         private void EnsureClearFiltersButton()
         {
-            if (SymbolFilterGroup.Child is not Grid groupGrid)
+            if (SymbolFilterGroup.Child is not WpfGrid groupGrid)
                 return;
 
-            foreach (UIElement child in groupGrid.Children)
+            foreach (WpfUIElement child in groupGrid.Children)
             {
-                if (child is StackPanel panel && panel.Children.Contains(SymbolFilterCollapseButton))
+                if (child is WpfStackPanel panel && panel.Children.Contains(SymbolFilterCollapseButton))
                 {
                     if (_clearSymbolFiltersButton == null)
                     {
@@ -115,9 +120,9 @@ namespace TradeIt
 
         private static void ClearFilterControls(DependencyObject parent)
         {
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            for (int i = 0; i < WpfVisualTreeHelper.GetChildrenCount(parent); i++)
             {
-                DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+                DependencyObject child = WpfVisualTreeHelper.GetChild(parent, i);
 
                 switch (child)
                 {
@@ -131,7 +136,7 @@ namespace TradeIt
                     case WpfCheckBox checkBox:
                         checkBox.IsChecked = false;
                         break;
-                    case System.Windows.Controls.RadioButton radioButton:
+                    case WpfRadioButton radioButton:
                         radioButton.IsChecked = false;
                         break;
                 }
