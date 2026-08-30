@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Input;
+using TradeIt.Models;
 
 namespace TradeIt.Charts
 {
@@ -22,16 +23,16 @@ namespace TradeIt.Charts
                     return;
 
                 MarketBar bar = _bars[index];
-                string date = GetBarDateTime(bar, index).TimeOfDay == TimeSpan.Zero
-                    ? GetBarDateTime(bar, index).ToString("yyyy/MM/dd")
-                    : GetBarDateTime(bar, index).ToString("yyyy/MM/dd HH:mm");
+                DateTime t = GetBarDateTime(bar, index);
+                string date = t.TimeOfDay == TimeSpan.Zero
+                    ? t.ToString("yyyy/MM/dd")
+                    : t.ToString("yyyy/MM/dd HH:mm");
 
                 ChartOhlcTextBlock.Text =
                     $"Open: {bar.Open:N2}   High: {bar.High:N2}   Low: {bar.Low:N2}   Close: {bar.Close:N2}   حجم: {bar.Volume / VolumeScale:N0}   |   {date}";
             }
             catch
             {
-                // The chart must remain usable even if an individual bar has invalid data.
             }
         }
 
