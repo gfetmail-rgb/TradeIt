@@ -24,6 +24,11 @@ namespace TradeIt.Portfolios
                 UIElement.PreviewMouseLeftButtonDownEvent,
                 new System.Windows.Input.MouseButtonEventHandler(BrowseMultiFilePreview),
                 true);
+
+            SaveButton.AddHandler(
+                WpfButtonBase.ClickEvent,
+                new RoutedEventHandler(SaveMultiFileClick),
+                true);
         }
 
         private void BrowseMultiFilePreview(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -50,6 +55,36 @@ namespace TradeIt.Portfolios
                     .Distinct(StringComparer.OrdinalIgnoreCase));
 
             PathTextBox.Text = string.Join(Environment.NewLine, _selectedFilePaths);
+        }
+
+        private void SaveMultiFileClick(object sender, RoutedEventArgs e)
+        {
+            if (_selectedFilePaths.Count <= 1 || FileRadio.IsChecked != true)
+                return;
+
+            if (ResultPortfolio == null)
+                return;
+
+            string firstDirectory =
+                Path.GetDirectoryName(_selectedFilePaths[0]) ?? "";
+
+            ResultPortfolio.DataSource.SourceType = "Folder";
+            ResultPortfolio.DataSource.Path = firstDirectory;
+            ResultPortfolio.Symbols = _selectedFilePaths
+                .Select(path => new SymbolInfo
+                {
+                    Symbol = Path.GetFileNameWithoutExtension(path),
+                    DisplayName = Path.GetFileNameWithoutExtension(path),
+                    FilePath = path,
+                    IsSelected = false
+                })
+                .ToList();
+            ResultPortfolio.UseExplicitSymbolList = true;
+        }
+
+        private static string GetSelectedTag(string value, string defaultValue)
+        {
+            return string.IsNullOrWhiteSpace(value) ? defaultValue : value;
         }
     }
 }
