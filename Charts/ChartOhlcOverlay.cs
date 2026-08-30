@@ -41,13 +41,24 @@ namespace TradeIt.Charts
                 return;
 
             MarketBar bar = _bars[index];
-            DateTime t = GetBarDateTime(bar, index);
-            string date = t.TimeOfDay == TimeSpan.Zero
-                ? t.ToString("yyyy/MM/dd")
-                : t.ToString("yyyy/MM/dd HH:mm");
+
+            string xInfo;
+            if (HasRealDates)
+            {
+                DateTime t = GetBarDateTime(bar, index);
+                xInfo = t.TimeOfDay == TimeSpan.Zero
+                    ? t.ToString("yyyy/MM/dd")
+                    : t.ToString("yyyy/MM/dd HH:mm");
+            }
+            else
+            {
+                // When the source data has no real dates, never fabricate
+                // a date. Display the actual candle number instead.
+                xInfo = $"کندل {index + 1}";
+            }
 
             ChartOhlcTextBlock.Text =
-                $"Open: {bar.Open:N2}   High: {bar.High:N2}   Low: {bar.Low:N2}   Close: {bar.Close:N2}   حجم: {bar.Volume / VolumeScale:N0}   |   {date}";
+                $"O: {bar.Open:N2}   H: {bar.High:N2}   L: {bar.Low:N2}   C: {bar.Close:N2}   V: {bar.Volume / VolumeScale:N0}   |   {xInfo}";
         }
 
         private void ChartPrintArea_MouseLeave(object sender, WpfMouseEventArgs e)
