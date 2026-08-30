@@ -13,25 +13,38 @@
 
         <!-- Chart tools. Settings is intentionally NOT here; it is on MainWindow. -->
         <Border Grid.Row="0" BorderBrush="LightGray" BorderThickness="0,0,0,1" Background="White">
-            <WrapPanel Margin="5">
-                <TextBlock Text="نوع نمودار:" VerticalAlignment="Center" Margin="4,0,4,0" />
-                <ComboBox x:Name="ChartTypeComboBox" Width="130" Height="28" Margin="0,0,8,0" SelectionChanged="ChartTypeComboBox_SelectionChanged">
-                    <ComboBoxItem Content="کندل" Tag="Candlestick" />
-                    <ComboBoxItem Content="خطی" Tag="Line" />
-                    <ComboBoxItem Content="میله‌ای" Tag="Bar" />
-                </ComboBox>
-                <Button x:Name="VolumeButton" Content="نمایش حجم" Height="28" Margin="0,0,5,0" Padding="10,0" Click="VolumeButton_Click" />
-                <Button x:Name="GridButton" Content="GRID" Height="28" Margin="0,0,5,0" Padding="10,0" Click="GridButton_Click" />
-                <Button x:Name="CrosshairButton" Content="Crosshair روشن" Height="28" Margin="0,0,5,0" Padding="10,0" Click="CrosshairButton_Click" />
-                <Button Content="Zoom +" Height="28" Margin="0,0,5,0" Padding="10,0" Click="ZoomInButton_Click" />
-                <Button Content="Zoom -" Height="28" Margin="0,0,5,0" Padding="10,0" Click="ZoomOutButton_Click" />
-                <Button Content="Reset Zoom" Height="28" Margin="0,0,5,0" Padding="10,0" Click="ResetZoomButton_Click" />
-                <Button Content="نمای کامل" Height="28" Margin="0,0,5,0" Padding="10,0" Click="FullViewButton_Click" />
-                <Button x:Name="HideChartButton" Content="پنهان کردن نمودار" Height="28" Margin="0,0,5,0" Padding="10,0" Click="HideChartButton_Click" />
-                <Button x:Name="HideToolsButton" Content="پنهان کردن ابزارهای تکنیکال" Height="28" Margin="0,0,5,0" Padding="10,0" Click="HideToolsButton_Click" />
-                <Button Content="تصویر" Height="28" Margin="0,0,5,0" Padding="10,0" Click="ScreenshotChartAreaButton_Click" />
-                <Button Content="چاپ" Height="28" Margin="0,0,5,0" Padding="10,0" Click="PrintChartAreaButton_Click" />
-            </WrapPanel>
+            <Grid Margin="5">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="ChartTitleTextBlock"
+                               Grid.Column="0"
+                               VerticalAlignment="Center"
+                               FontSize="15"
+                               FontWeight="Bold"
+                               Foreground="Black"
+                               Text="" />
+                    <TextBlock x:Name="ChartOhlcTextBlock"
+                               Grid.Column="1"
+                               VerticalAlignment="Center"
+                               FontSize="12"
+                               Foreground="Black"
+                               Text="" />
+                </Grid>
+                <TextBlock x:Name="InvalidDataWarningTextBlock"
+                           Grid.Row="1"
+                           Visibility="Collapsed"
+                           Margin="0,3,0,0"
+                           FontSize="11"
+                           Foreground="Red"
+                           Text="داده نامعتبر / بازه بدون معامله" />
+            </Grid>
         </Border>
 
         <Grid x:Name="ChartPrintArea" Grid.Row="1" Background="White" MouseMove="ChartPrintArea_MouseMove" MouseLeave="ChartPrintArea_MouseLeave">
