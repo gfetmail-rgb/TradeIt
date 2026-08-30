@@ -61,7 +61,6 @@ namespace TradeIt
             var controls = new StackPanel { Orientation = WpfOrientation.Horizontal };
             _tradedInDaysEnabledCheckBox = new WpfCheckBox
             {
-                Content = "فعال",
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 4, 0)
             };
@@ -100,8 +99,6 @@ namespace TradeIt
 
         private void ApplyTradedInDaysFilter()
         {
-            // The existing MainWindow.SymbolFilters.cs owns filtering and its SymbolInfo type.
-            // This helper only controls layout and adds the UI. The actual filtering is invoked there.
             if (_tradedInDaysEnabledCheckBox?.IsChecked == true)
                 ApplySymbolFilter();
         }
