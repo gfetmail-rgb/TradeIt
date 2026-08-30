@@ -10,6 +10,9 @@ using System.Windows.Media;
 using WpfComboBox = System.Windows.Controls.ComboBox;
 using WpfTextBox = System.Windows.Controls.TextBox;
 using WpfCheckBox = System.Windows.Controls.CheckBox;
+using WpfOrientation = System.Windows.Controls.Orientation;
+using WpfHorizontalAlignment = System.Windows.HorizontalAlignment;
+using WpfBrushes = System.Windows.Media.Brushes;
 
 using TradeIt.Models;
 
@@ -38,10 +41,7 @@ namespace TradeIt
 
         private static bool RegisterSymbolFiltersHandler()
         {
-            EventManager.RegisterClassHandler(
-                typeof(MainWindow),
-                Window.LoadedEvent,
-                new RoutedEventHandler(InitializeSymbolFiltersOnLoaded));
+            EventManager.RegisterClassHandler(typeof(MainWindow), Window.LoadedEvent, new RoutedEventHandler(InitializeSymbolFiltersOnLoaded));
             return true;
         }
 
@@ -53,14 +53,10 @@ namespace TradeIt
 
         private void InitializeSymbolFilters()
         {
-            if (_symbolFiltersInitialized)
-                return;
-
-            if (SymbolsPanel.Child is not Grid panelGrid)
+            if (_symbolFiltersInitialized || SymbolsPanel.Child is not Grid panelGrid)
                 return;
 
             _symbolFiltersInitialized = true;
-
             panelGrid.RowDefinitions.Insert(2, new RowDefinition { Height = new GridLength(335) });
 
             foreach (UIElement child in panelGrid.Children)
@@ -85,20 +81,11 @@ namespace TradeIt
             outer.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             outer.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-            var title = new TextBlock
-            {
-                Text = "فیلتر سهام (همه فیلترها با AND)",
-                FontWeight = FontWeights.SemiBold,
-                Margin = new Thickness(0, 0, 0, 4)
-            };
+            var title = new TextBlock { Text = "فیلتر سهام (همه فیلترها با AND)", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 4) };
             Grid.SetRow(title, 0);
             outer.Children.Add(title);
 
-            var scroll = new ScrollViewer
-            {
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
-            };
+            var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
             Grid.SetRow(scroll, 1);
             outer.Children.Add(scroll);
 
@@ -126,40 +113,27 @@ namespace TradeIt
             stack.Children.Add(LabeledControl("نام سهم:", Inline(_nameFilterComboBox, _nameFilterTextBox)));
 
             _daysWithoutTradeCheckBox = new WpfCheckBox { Content = "فعال", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) };
-            _daysWithoutTradeTextBox = new WpfTextBox { Width = 55, Height = 27, Text = "5", HorizontalContentAlignment = HorizontalAlignment.Center };
+            _daysWithoutTradeTextBox = new WpfTextBox { Width = 55, Height = 27, Text = "5", HorizontalContentAlignment = WpfHorizontalAlignment.Center };
             _daysWithoutTradeCheckBox.Checked += SymbolFilterInputChanged;
             _daysWithoutTradeCheckBox.Unchecked += SymbolFilterInputChanged;
             _daysWithoutTradeTextBox.TextChanged += SymbolFilterInputChanged;
             stack.Children.Add(LabeledControl("فاقد معامله در X روز گذشته:", Inline(_daysWithoutTradeCheckBox, _daysWithoutTradeTextBox)));
 
             _volumeFilterCheckBox = new WpfCheckBox { Content = "فعال", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) };
-            _volumeAverageDaysTextBox = new WpfTextBox { Width = 48, Height = 27, Text = "20", HorizontalContentAlignment = HorizontalAlignment.Center };
-            _volumeMultiplierTextBox = new WpfTextBox { Width = 48, Height = 27, Text = "2", HorizontalContentAlignment = HorizontalAlignment.Center };
+            _volumeAverageDaysTextBox = new WpfTextBox { Width = 48, Height = 27, Text = "20", HorizontalContentAlignment = WpfHorizontalAlignment.Center };
+            _volumeMultiplierTextBox = new WpfTextBox { Width = 48, Height = 27, Text = "2", HorizontalContentAlignment = WpfHorizontalAlignment.Center };
             _volumeFilterCheckBox.Checked += SymbolFilterInputChanged;
             _volumeFilterCheckBox.Unchecked += SymbolFilterInputChanged;
             _volumeAverageDaysTextBox.TextChanged += SymbolFilterInputChanged;
             _volumeMultiplierTextBox.TextChanged += SymbolFilterInputChanged;
             stack.Children.Add(LabeledControl("حجم آخر ≥ میانگین X روز × Y:", Inline(_volumeFilterCheckBox, _volumeAverageDaysTextBox, new TextBlock { Text = "×", Margin = new Thickness(4, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center }, _volumeMultiplierTextBox)));
 
-            var priceHeader = new TextBlock
-            {
-                Text = "فیلترهای O/H/L/C/V/FINAL FEE (هر کدام مستقل)",
-                FontWeight = FontWeights.SemiBold,
-                Margin = new Thickness(0, 4, 0, 2)
-            };
-            stack.Children.Add(priceHeader);
-
+            stack.Children.Add(new TextBlock { Text = "فیلترهای O/H/L/C/V/FINAL FEE (هر کدام مستقل)", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 4, 0, 2) });
             for (int i = 0; i < 5; i++)
                 stack.Children.Add(BuildPriceFilterRow(i));
 
-            _symbolFilterStatusTextBlock = new TextBlock
-            {
-                Foreground = Brushes.Gray,
-                TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 3, 0, 0)
-            };
+            _symbolFilterStatusTextBlock = new TextBlock { Foreground = WpfBrushes.Gray, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) };
             stack.Children.Add(_symbolFilterStatusTextBlock);
-
             return outer;
         }
 
@@ -168,41 +142,29 @@ namespace TradeIt
             var enabled = new WpfCheckBox { Content = $"{index + 1}", Width = 28, VerticalAlignment = VerticalAlignment.Center };
             var field = new WpfComboBox { Width = 72, Height = 26 };
             AddComboItems(field,
-                (PriceField.Open, "O"),
-                (PriceField.High, "H"),
-                (PriceField.Low, "L"),
-                (PriceField.Close, "C"),
-                (PriceField.Volume, "V"),
-                (PriceField.FinalFee, "FINAL FEE"));
+                (PriceField.Open, "O"), (PriceField.High, "H"), (PriceField.Low, "L"),
+                (PriceField.Close, "C"), (PriceField.Volume, "V"), (PriceField.FinalFee, "FINAL FEE"));
 
             var comparison = new WpfComboBox { Width = 55, Height = 26, Margin = new Thickness(3, 0, 3, 0) };
             AddComboItems(comparison,
-                (NumericComparison.GreaterThan, ">"),
-                (NumericComparison.Equal, "="),
-                (NumericComparison.NotEqual, "≠"),
-                (NumericComparison.LessThan, "<"));
+                (NumericComparison.GreaterThan, ">"), (NumericComparison.Equal, "="),
+                (NumericComparison.NotEqual, "≠"), (NumericComparison.LessThan, "<"));
 
-            var days = new WpfTextBox { Width = 42, Height = 26, Text = "1", HorizontalContentAlignment = HorizontalAlignment.Center };
+            var days = new WpfTextBox { Width = 42, Height = 26, Text = "1", HorizontalContentAlignment = WpfHorizontalAlignment.Center };
             enabled.Checked += SymbolFilterInputChanged;
             enabled.Unchecked += SymbolFilterInputChanged;
             field.SelectionChanged += SymbolFilterInputChanged;
             comparison.SelectionChanged += SymbolFilterInputChanged;
             days.TextChanged += SymbolFilterInputChanged;
-
             _priceFilterControls.Add((enabled, field, comparison, days));
 
-            return Inline(
-                new TextBlock { Text = "فیلتر:", Width = 40, VerticalAlignment = VerticalAlignment.Center },
-                enabled,
-                field,
-                comparison,
-                new TextBlock { Text = "روز قبل:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 2, 0) },
-                days);
+            return Inline(new TextBlock { Text = "فیلتر:", Width = 40, VerticalAlignment = VerticalAlignment.Center }, enabled, field, comparison,
+                new TextBlock { Text = "روز قبل:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 2, 0) }, days);
         }
 
         private static StackPanel Inline(params UIElement[] children)
         {
-            var panel = new StackPanel { Orientation = Orientation.Horizontal };
+            var panel = new StackPanel { Orientation = WpfOrientation.Horizontal };
             foreach (UIElement child in children)
                 panel.Children.Add(child);
             return panel;
@@ -232,9 +194,7 @@ namespace TradeIt
         }
 
         private static T GetComboValue<T>(WpfComboBox combo)
-        {
-            return combo.SelectedItem is FilterComboItem<T> item ? item.Value : default!;
-        }
+            => combo.SelectedItem is FilterComboItem<T> item ? item.Value : default!;
 
         private void LoadFilterDefaults()
         {
@@ -249,16 +209,14 @@ namespace TradeIt
 
         private void SymbolFilterInputChanged(object? sender, RoutedEventArgs e)
         {
-            if (_symbolFiltersApplying)
-                return;
-            _ = ApplyAllSymbolFiltersAsync();
+            if (!_symbolFiltersApplying)
+                _ = ApplyAllSymbolFiltersAsync();
         }
 
         private void SymbolFilterInputChanged(object? sender, TextChangedEventArgs e)
         {
-            if (_symbolFiltersApplying)
-                return;
-            _ = ApplyAllSymbolFiltersAsync();
+            if (!_symbolFiltersApplying)
+                _ = ApplyAllSymbolFiltersAsync();
         }
 
         private async Task ApplyAllSymbolFiltersAsync()
@@ -279,21 +237,10 @@ namespace TradeIt
 
                 IEnumerable<SymbolInfo> query = _allSymbols;
                 SymbolFilterSettings settings = _symbolFilterSettings;
-
-                DateTime? marketDate = _allSymbols
-                    .Where(x => x.LastTradeDate.HasValue)
-                    .Select(x => x.LastTradeDate!.Value.Date)
-                    .OrderByDescending(x => x)
-                    .FirstOrDefault();
+                DateTime? marketDate = _allSymbols.Where(x => x.LastTradeDate.HasValue).Select(x => x.LastTradeDate!.Value.Date).OrderByDescending(x => x).FirstOrDefault();
 
                 if (settings.TradeStatus != TradeStatusFilter.All && marketDate.HasValue)
-                {
-                    query = query.Where(x =>
-                    {
-                        bool traded = x.LastTradeDate.HasValue && x.LastTradeDate.Value.Date == marketDate.Value;
-                        return settings.TradeStatus == TradeStatusFilter.TradedToday ? traded : !traded;
-                    });
-                }
+                    query = query.Where(x => (settings.TradeStatus == TradeStatusFilter.TradedToday) == (x.LastTradeDate.HasValue && x.LastTradeDate.Value.Date == marketDate.Value));
 
                 if (settings.NameFilter != SymbolNameFilter.All && !string.IsNullOrEmpty(settings.NameText))
                 {
@@ -309,7 +256,6 @@ namespace TradeIt
 
                 bool needsBars = settings.VolumeFilterEnabled || settings.PriceFilters.Any(x => x.Enabled);
                 List<SymbolInfo> candidates = query.ToList();
-
                 if (needsBars)
                 {
                     await EnsureBarsLoadedAsync(candidates, token);
@@ -319,13 +265,10 @@ namespace TradeIt
                 token.ThrowIfCancellationRequested();
                 RenumberFilteredSymbols(candidates);
                 SymbolsDataGrid.ItemsSource = candidates;
-
                 if (_symbolFilterStatusTextBlock != null)
                     _symbolFilterStatusTextBlock.Text = $"نتیجه: {candidates.Count:N0} نماد";
             }
-            catch (OperationCanceledException)
-            {
-            }
+            catch (OperationCanceledException) { }
             catch (Exception ex)
             {
                 if (_symbolFilterStatusTextBlock != null)
@@ -357,31 +300,20 @@ namespace TradeIt
 
         private static bool MatchName(string value, string text, SymbolNameFilter filter)
         {
-            if (filter == SymbolNameFilter.All)
-                return true;
-            if (filter == SymbolNameFilter.Contains)
-                return value.Contains(text, StringComparison.OrdinalIgnoreCase);
-            if (filter == SymbolNameFilter.StartsWith)
-                return value.StartsWith(text, StringComparison.OrdinalIgnoreCase);
-            if (filter == SymbolNameFilter.EndsWith)
-                return value.EndsWith(text, StringComparison.OrdinalIgnoreCase);
-            if (filter == SymbolNameFilter.DoesNotContain)
-                return !value.Contains(text, StringComparison.OrdinalIgnoreCase);
+            if (filter == SymbolNameFilter.All) return true;
+            if (filter == SymbolNameFilter.Contains) return value.Contains(text, StringComparison.OrdinalIgnoreCase);
+            if (filter == SymbolNameFilter.StartsWith) return value.StartsWith(text, StringComparison.OrdinalIgnoreCase);
+            if (filter == SymbolNameFilter.EndsWith) return value.EndsWith(text, StringComparison.OrdinalIgnoreCase);
+            if (filter == SymbolNameFilter.DoesNotContain) return !value.Contains(text, StringComparison.OrdinalIgnoreCase);
             int index = value.IndexOf(text, StringComparison.OrdinalIgnoreCase);
             return index > 0 && index + text.Length < value.Length;
         }
 
         private async Task EnsureBarsLoadedAsync(List<SymbolInfo> symbols, CancellationToken token)
         {
-            if (_selectedPortfolio == null)
-                return;
-
-            List<SymbolInfo> missing = symbols
-                .Where(x => !_symbolFilterBars.ContainsKey(x.FilePath))
-                .ToList();
-
-            if (missing.Count == 0)
-                return;
+            if (_selectedPortfolio == null) return;
+            List<SymbolInfo> missing = symbols.Where(x => !_symbolFilterBars.ContainsKey(x.FilePath)).ToList();
+            if (missing.Count == 0) return;
 
             await Task.Run(() =>
             {
@@ -397,57 +329,42 @@ namespace TradeIt
 
         private bool PassHistoricalFilters(SymbolInfo symbol, SymbolFilterSettings settings)
         {
-            if (!_symbolFilterBars.TryGetValue(symbol.FilePath, out List<MarketBar>? bars) || bars.Count == 0)
-                return false;
+            if (!_symbolFilterBars.TryGetValue(symbol.FilePath, out List<MarketBar>? bars) || bars.Count == 0) return false;
 
             if (settings.VolumeFilterEnabled)
             {
                 int n = Math.Max(1, settings.VolumeAverageDays);
-                if (bars.Count < n)
-                    return false;
+                if (bars.Count < n) return false;
                 double average = bars.TakeLast(n).Average(x => x.Volume);
-                if (bars[^1].Volume < average * settings.VolumeMultiplier)
-                    return false;
+                if (bars[^1].Volume < average * settings.VolumeMultiplier) return false;
             }
 
             foreach (PriceFilter filter in settings.PriceFilters)
             {
-                if (!filter.Enabled)
-                    continue;
-
+                if (!filter.Enabled) continue;
                 int days = Math.Max(1, filter.Days);
-                if (bars.Count <= days)
-                    return false;
-
+                if (bars.Count <= days) return false;
                 double latest = GetPriceField(bars[^1], filter.Field);
                 double previous = GetPriceField(bars[bars.Count - 1 - days], filter.Field);
-
-                if (!Compare(latest, previous, filter.Comparison))
-                    return false;
+                if (!Compare(latest, previous, filter.Comparison)) return false;
             }
-
             return true;
         }
 
-        private static double GetPriceField(MarketBar bar, PriceField field)
+        private static double GetPriceField(MarketBar bar, PriceField field) => field switch
         {
-            return field switch
-            {
-                PriceField.Open => bar.Open,
-                PriceField.High => bar.High,
-                PriceField.Low => bar.Low,
-                PriceField.Close => bar.Close,
-                PriceField.Volume => bar.Volume,
-                PriceField.FinalFee => bar.TSEClose,
-                _ => double.NaN
-            };
-        }
+            PriceField.Open => bar.Open,
+            PriceField.High => bar.High,
+            PriceField.Low => bar.Low,
+            PriceField.Close => bar.Close,
+            PriceField.Volume => bar.Volume,
+            PriceField.FinalFee => bar.TSEClose,
+            _ => double.NaN
+        };
 
         private static bool Compare(double left, double right, NumericComparison comparison)
         {
-            if (double.IsNaN(left) || double.IsNaN(right))
-                return false;
-
+            if (double.IsNaN(left) || double.IsNaN(right)) return false;
             const double epsilon = 1e-9;
             return comparison switch
             {
@@ -461,11 +378,8 @@ namespace TradeIt
             };
         }
 
-        private static int ParsePositiveInt(string text, int fallback)
-            => int.TryParse(text.Trim(), out int value) && value > 0 ? value : fallback;
-
-        private static double ParsePositiveDouble(string text, double fallback)
-            => double.TryParse(text.Trim(), out double value) && value > 0 ? value : fallback;
+        private static int ParsePositiveInt(string text, int fallback) => int.TryParse(text.Trim(), out int value) && value > 0 ? value : fallback;
+        private static double ParsePositiveDouble(string text, double fallback) => double.TryParse(text.Trim(), out double value) && value > 0 ? value : fallback;
 
         private void RenumberFilteredSymbols(List<SymbolInfo> symbols)
         {
