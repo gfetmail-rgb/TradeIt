@@ -30,7 +30,6 @@
                 <Button Content="+" Width="32" Margin="0,0,3,0" Click="ZoomInButton_Click" />
                 <Button Content="−" Width="32" Margin="0,0,5,0" Click="ZoomOutButton_Click" />
                 <Button Content="بازنشانی" Margin="0,0,5,0" Click="ResetZoomButton_Click" />
-                <Button Content="نمای کامل" Margin="0,0,5,0" Click="FullViewButton_Click" />
                 <Button Content="تصویر" Margin="0,0,5,0" Click="ScreenshotButton_Click" />
                 <Button Content="چاپ" Margin="0,0,5,0" Click="PrintButton_Click" />
             </WrapPanel>
