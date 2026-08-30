@@ -17,8 +17,8 @@ namespace TradeIt
             return true;
         }
 
-        private CheckBox? _tradedInDaysEnabledCheckBox;
-        private TextBox? _tradedInDaysTextBox;
+        private System.Windows.Controls.CheckBox? _tradedInDaysEnabledCheckBox;
+        private System.Windows.Controls.TextBox? _tradedInDaysTextBox;
         private DispatcherTimer? _tradedInDaysApplyTimer;
         private bool _filterLayoutFixInitialized;
 
@@ -33,11 +33,8 @@ namespace TradeIt
                 return;
 
             _filterLayoutFixInitialized = true;
-
-            // Row 2 is the stock list. Keep it compact.
             panelGrid.RowDefinitions[2].Height = new GridLength(155);
 
-            // Put filters immediately below the stock list, then keep the existing controls below them.
             foreach (UIElement child in panelGrid.Children)
             {
                 if (child == filterHost)
@@ -64,19 +61,19 @@ namespace TradeIt
                 VerticalAlignment = VerticalAlignment.Center
             });
 
-            var controls = new StackPanel { Orientation = Orientation.Horizontal };
-            _tradedInDaysEnabledCheckBox = new CheckBox
+            var controls = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal };
+            _tradedInDaysEnabledCheckBox = new System.Windows.Controls.CheckBox
             {
                 Content = "فعال",
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 4, 0)
             };
-            _tradedInDaysTextBox = new TextBox
+            _tradedInDaysTextBox = new System.Windows.Controls.TextBox
             {
                 Width = 55,
                 Height = 27,
                 Text = "5",
-                HorizontalContentAlignment = HorizontalAlignment.Center
+                HorizontalContentAlignment = System.Windows.HorizontalAlignment.Center
             };
 
             _tradedInDaysApplyTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
