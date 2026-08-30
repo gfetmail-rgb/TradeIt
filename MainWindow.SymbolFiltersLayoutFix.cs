@@ -5,6 +5,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 
+using WpfCheckBox = System.Windows.Controls.CheckBox;
+using WpfTextBox = System.Windows.Controls.TextBox;
+using WpfOrientation = System.Windows.Controls.Orientation;
+using WpfHorizontalAlignment = System.Windows.HorizontalAlignment;
+
 namespace TradeIt
 {
     public partial class MainWindow
@@ -17,8 +22,8 @@ namespace TradeIt
             return true;
         }
 
-        private System.Windows.Controls.CheckBox? _tradedInDaysEnabledCheckBox;
-        private System.Windows.Controls.TextBox? _tradedInDaysTextBox;
+        private WpfCheckBox? _tradedInDaysEnabledCheckBox;
+        private WpfTextBox? _tradedInDaysTextBox;
         private DispatcherTimer? _tradedInDaysApplyTimer;
         private bool _filterLayoutFixInitialized;
 
@@ -61,19 +66,19 @@ namespace TradeIt
                 VerticalAlignment = VerticalAlignment.Center
             });
 
-            var controls = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal };
-            _tradedInDaysEnabledCheckBox = new System.Windows.Controls.CheckBox
+            var controls = new StackPanel { Orientation = WpfOrientation.Horizontal };
+            _tradedInDaysEnabledCheckBox = new WpfCheckBox
             {
                 Content = "فعال",
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 4, 0)
             };
-            _tradedInDaysTextBox = new System.Windows.Controls.TextBox
+            _tradedInDaysTextBox = new WpfTextBox
             {
                 Width = 55,
                 Height = 27,
                 Text = "5",
-                HorizontalContentAlignment = System.Windows.HorizontalAlignment.Center
+                HorizontalContentAlignment = WpfHorizontalAlignment.Center
             };
 
             _tradedInDaysApplyTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
