@@ -9,13 +9,12 @@ namespace TradeIt
 {
     public partial class MainWindow
     {
-        // The selected ChartTabView is temporarily hosted in a dedicated
-        // borderless maximized WPF window. The original chart instance is
-        // preserved, so ScottPlot does not have to survive a MainWindow
-        // Grid reconfiguration.
+        // Fullscreen deliberately uses a NEW ChartTabView instance.
+        // Moving the live ScottPlot WpfPlot between visual trees was the source
+        // of the blank-window problem. The original chart remains untouched in
+        // its tab, and the fullscreen chart is a fresh rendering of the same data.
         private Window? _chartFullScreenWindow;
         private ChartTabView? _chartFullScreenView;
-        private TabItem? _chartFullScreenSourceTab;
 
         private void FullScreenButton_Click(object sender, RoutedEventArgs e)
         {
@@ -23,7 +22,7 @@ namespace TradeIt
                 return;
 
             if (ChartTabs.SelectedItem is not TabItem tab ||
-                tab.Content is not ChartTabView chartView)
+                tab.Content is not ChartTabView sourceChart)
             {
                 WpfMessageBox.Show(
                     "ابتدا یک چارت را باز و انتخاب کنید.",
@@ -33,7 +32,7 @@ namespace TradeIt
                 return;
             }
 
-            EnterChartFullScreen(tab, chartView);
+            EnterChartFullScreen(sourceChart);
         }
 
         private void FullScreenExitButton_Click(object sender, RoutedEventArgs e)
@@ -41,64 +40,80 @@ namespace TradeIt
             ExitChartFullScreen();
         }
 
-        private void EnterChartFullScreen(TabItem sourceTab, ChartTabView chartView)
+        private void EnterChartFullScreen(ChartTabView sourceChart)
         {
             if (_chartFullScreenWindow != null)
                 return;
 
-            _chartFullScreenSourceTab = sourceTab;
-            _chartFullScreenView = chartView;
-            _isFullScreen = true;
-
-            sourceTab.Content = null;
-
-            var exitButton = new System.Windows.Controls.Button
+            try
             {
-                Content = "↙ خروج از تمام صفحه",
-                Width = 175,
-                Height = 36,
-                Padding = new Thickness(10, 0),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(0, 10, 10, 0),
-                Focusable = true
-            };
-            exitButton.Click += FullScreenWindowExitButton_Click;
+                // IMPORTANT: do not remove the original ChartTabView from its tab.
+                // Create a completely independent view so ScottPlot gets a normal
+                // WPF lifecycle in the fullscreen window.
+                ChartTabView fullScreenChart = sourceChart.CreateFullScreenClone();
+                _chartFullScreenView = fullScreenChart;
+                _isFullScreen = true;
 
-            var host = new Grid
+                var exitButton = new System.Windows.Controls.Button
+                {
+                    Content = "↙ خروج از تمام صفحه",
+                    Width = 175,
+                    Height = 36,
+                    Padding = new Thickness(10, 0),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Margin = new Thickness(0, 10, 10, 0),
+                    Focusable = true
+                };
+                exitButton.Click += FullScreenWindowExitButton_Click;
+
+                var host = new Grid
+                {
+                    Background = Brushes.White
+                };
+                host.Children.Add(fullScreenChart);
+                host.Children.Add(exitButton);
+                Panel.SetZIndex(exitButton, 10000);
+
+                var window = new Window
+                {
+                    Title = "TradeIt - نمودار",
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    WindowState = WindowState.Maximized,
+                    WindowStyle = WindowStyle.None,
+                    ResizeMode = ResizeMode.NoResize,
+                    ShowInTaskbar = true,
+                    Background = Brushes.White,
+                    Content = host
+                };
+
+                window.KeyDown += FullScreenWindow_KeyDown;
+                window.Closed += FullScreenWindow_Closed;
+
+                _chartFullScreenWindow = window;
+                window.Show();
+                window.Activate();
+
+                // The clone has its own ScottPlot control and receives a fresh
+                // Loaded/layout cycle. Refresh once after layout is established.
+                window.UpdateLayout();
+                fullScreenChart.UpdateLayout();
+                fullScreenChart.Chart.UpdateLayout();
+                fullScreenChart.Chart.Refresh();
+            }
+            catch (Exception ex)
             {
-                Background = Brushes.White
-            };
-            host.Children.Add(chartView);
-            host.Children.Add(exitButton);
-            Panel.SetZIndex(exitButton, 10000);
+                _chartFullScreenWindow = null;
+                _chartFullScreenView = null;
+                _isFullScreen = false;
 
-            var window = new Window
-            {
-                Title = $"TradeIt - {sourceTab.Header}",
-                Owner = this,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                WindowState = WindowState.Maximized,
-                WindowStyle = WindowStyle.None,
-                ResizeMode = ResizeMode.NoResize,
-                ShowInTaskbar = false,
-                Background = Brushes.White,
-                Content = host
-            };
-
-            window.KeyDown += FullScreenWindow_KeyDown;
-            window.Closed += FullScreenWindow_Closed;
-
-            _chartFullScreenWindow = window;
-            window.Show();
-
-            // Do layout work after Show(), when the window has real dimensions.
-            window.UpdateLayout();
-            chartView.UpdateLayout();
-            chartView.InvalidateMeasure();
-            chartView.InvalidateArrange();
-            chartView.InvalidateVisual();
-            window.Activate();
+                WpfMessageBox.Show(
+                    $"خطا در باز کردن نمودار تمام صفحه:\n{ex.Message}",
+                    "تمام صفحه",
+                    WpfMessageBoxButton.OK,
+                    WpfMessageBoxImage.Error);
+            }
         }
 
         private void FullScreenWindowExitButton_Click(object sender, RoutedEventArgs e)
@@ -117,58 +132,31 @@ namespace TradeIt
 
         private void FullScreenWindow_Closed(object? sender, EventArgs e)
         {
-            if (_isFullScreen)
-            {
-                _chartFullScreenWindow = null;
-                RestoreChartFromFullScreen();
-            }
+            _chartFullScreenWindow = null;
+            _chartFullScreenView = null;
+            _isFullScreen = false;
         }
 
         private void ExitChartFullScreen()
         {
-            var window = _chartFullScreenWindow;
-            if (window == null)
-                return;
-
+            Window? window = _chartFullScreenWindow;
             _chartFullScreenWindow = null;
-            window.Close();
-            RestoreChartFromFullScreen();
-        }
 
-        private void RestoreChartFromFullScreen()
-        {
-            if (_chartFullScreenView != null &&
-                _chartFullScreenSourceTab != null)
-            {
-                _chartFullScreenSourceTab.Content = _chartFullScreenView;
-                ChartTabs.SelectedItem = _chartFullScreenSourceTab;
-            }
+            if (window != null)
+                window.Close();
 
             _chartFullScreenView = null;
-            _chartFullScreenSourceTab = null;
             _isFullScreen = false;
 
-            // Explicitly restore the normal application state. This also
-            // protects startup from any stale fullscreen state.
+            // The MainWindow itself was never modified, so there is nothing to
+            // restore. Keep the normal maximized application exactly as it was.
             FullScreenExitButton.Visibility = Visibility.Collapsed;
-            TopToolbar.Visibility = Visibility.Visible;
-            StatusBar.Visibility = Visibility.Visible;
-            SymbolsPanel.Visibility = Visibility.Visible;
-            MainContent.Visibility = Visibility.Visible;
-            ChartArea.Visibility = Visibility.Visible;
-            ChartTabs.Visibility = Visibility.Visible;
+        }
 
-            TopToolbarRow.Height = new GridLength(55);
-            MainContentRow.Height = new GridLength(1, GridUnitType.Star);
-            StatusBarRow.Height = new GridLength(30);
-            SymbolsPanelColumn.Width = new GridLength(300);
-            ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
-
-            WindowStyle = WindowStyle.SingleBorderWindow;
-            ResizeMode = ResizeMode.CanResize;
-            WindowState = WindowState.Maximized;
-
-            UpdateLayout();
+        // MainWindow.PreviewKeyDown calls this compatibility name.
+        private void ExitFullScreen()
+        {
+            ExitChartFullScreen();
         }
 
         private void CloseChartFullScreenIfOpen()
