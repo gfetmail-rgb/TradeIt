@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 
 namespace TradeIt
@@ -9,16 +10,13 @@ namespace TradeIt
         private bool _symbolTableGroupCollapsed;
         private bool _symbolFilterGroupCollapsed = true;
         private bool _symbolOperationsGroupCollapsed = true;
+        private Button? _clearSymbolFiltersButton;
 
         private void MainWindow_SymbolGroupsCollapseLoaded(object sender, RoutedEventArgs e)
         {
             InitializeSymbolGroupsCollapseState();
-
-            SymbolFilterGroup.SizeChanged -= SymbolFilterGroup_SizeChanged;
-            SymbolFilterGroup.SizeChanged += SymbolFilterGroup_SizeChanged;
-
-            SymbolOperationsGroup.SizeChanged -= SymbolOperationsGroup_SizeChanged;
-            SymbolOperationsGroup.SizeChanged += SymbolOperationsGroup_SizeChanged;
+            DockSymbolGroupButtons();
+            EnsureClearFiltersButton();
         }
 
         private void InitializeSymbolGroupsCollapseState()
@@ -36,6 +34,109 @@ namespace TradeIt
             SymbolTableCollapseButton.Content = "▲";
         }
 
+        private void DockSymbolGroupButtons()
+        {
+            DockFilterButtonToBottom();
+            DockOperationsButtonToBottom();
+        }
+
+        private void DockFilterButtonToBottom()
+        {
+            if (SymbolFilterGroup.Child is not Grid groupGrid)
+                return;
+
+            while (groupGrid.RowDefinitions.Count < 3)
+                groupGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            foreach (UIElement child in groupGrid.Children)
+            {
+                if (child is StackPanel panel && panel.Children.Contains(SymbolFilterCollapseButton))
+                {
+                    Grid.SetRow(panel, 2);
+                    panel.HorizontalAlignment = HorizontalAlignment.Right;
+                    panel.VerticalAlignment = VerticalAlignment.Center;
+                    return;
+                }
+            }
+        }
+
+        private void DockOperationsButtonToBottom()
+        {
+            if (SymbolOperationsGroup.Child is not Grid groupGrid)
+                return;
+
+            while (groupGrid.RowDefinitions.Count < 3)
+                groupGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            Grid.SetRow(SymbolOperationsCollapseButton, 2);
+            SymbolOperationsCollapseButton.HorizontalAlignment = HorizontalAlignment.Right;
+            SymbolOperationsCollapseButton.VerticalAlignment = VerticalAlignment.Center;
+        }
+
+        private void EnsureClearFiltersButton()
+        {
+            if (SymbolFilterGroup.Child is not Grid groupGrid)
+                return;
+
+            foreach (UIElement child in groupGrid.Children)
+            {
+                if (child is StackPanel panel && panel.Children.Contains(SymbolFilterCollapseButton))
+                {
+                    if (_clearSymbolFiltersButton == null)
+                    {
+                        _clearSymbolFiltersButton = new Button
+                        {
+                            Content = "پاک کردن همه",
+                            Width = 90,
+                            Height = 25,
+                            Padding = new Thickness(4, 0, 4, 0),
+                            Margin = new Thickness(0, 0, 4, 0),
+                            ToolTip = "پاک کردن همه فیلترها"
+                        };
+                        _clearSymbolFiltersButton.Click += ClearSymbolFiltersButton_Click;
+                        panel.Children.Insert(0, _clearSymbolFiltersButton);
+                    }
+                    _clearSymbolFiltersButton.Visibility = _symbolFilterGroupCollapsed
+                        ? Visibility.Collapsed
+                        : Visibility.Visible;
+                    return;
+                }
+            }
+        }
+
+        private void ClearSymbolFiltersButton_Click(object sender, RoutedEventArgs e)
+        {
+            ClearFilterControls(SymbolFilterHost);
+            ApplySymbolFilter();
+        }
+
+        private static void ClearFilterControls(DependencyObject parent)
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+
+                switch (child)
+                {
+                    case TextBox textBox:
+                        textBox.Clear();
+                        break;
+                    case ComboBox comboBox:
+                        if (comboBox.Items.Count > 0)
+                            comboBox.SelectedIndex = 0;
+                        break;
+                    case CheckBox checkBox:
+                        checkBox.IsChecked = false;
+                        break;
+                    case RadioButton radioButton:
+                        radioButton.IsChecked = false;
+                        break;
+                }
+
+                ClearFilterControls(child);
+            }
+        }
+
         private void SymbolTableCollapseButton_Click(object sender, RoutedEventArgs e)
         {
             _symbolTableGroupCollapsed = !_symbolTableGroupCollapsed;
@@ -48,6 +149,7 @@ namespace TradeIt
             _symbolFilterGroupCollapsed = !_symbolFilterGroupCollapsed;
             SymbolFilterHost.Visibility = _symbolFilterGroupCollapsed ? Visibility.Collapsed : Visibility.Visible;
             SymbolFilterCollapseButton.Content = _symbolFilterGroupCollapsed ? "▲" : "▼";
+            EnsureClearFiltersButton();
         }
 
         private void SymbolOperationsCollapseButton_Click(object sender, RoutedEventArgs e)
@@ -64,16 +166,6 @@ namespace TradeIt
             SymbolsPanelColumn.Width = new GridLength(_symbolsPanelCollapsed ? 32 : 300);
             SymbolsPanelCollapseButton.Content = _symbolsPanelCollapsed ? "›" : "‹";
             SymbolsPanelCollapseButton.ToolTip = _symbolsPanelCollapsed ? "نمایش پنل نمادها" : "پنهان کردن پنل نمادها";
-        }
-
-        private void SymbolFilterGroup_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            // Keep the collapse button anchored by the XAML layout.
-        }
-
-        private void SymbolOperationsGroup_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            // Keep the collapse button anchored by the XAML layout.
         }
     }
 }
