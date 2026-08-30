@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Linq;
-using System.Threading.Tasks;
 using TradeIt.Models;
+using TradeIt.Charts;
 using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 
 namespace TradeIt
@@ -13,9 +15,8 @@ namespace TradeIt
     {
         private const string SharedChartTabTag = "__SHARED_CHART__";
 
-        // Register a class-level Preview handler so the shared mode can take
-        // control before the existing TextBlock MouseLeftButtonUp handler.
-        // The handler is restricted to this window's symbol grid.
+        // Handle the click during tunneling, before the existing TextBlock
+        // MouseLeftButtonUp handler can create a separate tab.
         static MainWindow()
         {
             EventManager.RegisterClassHandler(
@@ -29,8 +30,7 @@ namespace TradeIt
             WpfMouseButtonEventArgs e)
         {
             if (sender is not DataGrid grid ||
-                grid.Name != "SymbolsDataGrid" ||
-                grid.DataContext is not MainWindow window)
+                grid.Name != "SymbolsDataGrid")
             {
                 return;
             }
@@ -38,9 +38,12 @@ namespace TradeIt
             if (!ChartSettingsManager.Current.OpenSymbolsInSharedChart)
                 return;
 
-            DependencyObject? source = e.OriginalSource as DependencyObject;
-            SymbolInfo? symbol = FindSymbolFromVisualTree(source);
-            if (symbol == null || window._selectedPortfolio == null)
+            MainWindow? window = Window.GetWindow(grid) as MainWindow;
+            if (window == null || window._selectedPortfolio == null)
+                return;
+
+            SymbolInfo? symbol = FindSymbolFromVisualTree(e.OriginalSource as DependencyObject);
+            if (symbol == null)
                 return;
 
             e.Handled = true;
@@ -55,9 +58,21 @@ namespace TradeIt
                 if (current is FrameworkElement fe && fe.DataContext is SymbolInfo symbol)
                     return symbol;
 
-                current = LogicalTreeHelper.GetParent(current);
-                if (current == null && source != null)
-                    current = System.Windows.Media.VisualTreeHelper.GetParent(source);
+                DependencyObject? logicalParent = LogicalTreeHelper.GetParent(current);
+                if (logicalParent != null)
+                {
+                    current = logicalParent;
+                    continue;
+                }
+
+                try
+                {
+                    current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+                }
+                catch
+                {
+                    current = null;
+                }
             }
 
             return null;
@@ -78,7 +93,7 @@ namespace TradeIt
                     return;
                 }
 
-                var chartView = new Charts.ChartTabView(symbol, bars);
+                var chartView = new ChartTabView(symbol, bars);
 
                 TabItem? sharedTab = ChartTabs.Items
                     .OfType<TabItem>()
