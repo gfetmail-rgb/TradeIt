@@ -9,6 +9,14 @@ namespace TradeIt
 {
     public partial class MainWindow
     {
+        private static readonly bool _symbolFiltersLayoutFixRegistered = RegisterSymbolFiltersLayoutFix();
+
+        private static bool RegisterSymbolFiltersLayoutFix()
+        {
+            EventManager.RegisterClassHandler(typeof(MainWindow), Window.LoadedEvent, new RoutedEventHandler(SymbolFiltersLayoutFix_Loaded));
+            return true;
+        }
+
         private CheckBox? _tradedInDaysEnabledCheckBox;
         private TextBox? _tradedInDaysTextBox;
         private DispatcherTimer? _tradedInDaysApplyTimer;
@@ -19,32 +27,28 @@ namespace TradeIt
             if (_filterLayoutFixInitialized || SymbolsPanel.Child is not Grid panelGrid)
                 return;
 
-            // The existing filter initializer inserts the filter host at row 2.
-            // Move that host below the stock list and reserve a small, fixed area for the list.
             Grid? filterHost = panelGrid.Children.OfType<Grid>()
-                .FirstOrDefault(x => Grid.GetRow(x) == 2 && x.Children.Count == 2);
-
+                .FirstOrDefault(x => Grid.GetRow(x) == 2 && x.Children.OfType<ScrollViewer>().Any());
             if (filterHost == null)
                 return;
 
             _filterLayoutFixInitialized = true;
 
-            if (panelGrid.RowDefinitions.Count >= 6)
-            {
-                panelGrid.RowDefinitions[2].Height = new GridLength(155);
-                Grid.SetRow(filterHost, 3);
+            // Row 2 is the stock list. Keep it compact.
+            panelGrid.RowDefinitions[2].Height = new GridLength(155);
 
-                // The original rows 3 and 4 are the auto-scroll controls and action buttons.
-                // Keep them below the filters.
-                foreach (UIElement child in panelGrid.Children)
-                {
-                    int row = Grid.GetRow(child);
-                    if (child != filterHost && row >= 3)
-                        Grid.SetRow(child, row + 1);
-                }
-                panelGrid.RowDefinitions.Insert(4, new RowDefinition { Height = GridLength.Auto });
+            // Put filters immediately below the stock list, then keep the existing controls below them.
+            foreach (UIElement child in panelGrid.Children)
+            {
+                if (child == filterHost)
+                    continue;
+                int row = Grid.GetRow(child);
+                if (row >= 3)
+                    Grid.SetRow(child, row + 1);
             }
 
+            Grid.SetRow(filterHost, 3);
+            panelGrid.RowDefinitions.Insert(4, new RowDefinition { Height = GridLength.Auto });
             AddTradedInDaysFilter(filterHost);
         }
 
@@ -112,7 +116,6 @@ namespace TradeIt
                 .Select(s => s.LastTradeDate!.Value.Date)
                 .DefaultIfEmpty()
                 .Max();
-
             if (latestMarketDate == default)
                 return;
 
@@ -123,7 +126,6 @@ namespace TradeIt
 
             for (int i = 0; i < filtered.Count; i++)
                 filtered[i].RowNumber = i + 1;
-
             SymbolsDataGrid.ItemsSource = filtered;
         }
 
