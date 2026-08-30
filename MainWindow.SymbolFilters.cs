@@ -7,6 +7,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
+using WpfComboBox = System.Windows.Controls.ComboBox;
+using WpfTextBox = System.Windows.Controls.TextBox;
+using WpfCheckBox = System.Windows.Controls.CheckBox;
+
 using TradeIt.Models;
 
 namespace TradeIt
@@ -19,15 +23,15 @@ namespace TradeIt
         private bool _symbolFiltersInitialized;
         private bool _symbolFiltersApplying;
 
-        private ComboBox? _tradeStatusFilterComboBox;
-        private ComboBox? _nameFilterComboBox;
-        private TextBox? _nameFilterTextBox;
-        private CheckBox? _daysWithoutTradeCheckBox;
-        private TextBox? _daysWithoutTradeTextBox;
-        private CheckBox? _volumeFilterCheckBox;
-        private TextBox? _volumeAverageDaysTextBox;
-        private TextBox? _volumeMultiplierTextBox;
-        private readonly List<(CheckBox Enabled, ComboBox Field, ComboBox Comparison, TextBox Days)> _priceFilterControls = new();
+        private WpfComboBox? _tradeStatusFilterComboBox;
+        private WpfComboBox? _nameFilterComboBox;
+        private WpfTextBox? _nameFilterTextBox;
+        private WpfCheckBox? _daysWithoutTradeCheckBox;
+        private WpfTextBox? _daysWithoutTradeTextBox;
+        private WpfCheckBox? _volumeFilterCheckBox;
+        private WpfTextBox? _volumeAverageDaysTextBox;
+        private WpfTextBox? _volumeMultiplierTextBox;
+        private readonly List<(WpfCheckBox Enabled, WpfComboBox Field, WpfComboBox Comparison, WpfTextBox Days)> _priceFilterControls = new();
         private TextBlock? _symbolFilterStatusTextBlock;
 
         private static readonly bool _symbolFiltersHandlerRegistered = RegisterSymbolFiltersHandler();
@@ -57,7 +61,6 @@ namespace TradeIt
 
             _symbolFiltersInitialized = true;
 
-            // Insert the filter area between the search box and the symbol list.
             panelGrid.RowDefinitions.Insert(2, new RowDefinition { Height = new GridLength(335) });
 
             foreach (UIElement child in panelGrid.Children)
@@ -102,14 +105,14 @@ namespace TradeIt
             var stack = new StackPanel();
             scroll.Content = stack;
 
-            _tradeStatusFilterComboBox = new ComboBox { Height = 27, Margin = new Thickness(0, 1, 0, 3) };
+            _tradeStatusFilterComboBox = new WpfComboBox { Height = 27, Margin = new Thickness(0, 1, 0, 3) };
             AddComboItems(_tradeStatusFilterComboBox,
                 (TradeStatusFilter.All, "همه"),
                 (TradeStatusFilter.TradedToday, "امروز معامله داشته"),
                 (TradeStatusFilter.NotTradedToday, "امروز معامله نداشته"));
             stack.Children.Add(LabeledControl("وضعیت معامله امروز:", _tradeStatusFilterComboBox));
 
-            _nameFilterComboBox = new ComboBox { Width = 115, Height = 27, Margin = new Thickness(0, 1, 4, 0) };
+            _nameFilterComboBox = new WpfComboBox { Width = 115, Height = 27, Margin = new Thickness(0, 1, 4, 0) };
             AddComboItems(_nameFilterComboBox,
                 (SymbolNameFilter.All, "همه"),
                 (SymbolNameFilter.Contains, "دارای عبارت"),
@@ -117,21 +120,21 @@ namespace TradeIt
                 (SymbolNameFilter.EndsWith, "ختم با"),
                 (SymbolNameFilter.Middle, "عبارت در وسط"),
                 (SymbolNameFilter.DoesNotContain, "فاقد عبارت"));
-            _nameFilterTextBox = new TextBox { Height = 27, MinWidth = 70, Padding = new Thickness(5, 1, 5, 1) };
+            _nameFilterTextBox = new WpfTextBox { Height = 27, MinWidth = 70, Padding = new Thickness(5, 1, 5, 1) };
             _nameFilterTextBox.TextChanged += SymbolFilterInputChanged;
             _nameFilterComboBox.SelectionChanged += SymbolFilterInputChanged;
             stack.Children.Add(LabeledControl("نام سهم:", Inline(_nameFilterComboBox, _nameFilterTextBox)));
 
-            _daysWithoutTradeCheckBox = new CheckBox { Content = "فعال", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) };
-            _daysWithoutTradeTextBox = new TextBox { Width = 55, Height = 27, Text = "5", HorizontalContentAlignment = HorizontalAlignment.Center };
+            _daysWithoutTradeCheckBox = new WpfCheckBox { Content = "فعال", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) };
+            _daysWithoutTradeTextBox = new WpfTextBox { Width = 55, Height = 27, Text = "5", HorizontalContentAlignment = HorizontalAlignment.Center };
             _daysWithoutTradeCheckBox.Checked += SymbolFilterInputChanged;
             _daysWithoutTradeCheckBox.Unchecked += SymbolFilterInputChanged;
             _daysWithoutTradeTextBox.TextChanged += SymbolFilterInputChanged;
             stack.Children.Add(LabeledControl("فاقد معامله در X روز گذشته:", Inline(_daysWithoutTradeCheckBox, _daysWithoutTradeTextBox)));
 
-            _volumeFilterCheckBox = new CheckBox { Content = "فعال", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) };
-            _volumeAverageDaysTextBox = new TextBox { Width = 48, Height = 27, Text = "20", HorizontalContentAlignment = HorizontalAlignment.Center };
-            _volumeMultiplierTextBox = new TextBox { Width = 48, Height = 27, Text = "2", HorizontalContentAlignment = HorizontalAlignment.Center };
+            _volumeFilterCheckBox = new WpfCheckBox { Content = "فعال", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) };
+            _volumeAverageDaysTextBox = new WpfTextBox { Width = 48, Height = 27, Text = "20", HorizontalContentAlignment = HorizontalAlignment.Center };
+            _volumeMultiplierTextBox = new WpfTextBox { Width = 48, Height = 27, Text = "2", HorizontalContentAlignment = HorizontalAlignment.Center };
             _volumeFilterCheckBox.Checked += SymbolFilterInputChanged;
             _volumeFilterCheckBox.Unchecked += SymbolFilterInputChanged;
             _volumeAverageDaysTextBox.TextChanged += SymbolFilterInputChanged;
@@ -162,8 +165,8 @@ namespace TradeIt
 
         private FrameworkElement BuildPriceFilterRow(int index)
         {
-            var enabled = new CheckBox { Content = $"{index + 1}", Width = 28, VerticalAlignment = VerticalAlignment.Center };
-            var field = new ComboBox { Width = 72, Height = 26 };
+            var enabled = new WpfCheckBox { Content = $"{index + 1}", Width = 28, VerticalAlignment = VerticalAlignment.Center };
+            var field = new WpfComboBox { Width = 72, Height = 26 };
             AddComboItems(field,
                 (PriceField.Open, "O"),
                 (PriceField.High, "H"),
@@ -172,14 +175,14 @@ namespace TradeIt
                 (PriceField.Volume, "V"),
                 (PriceField.FinalFee, "FINAL FEE"));
 
-            var comparison = new ComboBox { Width = 55, Height = 26, Margin = new Thickness(3, 0, 3, 0) };
+            var comparison = new WpfComboBox { Width = 55, Height = 26, Margin = new Thickness(3, 0, 3, 0) };
             AddComboItems(comparison,
                 (NumericComparison.GreaterThan, ">"),
                 (NumericComparison.Equal, "="),
                 (NumericComparison.NotEqual, "≠"),
                 (NumericComparison.LessThan, "<"));
 
-            var days = new TextBox { Width = 42, Height = 26, Text = "1", HorizontalContentAlignment = HorizontalAlignment.Center };
+            var days = new WpfTextBox { Width = 42, Height = 26, Text = "1", HorizontalContentAlignment = HorizontalAlignment.Center };
             enabled.Checked += SymbolFilterInputChanged;
             enabled.Unchecked += SymbolFilterInputChanged;
             field.SelectionChanged += SymbolFilterInputChanged;
@@ -213,7 +216,7 @@ namespace TradeIt
             return panel;
         }
 
-        private static void AddComboItems<T>(ComboBox combo, params (T Value, string Text)[] items)
+        private static void AddComboItems<T>(WpfComboBox combo, params (T Value, string Text)[] items)
         {
             foreach (var item in items)
                 combo.Items.Add(new FilterComboItem<T>(item.Value, item.Text));
@@ -228,7 +231,7 @@ namespace TradeIt
             public override string ToString() => Text;
         }
 
-        private static T GetComboValue<T>(ComboBox combo)
+        private static T GetComboValue<T>(WpfComboBox combo)
         {
             return combo.SelectedItem is FilterComboItem<T> item ? item.Value : default!;
         }
