@@ -1,5 +1,8 @@
 using System.Windows;
-using System.Windows.Controls;
+using WpfButton = System.Windows.Controls.Button;
+using WpfCheckBox = System.Windows.Controls.CheckBox;
+using WpfComboBox = System.Windows.Controls.ComboBox;
+using WpfTextBox = System.Windows.Controls.TextBox;
 using System.Windows.Media;
 
 namespace TradeIt
@@ -10,7 +13,7 @@ namespace TradeIt
         private bool _symbolTableGroupCollapsed;
         private bool _symbolFilterGroupCollapsed = true;
         private bool _symbolOperationsGroupCollapsed = true;
-        private Button? _clearSymbolFiltersButton;
+        private WpfButton? _clearSymbolFiltersButton;
 
         private void MainWindow_SymbolGroupsCollapseLoaded(object sender, RoutedEventArgs e)
         {
@@ -84,7 +87,7 @@ namespace TradeIt
                 {
                     if (_clearSymbolFiltersButton == null)
                     {
-                        _clearSymbolFiltersButton = new Button
+                        _clearSymbolFiltersButton = new WpfButton
                         {
                             Content = "پاک کردن همه",
                             Width = 90,
@@ -118,17 +121,17 @@ namespace TradeIt
 
                 switch (child)
                 {
-                    case TextBox textBox:
+                    case WpfTextBox textBox:
                         textBox.Clear();
                         break;
-                    case ComboBox comboBox:
+                    case WpfComboBox comboBox:
                         if (comboBox.Items.Count > 0)
                             comboBox.SelectedIndex = 0;
                         break;
-                    case CheckBox checkBox:
+                    case WpfCheckBox checkBox:
                         checkBox.IsChecked = false;
                         break;
-                    case RadioButton radioButton:
+                    case System.Windows.Controls.RadioButton radioButton:
                         radioButton.IsChecked = false;
                         break;
                 }
