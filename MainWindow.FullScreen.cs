@@ -1,20 +1,29 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using TradeIt.Charts;
 
 namespace TradeIt
 {
     public partial class MainWindow
     {
-        // Chart fullscreen is implemented inside the existing MainWindow.
-        // MainContent is NOT moved between Grid rows. This is important for
-        // ScottPlot/WPF rendering and prevents the blank-chart problem.
+        // The selected ChartTabView is temporarily hosted in a dedicated
+        // borderless maximized WPF window. The original chart instance is
+        // preserved, so ScottPlot does not have to survive a MainWindow
+        // Grid reconfiguration.
+        private Window? _chartFullScreenWindow;
+        private ChartTabView? _chartFullScreenView;
+        private TabItem? _chartFullScreenSourceTab;
 
         private void FullScreenButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_isFullScreen)
+            if (_chartFullScreenWindow != null)
                 return;
 
-            if (ChartTabs.SelectedItem is not TabItem)
+            if (ChartTabs.SelectedItem is not TabItem tab ||
+                tab.Content is not ChartTabView chartView)
             {
                 WpfMessageBox.Show(
                     "ابتدا یک چارت را باز و انتخاب کنید.",
@@ -24,7 +33,7 @@ namespace TradeIt
                 return;
             }
 
-            EnterChartFullScreen();
+            EnterChartFullScreen(tab, chartView);
         }
 
         private void FullScreenExitButton_Click(object sender, RoutedEventArgs e)
@@ -32,120 +41,139 @@ namespace TradeIt
             ExitChartFullScreen();
         }
 
-        private void EnterChartFullScreen()
+        private void EnterChartFullScreen(TabItem sourceTab, ChartTabView chartView)
         {
-            if (_isFullScreen)
+            if (_chartFullScreenWindow != null)
                 return;
 
-            // Save the current root layout. MainContent itself stays in row 1.
-            _previousRootRow0Height = TopToolbarRow.Height;
-            _previousRootRow1Height = MainContentRow.Height;
-            _previousRootRow2Height = StatusBarRow.Height;
-
-            _previousSymbolsColumnWidth = SymbolsPanelColumn.Width;
-            _previousChartColumnWidth = ChartPanelColumn.Width;
-
-            _previousWindowState = WindowState;
-            _previousWindowStyle = WindowStyle;
-            _previousResizeMode = ResizeMode;
-
+            _chartFullScreenSourceTab = sourceTab;
+            _chartFullScreenView = chartView;
             _isFullScreen = true;
 
-            // Hide the normal application chrome.
-            TopToolbar.Visibility = Visibility.Collapsed;
-            StatusBar.Visibility = Visibility.Collapsed;
-            SymbolsPanel.Visibility = Visibility.Collapsed;
+            sourceTab.Content = null;
 
-            // Keep MainContent in its original Grid row, but make that row
-            // occupy the entire client area.
-            TopToolbarRow.Height = new GridLength(0);
-            MainContentRow.Height = new GridLength(1, GridUnitType.Star);
-            StatusBarRow.Height = new GridLength(0);
-
-            SymbolsPanelColumn.Width = new GridLength(0);
-            ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
-
-            // Real window fullscreen: no title bar/borders, maximized.
-            WindowStyle = WindowStyle.None;
-            ResizeMode = ResizeMode.NoResize;
-            WindowState = WindowState.Maximized;
-
-            ChartArea.Visibility = Visibility.Visible;
-            ChartTabs.Visibility = Visibility.Visible;
-            FullScreenExitButton.Visibility = Visibility.Visible;
-            Panel.SetZIndex(FullScreenExitButton, 10000);
-
-            UpdateLayout();
-            MainContent.UpdateLayout();
-            ChartArea.UpdateLayout();
-            ChartTabs.UpdateLayout();
-
-            // ScottPlot keeps its existing visual tree. Only force a normal
-            // WPF layout/visual refresh after the available size changes.
-            if (ChartTabs.SelectedItem is TabItem tab &&
-                tab.Content is FrameworkElement content)
+            var exitButton = new System.Windows.Controls.Button
             {
-                content.Visibility = Visibility.Visible;
-                content.UpdateLayout();
-                content.InvalidateMeasure();
-                content.InvalidateArrange();
-                content.InvalidateVisual();
-            }
+                Content = "↙ خروج از تمام صفحه",
+                Width = 175,
+                Height = 36,
+                Padding = new Thickness(10, 0),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 10, 10, 0),
+                Focusable = true
+            };
+            exitButton.Click += FullScreenWindowExitButton_Click;
+
+            var host = new Grid
+            {
+                Background = Brushes.White
+            };
+            host.Children.Add(chartView);
+            host.Children.Add(exitButton);
+            Panel.SetZIndex(exitButton, 10000);
+
+            var window = new Window
+            {
+                Title = $"TradeIt - {sourceTab.Header}",
+                Owner = this,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                WindowState = WindowState.Maximized,
+                WindowStyle = WindowStyle.None,
+                ResizeMode = ResizeMode.NoResize,
+                ShowInTaskbar = false,
+                Background = Brushes.White,
+                Content = host
+            };
+
+            window.KeyDown += FullScreenWindow_KeyDown;
+            window.Closed += FullScreenWindow_Closed;
+
+            _chartFullScreenWindow = window;
+            window.Show();
+
+            // Do layout work after Show(), when the window has real dimensions.
+            window.UpdateLayout();
+            chartView.UpdateLayout();
+            chartView.InvalidateMeasure();
+            chartView.InvalidateArrange();
+            chartView.InvalidateVisual();
+            window.Activate();
         }
 
-        // Kept because MainWindow_PreviewKeyDown already calls this name.
-        private void ExitFullScreen()
+        private void FullScreenWindowExitButton_Click(object sender, RoutedEventArgs e)
         {
             ExitChartFullScreen();
         }
 
+        private void FullScreenWindow_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                ExitChartFullScreen();
+                e.Handled = true;
+            }
+        }
+
+        private void FullScreenWindow_Closed(object? sender, EventArgs e)
+        {
+            if (_isFullScreen)
+            {
+                _chartFullScreenWindow = null;
+                RestoreChartFromFullScreen();
+            }
+        }
+
         private void ExitChartFullScreen()
         {
-            if (!_isFullScreen)
+            var window = _chartFullScreenWindow;
+            if (window == null)
                 return;
 
+            _chartFullScreenWindow = null;
+            window.Close();
+            RestoreChartFromFullScreen();
+        }
+
+        private void RestoreChartFromFullScreen()
+        {
+            if (_chartFullScreenView != null &&
+                _chartFullScreenSourceTab != null)
+            {
+                _chartFullScreenSourceTab.Content = _chartFullScreenView;
+                ChartTabs.SelectedItem = _chartFullScreenSourceTab;
+            }
+
+            _chartFullScreenView = null;
+            _chartFullScreenSourceTab = null;
             _isFullScreen = false;
 
+            // Explicitly restore the normal application state. This also
+            // protects startup from any stale fullscreen state.
             FullScreenExitButton.Visibility = Visibility.Collapsed;
-
-            // Restore root layout exactly as it was.
-            TopToolbarRow.Height = _previousRootRow0Height;
-            MainContentRow.Height = _previousRootRow1Height;
-            StatusBarRow.Height = _previousRootRow2Height;
-
-            SymbolsPanelColumn.Width = _previousSymbolsColumnWidth;
-            ChartPanelColumn.Width = _previousChartColumnWidth;
-
             TopToolbar.Visibility = Visibility.Visible;
             StatusBar.Visibility = Visibility.Visible;
             SymbolsPanel.Visibility = Visibility.Visible;
-
+            MainContent.Visibility = Visibility.Visible;
             ChartArea.Visibility = Visibility.Visible;
             ChartTabs.Visibility = Visibility.Visible;
 
-            WindowStyle = _previousWindowStyle;
-            ResizeMode = _previousResizeMode;
-            WindowState = _previousWindowState;
+            TopToolbarRow.Height = new GridLength(55);
+            MainContentRow.Height = new GridLength(1, GridUnitType.Star);
+            StatusBarRow.Height = new GridLength(30);
+            SymbolsPanelColumn.Width = new GridLength(300);
+            ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
+
+            WindowStyle = WindowStyle.SingleBorderWindow;
+            ResizeMode = ResizeMode.CanResize;
+            WindowState = WindowState.Maximized;
 
             UpdateLayout();
-            MainContent.UpdateLayout();
-            ChartArea.UpdateLayout();
-            ChartTabs.UpdateLayout();
-
-            if (ChartTabs.SelectedItem is TabItem tab &&
-                tab.Content is FrameworkElement content)
-            {
-                content.UpdateLayout();
-                content.InvalidateMeasure();
-                content.InvalidateArrange();
-                content.InvalidateVisual();
-            }
         }
 
         private void CloseChartFullScreenIfOpen()
         {
-            if (_isFullScreen)
-                ExitChartFullScreen();
+            ExitChartFullScreen();
         }
     }
 }
