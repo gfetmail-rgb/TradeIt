@@ -1,5 +1,6 @@
 using System.Windows;
-using System.Windows.Controls;
+using WpfComboBox = System.Windows.Controls.ComboBox;
+using WpfSelectionChangedEventArgs = System.Windows.Controls.SelectionChangedEventArgs;
 
 namespace TradeIt
 {
@@ -12,15 +13,15 @@ namespace TradeIt
         private static bool RegisterStartupSelectionHandler()
         {
             EventManager.RegisterClassHandler(
-                typeof(ComboBox),
-                ComboBox.SelectionChangedEvent,
-                new SelectionChangedEventHandler(SuppressInitialPortfolioSelection));
+                typeof(WpfComboBox),
+                WpfComboBox.SelectionChangedEvent,
+                new WpfSelectionChangedEventHandler(SuppressInitialPortfolioSelection));
             return true;
         }
 
-        private static void SuppressInitialPortfolioSelection(object sender, SelectionChangedEventArgs e)
+        private static void SuppressInitialPortfolioSelection(object sender, WpfSelectionChangedEventArgs e)
         {
-            if (sender is not ComboBox combo || combo.Name != "PortfolioComboBox")
+            if (sender is not WpfComboBox combo || combo.Name != "PortfolioComboBox")
                 return;
 
             if (Window.GetWindow(combo) is not MainWindow window)
