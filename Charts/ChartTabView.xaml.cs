@@ -1285,47 +1285,163 @@ namespace TradeIt.Charts
         // Candlestick
         // =========================================================
 
-        private void DrawCandlestick()
+        
+private void DrawCandlestick()
         {
-            var candles =
-                new List<ScottPlot.OHLC>();
+            var candles = new List<ScottPlot.OHLC>();
+            var invalidTimes = new List<DateTime>();
 
-            for (int i = 0;
-                 i < _bars.Count;
-                 i++)
+            for (int i = 0; i < _bars.Count; i++)
             {
-                MarketBar bar =
-                    _bars[i];
+                MarketBar bar = _bars[i];
 
-                DateTime time =
-                    GetBarDateTime(
-                        bar,
-                        i);
+                DateTime time = GetBarDateTime(bar, i);
 
+                double open = bar.Open;
+                double high = bar.High;
+                double low = bar.Low;
+                double close = bar.Close;
+
+                // اعتبارسنجی زمان
+                bool invalidTime =
+                    time == DateTime.MinValue ||
+                    time == DateTime.MaxValue ||
+                    !double.IsFinite(time.ToOADate());
+
+                // اعتبارسنجی کامل OHLC
+                bool invalidOhlc =
+                    !double.IsFinite(open) ||
+                    !double.IsFinite(high) ||
+                    !double.IsFinite(low) ||
+                    !double.IsFinite(close) ||
+
+                    // رابطه صحیح High و Low
+                    high < low ||
+
+                    // Low باید از Open و Close بیشتر نباشد
+                    low > open ||
+                    low > close ||
+
+                    // High باید از Open و Close کمتر نباشد
+                    high < open ||
+                    high < close;
+
+                if (invalidTime || invalidOhlc)
+                {
+                    // هیچ تغییری در bar ایجاد نمی‌کنیم.
+                    // فقط زمان این رکورد را برای علامت‌گذاری نگه می‌داریم.
+                    if (!invalidTime)
+                        invalidTimes.Add(time);
+
+                    continue;
+                }
+
+                // فقط داده معتبر به ScottPlot داده می‌شود.
                 candles.Add(
                     new ScottPlot.OHLC(
-                        bar.Open,
-                        bar.High,
-                        bar.Low,
-                        bar.Close,
+                        open,
+                        high,
+                        low,
+                        close,
                         time,
                         TimeSpan.FromDays(1)));
             }
 
-            var candlePlot =
-                Chart.Plot.Add.Candlestick(
-                    candles);
+            // رسم کندل‌های معتبر
+            if (candles.Count > 0)
+            {
+                var candlePlot =
+                    Chart.Plot.Add.Candlestick(candles);
 
-            candlePlot.RisingColor =
-                ScottPlot.Color.FromHtml(
-                    _settings.RisingColor);
+                candlePlot.RisingColor =
+                    ScottPlot.Color.FromHtml(
+                        _settings.RisingColor);
 
-            candlePlot.FallingColor =
-                ScottPlot.Color.FromHtml(
-                    _settings.FallingColor);
+                candlePlot.FallingColor =
+                    ScottPlot.Color.FromHtml(
+                        _settings.FallingColor);
+            }
+
+            // محدوده عمودی برای نمایش خطاها
+            double minY = double.PositiveInfinity;
+            double maxY = double.NegativeInfinity;
+
+            foreach (var candle in candles)
+            {
+                minY = Math.Min(minY, candle.Low);
+                maxY = Math.Max(maxY, candle.High);
+            }
+
+            // اگر هیچ کندل سالمی نداریم، از مقادیر عددی موجود
+            // در داده‌های خراب فقط برای تعیین محل نمایش خط استفاده می‌کنیم.
+            // خود داده‌ها کاملاً دست‌نخورده باقی می‌مانند.
+            if (!double.IsFinite(minY) || !double.IsFinite(maxY))
+            {
+                foreach (var bar in _bars)
+                {
+                    double[] values =
+                    {
+                bar.Open,
+                bar.High,
+                bar.Low,
+                bar.Close
+            };
+
+                    foreach (double value in values)
+                    {
+                        if (double.IsFinite(value))
+                        {
+                            minY = Math.Min(minY, value);
+                            maxY = Math.Max(maxY, value);
+                        }
+                    }
+                }
+            }
+
+            // اگر حداقل یک مقدار قیمت قابل استفاده داریم،
+            // محدوده را کمی باز می‌کنیم تا خط کاملاً قابل مشاهده باشد.
+            if (double.IsFinite(minY) && double.IsFinite(maxY))
+            {
+                if (Math.Abs(maxY - minY) < double.Epsilon)
+                {
+                    double padding =
+                        Math.Max(Math.Abs(minY) * 0.01, 1.0);
+
+                    minY -= padding;
+                    maxY += padding;
+                }
+
+                foreach (DateTime errorTime in invalidTimes)
+                {
+                    var errorLine =
+                        Chart.Plot.Add.Line(
+                            new ScottPlot.Coordinates(
+                                errorTime.ToOADate(),
+                                minY),
+                            new ScottPlot.Coordinates(
+                                errorTime.ToOADate(),
+                                maxY));
+
+                    errorLine.Color =
+                        ScottPlot.Color.FromHtml("#FF0000");
+
+                    errorLine.LineWidth = 2;
+                }
+            }
+
+            // نمایش هشدار فقط در صورت وجود داده نامعتبر
+            if (InvalidDataWarningTextBlock != null)
+            {
+                InvalidDataWarningTextBlock.Visibility =
+                    invalidTimes.Count > 0
+                        ? Visibility.Visible
+                        : Visibility.Collapsed;
+            }
 
             Chart.Plot.Axes.DateTimeTicksBottom();
         }
+
+
 
 
         // =========================================================

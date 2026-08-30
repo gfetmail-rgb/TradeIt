@@ -183,19 +183,31 @@
                 <ScottPlot:WpfPlot x:Name="Chart" />
 
                 <!-- Information at top-right -->
-
                 <TextBlock x:Name="ChartInfoTextBlock"
-                           HorizontalAlignment="Right"
-                           VerticalAlignment="Top"
-                           Margin="10"
-                           Padding="6,3"
-                           Background="#DDFFFFFF"
-                           Foreground="Black"
-                           FontSize="12"
-                           IsHitTestVisible="False" />
+               HorizontalAlignment="Right"
+               VerticalAlignment="Top"
+               Margin="10"
+               Padding="6,3"
+               Background="#DDFFFFFF"
+               Foreground="Black"
+               FontSize="12"
+               IsHitTestVisible="False" />
+
+                <!-- Warning for invalid market data -->
+                <TextBlock x:Name="InvalidDataWarningTextBlock"
+               HorizontalAlignment="Left"
+               VerticalAlignment="Top"
+               Margin="10"
+               Padding="8,4"
+               Background="#DDFFFFFF"
+               Foreground="Red"
+               FontWeight="Bold"
+               FontSize="12"
+               Text="⚠ این چارت دارای داده‌های نامعتبر است. داده‌های نامعتبر با خط قرمز مشخص شده‌اند."
+               Visibility="Collapsed"
+               IsHitTestVisible="False" />
 
             </Grid>
-
         </Border>
 
 
