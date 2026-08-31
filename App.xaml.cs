@@ -8,8 +8,12 @@ namespace TradeIt
         {
             base.OnStartup(e);
 
-            // Startup must always be the normal application window.
-            // Chart fullscreen is never entered automatically.
+            // =========================================================
+            // Startup window-state code intentionally disabled.
+            // The application must start in WPF's normal default state.
+            // No Maximized or Full Screen state is forced here.
+            // =========================================================
+            /*
             var mainWindow = new MainWindow
             {
                 WindowStyle = WindowStyle.SingleBorderWindow,
@@ -17,6 +21,11 @@ namespace TradeIt
                 WindowState = WindowState.Maximized
             };
 
+            MainWindow = mainWindow;
+            mainWindow.Show();
+            */
+
+            var mainWindow = new MainWindow();
             MainWindow = mainWindow;
             mainWindow.Show();
         }
