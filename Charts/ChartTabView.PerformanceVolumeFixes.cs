@@ -24,6 +24,7 @@ namespace TradeIt.Charts
             chart.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
             {
                 chart.Chart.MouseMove -= chart.UserFixesChart_MouseMove;
+                chart.SyncVolumeXAxisSafe();
             }));
             chart.InitializeVolumeCrosshair();
             chart.VolumeContainer.IsVisibleChanged -= chart.VolumeContainer_IsVisibleChanged;
@@ -81,18 +82,81 @@ namespace TradeIt.Charts
             {
                 VolumeSplitterRow.Height = new GridLength(6);
                 VolumeSplitterRow.MinHeight = 6;
+                if (VolumeChartRow.MinHeight < 100)
+                    VolumeChartRow.MinHeight = 100;
+                if (MainChartRow.MinHeight < 120)
+                    MainChartRow.MinHeight = 120;
+                SyncVolumeXAxisSafe();
             }
             else
             {
                 VolumeSplitterRow.Height = new GridLength(0);
                 VolumeSplitterRow.MinHeight = 0;
+                VolumeChartRow.MinHeight = 0;
+                VolumeChartRow.Height = new GridLength(0);
             }
         }
 
         private void VolumeContainer_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             ApplyVolumeSplitterState();
-            if (VolumeContainer.Visibility == Visibility.Visible) EnsureVolumeCrosshair();
+            if (VolumeContainer.Visibility == Visibility.Visible)
+                EnsureVolumeCrosshair();
+        }
+
+        private void SyncVolumeXAxisSafe()
+        {
+            if (!_volumeVisible || VolumeContainer.Visibility != Visibility.Visible) return;
+            try
+            {
+                var main = Chart.Plot.Axes.GetLimits();
+                var volume = VolumeChart.Plot.Axes.GetLimits();
+                if (Math.Abs(main.Left - volume.Left) > 1e-9 || Math.Abs(main.Right - volume.Right) > 1e-9)
+                {
+                    VolumeChart.Plot.Axes.SetLimits(main.Left, main.Right, volume.Bottom, volume.Top);
+                }
+            }
+            catch { }
+        }
+
+        private double SnapToCandleX(double x)
+        {
+            if (_bars.Count == 0 || double.IsNaN(x) || double.IsInfinity(x)) return x;
+            int bestIndex = 0;
+            double bestDistance = double.MaxValue;
+            for (int i = 0; i < _bars.Count; i++)
+            {
+                double bx = _bars[i].Timestamp.HasValue ? _bars[i].Timestamp.Value.ToOADate() : i;
+                double distance = Math.Abs(bx - x);
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    bestIndex = i;
+                }
+            }
+            return _bars[bestIndex].Timestamp.HasValue ? _bars[bestIndex].Timestamp.Value.ToOADate() : bestIndex;
+        }
+
+        private void SetCrosshairAtX(double x, double volumeY)
+        {
+            double snappedX = SnapToCandleX(x);
+            if (_crosshair != null)
+            {
+                var main = Chart.Plot.Axes.GetLimits();
+                double y = Math.Clamp(_crosshair.Position.Y, main.Bottom, main.Top);
+                _crosshair.Position = new ScottPlot.Coordinates(snappedX, y);
+                _crosshair.IsVisible = true;
+            }
+            EnsureVolumeCrosshair();
+            if (_volumeCrosshair != null)
+            {
+                var volume = VolumeChart.Plot.Axes.GetLimits();
+                double vy = Math.Clamp(volumeY, volume.Bottom, volume.Top);
+                _volumeCrosshair.Position = new ScottPlot.Coordinates(snappedX, vy);
+                _volumeCrosshair.HorizontalLine.Text = (vy * VolumeScale).ToString("N0");
+                _volumeCrosshair.VerticalLine.Text = _crosshair?.VerticalLine.Text ?? "";
+                _volumeCrosshair.IsVisible = true;
+            }
         }
 
         private void PerformanceVolumeFixes_ChartMouseMove(object sender, WpfMouseEventArgs e)
@@ -104,14 +168,12 @@ namespace TradeIt.Charts
             }
             EnsureVolumeCrosshair();
             if (!_crosshair.IsVisible) return;
+            SyncVolumeXAxisSafe();
             double x = _crosshair.Position.X;
             if (double.IsNaN(x) || double.IsInfinity(x)) return;
             var limits = VolumeChart.Plot.Axes.GetLimits();
             double y = Math.Clamp(limits.Top * 0.5, limits.Bottom, limits.Top);
-            _volumeCrosshair!.Position = new ScottPlot.Coordinates(x, y);
-            _volumeCrosshair.HorizontalLine.Text = "";
-            _volumeCrosshair.VerticalLine.Text = _crosshair.VerticalLine.Text;
-            _volumeCrosshair.IsVisible = true;
+            SetCrosshairAtX(x, y);
             VolumeChart.Refresh();
         }
 
@@ -123,13 +185,23 @@ namespace TradeIt.Charts
                 return;
             }
             EnsureVolumeCrosshair();
+            SyncVolumeXAxisSafe();
             if (!TryGetChartCoordinates(VolumeChart, e.GetPosition(VolumeChart), out ScottPlot.Coordinates coordinates)) return;
-            double x = coordinates.X;
-            if (_crosshair != null && _crosshair.IsVisible) x = _crosshair.Position.X;
+            double x = SnapToCandleX(coordinates.X);
+            var mainLimits = Chart.Plot.Axes.GetLimits();
+            if (x < mainLimits.Left || x > mainLimits.Right) return;
+            double mainY = (mainLimits.Bottom + mainLimits.Top) / 2.0;
+            if (_crosshair != null)
+            {
+                _crosshair.Position = new ScottPlot.Coordinates(x, mainY);
+                _crosshair.IsVisible = true;
+            }
             _volumeCrosshair!.Position = new ScottPlot.Coordinates(x, coordinates.Y);
             _volumeCrosshair.HorizontalLine.Text = (coordinates.Y * VolumeScale).ToString("N0");
             _volumeCrosshair.VerticalLine.Text = _crosshair?.VerticalLine.Text ?? "";
             _volumeCrosshair.IsVisible = true;
+            UpdateMouseInformation(new ScottPlot.Coordinates(x, mainY));
+            Chart.Refresh();
             VolumeChart.Refresh();
         }
 
