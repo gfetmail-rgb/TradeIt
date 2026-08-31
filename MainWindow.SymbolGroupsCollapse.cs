@@ -25,7 +25,7 @@ namespace TradeIt
             InitializeSymbolGroupsCollapseState();
             DockSymbolGroupButtons();
             EnsureClearFiltersButton();
-            // EnterFullScreen();
+            BuildSymbolToolsTabs();
         }
 
         private void InitializeSymbolGroupsCollapseState()
@@ -51,35 +51,15 @@ namespace TradeIt
 
         private void DockFilterButtonToBottom()
         {
-            if (SymbolFilterGroup.Child is not WpfGrid groupGrid)
-                return;
-
+            if (SymbolFilterGroup.Child is not WpfGrid groupGrid) return;
             while (groupGrid.RowDefinitions.Count < 3)
                 groupGrid.RowDefinitions.Add(new WpfRowDefinition { Height = GridLength.Auto });
-
             WpfGrid? headerGrid = null;
             foreach (WpfUIElement child in groupGrid.Children)
-            {
-                if (child is WpfGrid grid && grid.Children.Contains(SymbolFilterCollapseButton))
-                {
-                    headerGrid = grid;
-                    break;
-                }
-            }
-
-            if (headerGrid == null)
-                return;
-
+                if (child is WpfGrid grid && grid.Children.Contains(SymbolFilterCollapseButton)) { headerGrid = grid; break; }
+            if (headerGrid == null) return;
             headerGrid.Children.Remove(SymbolFilterCollapseButton);
-
-            var bottomPanel = new WpfStackPanel
-            {
-                Orientation = System.Windows.Controls.Orientation.Horizontal,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 2, 0, 0)
-            };
-
+            var bottomPanel = new WpfStackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, HorizontalAlignment = System.Windows.HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 2, 0, 0) };
             bottomPanel.Children.Add(SymbolFilterCollapseButton);
             WpfGrid.SetRow(bottomPanel, 2);
             groupGrid.Children.Add(bottomPanel);
@@ -87,35 +67,15 @@ namespace TradeIt
 
         private void DockOperationsButtonToBottom()
         {
-            if (SymbolOperationsGroup.Child is not WpfGrid groupGrid)
-                return;
-
+            if (SymbolOperationsGroup.Child is not WpfGrid groupGrid) return;
             while (groupGrid.RowDefinitions.Count < 3)
                 groupGrid.RowDefinitions.Add(new WpfRowDefinition { Height = GridLength.Auto });
-
             WpfGrid? headerGrid = null;
             foreach (WpfUIElement child in groupGrid.Children)
-            {
-                if (child is WpfGrid grid && grid.Children.Contains(SymbolOperationsCollapseButton))
-                {
-                    headerGrid = grid;
-                    break;
-                }
-            }
-
-            if (headerGrid == null)
-                return;
-
+                if (child is WpfGrid grid && grid.Children.Contains(SymbolOperationsCollapseButton)) { headerGrid = grid; break; }
+            if (headerGrid == null) return;
             headerGrid.Children.Remove(SymbolOperationsCollapseButton);
-
-            var bottomPanel = new WpfStackPanel
-            {
-                Orientation = System.Windows.Controls.Orientation.Horizontal,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 2, 0, 0)
-            };
-
+            var bottomPanel = new WpfStackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, HorizontalAlignment = System.Windows.HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 2, 0, 0) };
             bottomPanel.Children.Add(SymbolOperationsCollapseButton);
             WpfGrid.SetRow(bottomPanel, 2);
             groupGrid.Children.Add(bottomPanel);
@@ -123,40 +83,18 @@ namespace TradeIt
 
         private void EnsureClearFiltersButton()
         {
-            if (SymbolFilterGroup.Child is not WpfGrid groupGrid)
-                return;
-
+            if (SymbolFilterGroup.Child is not WpfGrid groupGrid) return;
             WpfStackPanel? bottomPanel = null;
             foreach (WpfUIElement child in groupGrid.Children)
-            {
-                if (child is WpfStackPanel panel && panel.Children.Contains(SymbolFilterCollapseButton))
-                {
-                    bottomPanel = panel;
-                    break;
-                }
-            }
-
-            if (bottomPanel == null)
-                return;
-
+                if (child is WpfStackPanel panel && panel.Children.Contains(SymbolFilterCollapseButton)) { bottomPanel = panel; break; }
+            if (bottomPanel == null) return;
             if (_clearSymbolFiltersButton == null)
             {
-                _clearSymbolFiltersButton = new WpfButton
-                {
-                    Content = "پاک کردن همه",
-                    Width = 90,
-                    Height = 25,
-                    Padding = new Thickness(4, 0, 4, 0),
-                    Margin = new Thickness(0, 0, 4, 0),
-                    ToolTip = "پاک کردن همه فیلترها"
-                };
+                _clearSymbolFiltersButton = new WpfButton { Content = "پاک کردن همه", Width = 90, Height = 25, Padding = new Thickness(4, 0, 4, 0), Margin = new Thickness(0, 0, 4, 0), ToolTip = "پاک کردن همه فیلترها" };
                 _clearSymbolFiltersButton.Click += ClearSymbolFiltersButton_Click;
                 bottomPanel.Children.Insert(0, _clearSymbolFiltersButton);
             }
-
-            _clearSymbolFiltersButton.Visibility = _symbolFilterGroupCollapsed
-                ? Visibility.Collapsed
-                : Visibility.Visible;
+            _clearSymbolFiltersButton.Visibility = _symbolFilterGroupCollapsed ? Visibility.Collapsed : Visibility.Visible;
         }
 
         private void ClearSymbolFiltersButton_Click(object sender, RoutedEventArgs e)
@@ -170,24 +108,13 @@ namespace TradeIt
             for (int i = 0; i < WpfVisualTreeHelper.GetChildrenCount(parent); i++)
             {
                 DependencyObject child = WpfVisualTreeHelper.GetChild(parent, i);
-
                 switch (child)
                 {
-                    case WpfTextBox textBox:
-                        textBox.Clear();
-                        break;
-                    case WpfComboBox comboBox:
-                        if (comboBox.Items.Count > 0)
-                            comboBox.SelectedIndex = 0;
-                        break;
-                    case WpfCheckBox checkBox:
-                        checkBox.IsChecked = false;
-                        break;
-                    case WpfRadioButton radioButton:
-                        radioButton.IsChecked = false;
-                        break;
+                    case WpfTextBox textBox: textBox.Clear(); break;
+                    case WpfComboBox comboBox: if (comboBox.Items.Count > 0) comboBox.SelectedIndex = 0; break;
+                    case WpfCheckBox checkBox: checkBox.IsChecked = false; break;
+                    case WpfRadioButton radioButton: radioButton.IsChecked = false; break;
                 }
-
                 ClearFilterControls(child);
             }
         }
