@@ -14,7 +14,6 @@ namespace TradeIt.Charts
         private DispatcherTimer? _volumeSyncTimer;
         private bool _volumeSyncBusy;
 
-        private const double VolumePanelMinimumHeight = 110.0;
         private const double VolumeTopPaddingFactor = 1.05;
 
         private void ChartTabView_Loaded(object sender, RoutedEventArgs e)
@@ -58,7 +57,6 @@ namespace TradeIt.Charts
                 return;
 
             SnapMainCrosshairToCandle();
-            SyncVolumeFromPriceLimits();
         }
 
         private void VolumeSync_MouseMove(object? sender, WpfMouseEventArgs e)
