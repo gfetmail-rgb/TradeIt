@@ -41,7 +41,7 @@
                 <Button x:Name="RefreshPortfolioButton" Grid.Column="4" Content="بازخوانی" Height="32" Padding="15,0" Margin="0,0,8,0" Click="RefreshPortfolioButton_Click"/>
                 <Button x:Name="ChartSettingsButton" Grid.Column="5" Content="تنظیمات چارت" Height="32" Padding="15,0" Margin="0,0,8,0" Click="ChartSettingsButton_Click"/>
                 <Button x:Name="CloseAllChartsButton" Grid.Column="6" Content="بستن همه چارت‌ها" Height="32" Padding="15,0" Margin="0,0,8,0" Click="CloseAllChartsButton_Click"/>
-                <Button x:Name="FullScreenButton" Grid.Column="8" Content="⛶ تمام صفحه" Height="32" Padding="15,0" Margin="10,0,0,0" Click="FullScreenButton_Click"/>
+                <Button x:Name="FullScreenButton" Grid.Column="8" Content="⛶ تمام صفحه" Height="32" Padding="15,0" Margin="10,0,0,0" Click="ChartFullScreenButton_Click"/>
             </Grid>
         </Border>
         <Grid x:Name="MainContent" Grid.Row="1" Grid.ColumnSpan="2">
