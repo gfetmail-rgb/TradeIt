@@ -3,6 +3,7 @@ using System.Windows;
 using WpfButton = System.Windows.Controls.Button;
 using WpfGrid = System.Windows.Controls.Grid;
 using WpfPanel = System.Windows.Controls.Panel;
+using WpfTabItem = System.Windows.Controls.TabItem;
 using WpfKey = System.Windows.Input.Key;
 using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
 using TradeIt.Charts;
@@ -12,7 +13,7 @@ namespace TradeIt
     public partial class MainWindow
     {
         private Window? _chartFullScreenWindow;
-        private TabItem? _chartFullScreenTab;
+        private WpfTabItem? _chartFullScreenTab;
         private object? _chartFullScreenOriginalContent;
         private object? _chartFullScreenOriginalHeader;
 
@@ -21,7 +22,7 @@ namespace TradeIt
             if (_chartFullScreenWindow != null)
                 return;
 
-            if (ChartTabs.SelectedItem is not TabItem tab)
+            if (ChartTabs.SelectedItem is not WpfTabItem tab)
                 return;
 
             if (tab.Content is not ChartTabView chartView)
