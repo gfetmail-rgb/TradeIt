@@ -1,30 +1,13 @@
-using System.Windows;
+using WpfApplication = System.Windows.Application;
+using WpfStartupEventArgs = System.Windows.StartupEventArgs;
 
 namespace TradeIt
 {
-    public partial class App : Application
+    public partial class App : WpfApplication
     {
-        protected override void OnStartup(StartupEventArgs e)
+        protected override void OnStartup(WpfStartupEventArgs e)
         {
             base.OnStartup(e);
-
-            // =========================================================
-            // Startup window-state code intentionally disabled.
-            // The application must start in WPF's normal default state.
-            // No Maximized or Full Screen state is forced here.
-            // =========================================================
-            /*
-            var mainWindow = new MainWindow
-            {
-                WindowStyle = WindowStyle.SingleBorderWindow,
-                ResizeMode = ResizeMode.CanResize,
-                WindowState = WindowState.Maximized
-            };
-
-            MainWindow = mainWindow;
-            mainWindow.Show();
-            */
-
             var mainWindow = new MainWindow();
             MainWindow = mainWindow;
             mainWindow.Show();
