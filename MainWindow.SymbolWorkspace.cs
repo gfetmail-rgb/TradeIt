@@ -9,6 +9,11 @@ using WpfButton = System.Windows.Controls.Button;
 using WpfGrid = System.Windows.Controls.Grid;
 using WpfTabControl = System.Windows.Controls.TabControl;
 using WpfTextBox = System.Windows.Controls.TextBox;
+using WpfPanel = System.Windows.Controls.Panel;
+using WpfOrientation = System.Windows.Controls.Orientation;
+using WpfHorizontalAlignment = System.Windows.HorizontalAlignment;
+using WpfVerticalAlignment = System.Windows.VerticalAlignment;
+using WpfBrushes = System.Windows.Media.Brushes;
 using WpfMessageBox = System.Windows.MessageBox;
 using WpfMessageBoxButton = System.Windows.MessageBoxButton;
 using WpfMessageBoxImage = System.Windows.MessageBoxImage;
@@ -33,8 +38,8 @@ namespace TradeIt
             _symbolToolsTabControl = new WpfTabControl
             {
                 Margin = new Thickness(0),
-                HorizontalContentAlignment = HorizontalAlignment.Stretch,
-                VerticalContentAlignment = VerticalAlignment.Stretch
+                HorizontalContentAlignment = WpfHorizontalAlignment.Stretch,
+                VerticalContentAlignment = WpfVerticalAlignment.Stretch
             };
 
             _symbolToolsTabControl.Items.Add(new TabItem { Header = "فیلترها", Content = SymbolFilterGroup });
@@ -55,13 +60,13 @@ namespace TradeIt
                 Width = 28,
                 Height = 24,
                 Padding = new Thickness(0),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Top,
+                HorizontalAlignment = WpfHorizontalAlignment.Right,
+                VerticalAlignment = WpfVerticalAlignment.Top,
                 Margin = new Thickness(0, 2, 4, 0),
                 ToolTip = "باز/بسته کردن پنل ابزارهای نماد"
             };
             collapseButton.Click += SymbolToolsCollapseButton_Click;
-            Panel.SetZIndex(collapseButton, 10);
+            WpfPanel.SetZIndex(collapseButton, 10);
             host.Children.Add(collapseButton);
 
             _symbolToolsExpanded = true;
@@ -111,7 +116,7 @@ namespace TradeIt
                 Margin = new Thickness(0, 0, 0, 8)
             });
 
-            var fields = new StackPanel { Orientation = Orientation.Horizontal };
+            var fields = new StackPanel { Orientation = WpfOrientation.Horizontal };
             fields.Children.Add(MakeField("نوع سهم"));
             fields.Children.Add(MakeField("صنعت"));
             fields.Children.Add(MakeField("گروه"));
@@ -122,7 +127,7 @@ namespace TradeIt
             var hint = new TextBlock
             {
                 Text = "یک یا چند نماد را در لیست انتخاب کنید، مقادیر را وارد کنید و «اعمال طبقه‌بندی» را بزنید.",
-                Foreground = Brushes.Gray,
+                Foreground = WpfBrushes.Gray,
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 8, 0, 8)
             };
@@ -133,8 +138,8 @@ namespace TradeIt
             {
                 Content = "اعمال طبقه‌بندی",
                 Height = 30,
-                Padding = new Thickness(12, 0),
-                HorizontalAlignment = HorizontalAlignment.Left
+                Padding = new Thickness(12, 0, 12, 0),
+                HorizontalAlignment = WpfHorizontalAlignment.Left
             };
             save.Click += ClassificationApplyButton_Click;
             Grid.SetRow(save, 3);
