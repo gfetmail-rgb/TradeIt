@@ -103,7 +103,7 @@ namespace TradeIt.Data
             {
                 Index = index,
                 PersianTicker = GetSymbol(fields, dataSource, filePath),
-                EnglishTicker = GetString(fields, dataSource.EnglishTickerColumn),
+                EnglishTicker = GetOptionalString(fields, dataSource.EnglishTickerColumn),
                 Open = GetRequiredDouble(fields, dataSource.OpenColumn),
                 High = GetRequiredDouble(fields, dataSource.HighColumn),
                 Low = GetRequiredDouble(fields, dataSource.LowColumn),
@@ -127,7 +127,7 @@ namespace TradeIt.Data
             {
                 Index = index,
                 PersianTicker = GetSymbol(fields, dataSource, filePath),
-                EnglishTicker = GetString(fields, dataSource.EnglishTickerColumn),
+                EnglishTicker = GetOptionalString(fields, dataSource.EnglishTickerColumn),
                 Open = GetRequiredDouble(fields, dataSource.OpenColumn),
                 High = GetRequiredDouble(fields, dataSource.HighColumn),
                 Low = GetRequiredDouble(fields, dataSource.LowColumn),
@@ -161,7 +161,7 @@ namespace TradeIt.Data
             }
 
             if (string.Equals(dataSource.SymbolSource, "FileContent", StringComparison.OrdinalIgnoreCase))
-                return GetRequiredString(fields, dataSource.SymbolColumn);
+                return GetRequiredString(fields, dataSource.SymbolColumn, "نام نماد");
 
             throw new FormatException("منبع نام نماد در تنظیمات داده معتبر نیست.");
         }
@@ -172,14 +172,19 @@ namespace TradeIt.Data
             return fields[index].Trim();
         }
 
-        private static string GetRequiredString(string[] fields, int index)
+        private static string GetOptionalString(string[] fields, int index)
+        {
+            return GetString(fields, index);
+        }
+
+        private static string GetRequiredString(string[] fields, int index, string columnName)
         {
             if (index < 0 || index >= fields.Length)
-                throw new FormatException("ستون متنی موردنیاز در فایل داده وجود ندارد.");
+                throw new FormatException($"ستون «{columnName}» (شماره {index}) در فایل داده وجود ندارد. تعداد ستون‌های ردیف: {fields.Length}.");
 
             string value = fields[index].Trim();
             if (string.IsNullOrWhiteSpace(value))
-                throw new FormatException("مقدار متنی موردنیاز در فایل داده خالی است.");
+                throw new FormatException($"مقدار ستون «{columnName}» در ردیف خالی است (شماره ستون: {index + 1}).");
 
             return value;
         }
