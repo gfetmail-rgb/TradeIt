@@ -1,13 +1,12 @@
 using System;
 using System.Windows;
-using System.Windows.Input;
 using System.Windows.Threading;
 
 namespace TradeIt.Charts
 {
     public partial class ChartTabView
     {
-        private void FixChartMouseMove(object sender, MouseEventArgs e)
+        private void FixChartMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             if (!_volumeVisible || !_crosshairVisible || !_chartVisible) return;
             Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
@@ -23,7 +22,7 @@ namespace TradeIt.Charts
             }));
         }
 
-        private void FixVolumeMouseMove(object sender, MouseEventArgs e)
+        private void FixVolumeMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             if (!_volumeVisible || !_crosshairVisible || !_chartVisible) return;
             EnsureVolumeCrosshair();
@@ -45,7 +44,7 @@ namespace TradeIt.Charts
             VolumeChart.Refresh();
         }
 
-        private void FixVolumeMouseLeave(object sender, MouseEventArgs e)
+        private void FixVolumeMouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
         {
             if (_volumeCrosshair != null)
             {
