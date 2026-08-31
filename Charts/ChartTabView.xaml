@@ -80,6 +80,17 @@
             <Border x:Name="VolumeContainer" Grid.Row="2" BorderBrush="LightGray" BorderThickness="1" Margin="2" Visibility="Collapsed">
                 <Grid>
                     <ScottPlot:WpfPlot x:Name="VolumeChart" />
+                    <TextBlock x:Name="VolumeInfoTextBlock"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               Margin="8,6,0,0"
+                               Padding="6,3"
+                               Background="#DDFFFFFF"
+                               Foreground="Black"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               IsHitTestVisible="False"
+                               Text="" />
                 </Grid>
             </Border>
         </Grid>
