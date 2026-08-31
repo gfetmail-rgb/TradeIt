@@ -40,34 +40,64 @@
     public class PriceFilter
     {
         public bool Enabled { get; set; }
+
         public PriceField Field { get; set; }
+
         public NumericComparison Comparison { get; set; }
-        public int Days { get; set; } = 1;
     }
 
     public class SymbolFilterSettings
     {
-        public TradeStatusFilter TradeStatus { get; set; } = TradeStatusFilter.All;
-        public SymbolNameFilter NameFilter { get; set; } = SymbolNameFilter.All;
+        // =========================================================
+        // معامله
+        // =========================================================
+
+        public TradeStatusFilter TradeStatus { get; set; }
+            = TradeStatusFilter.All;
+
+        // =========================================================
+        // نام
+        // =========================================================
+
+        public SymbolNameFilter NameFilter { get; set; }
+            = SymbolNameFilter.All;
+
         public string NameText { get; set; } = "";
 
+        // =========================================================
+        // عدم معامله
+        // =========================================================
+
         public bool DaysWithoutTradeEnabled { get; set; }
+
         public int DaysWithoutTrade { get; set; }
 
-        public bool DaysWithTradeEnabled { get; set; }
-        public int DaysWithTrade { get; set; }
+        // =========================================================
+        // Volume
+        //
+        // LastVolume >= Average(X days) * Y
+        // =========================================================
 
         public bool VolumeFilterEnabled { get; set; }
+
         public int VolumeAverageDays { get; set; } = 20;
+
         public double VolumeMultiplier { get; set; } = 2.0;
 
-        public PriceFilter[] PriceFilters { get; set; } = new PriceFilter[5]
-        {
-            new PriceFilter(),
-            new PriceFilter(),
-            new PriceFilter(),
-            new PriceFilter(),
-            new PriceFilter()
-        };
+        // =========================================================
+        // پنج فیلتر قیمت
+        //
+        // همه با AND اعمال می‌شوند.
+        // =========================================================
+
+        public PriceFilter[] PriceFilters { get; set; }
+            = new PriceFilter[5]
+            {
+                new PriceFilter(),
+                new PriceFilter(),
+                new PriceFilter(),
+                new PriceFilter(),
+                new PriceFilter()
+            };
     }
 }

@@ -14,17 +14,6 @@ namespace TradeIt.Models
 
         public string FilePath { get; set; } = "";
 
-        // =========================================================
-        // User classification
-        // =========================================================
-
-        public string SecurityType { get; set; } = "";
-
-        public string Industry { get; set; } = "";
-
-        public string Group { get; set; } = "";
-
-        public string SubGroup { get; set; } = "";
 
         // =========================================================
         // UI
@@ -33,6 +22,7 @@ namespace TradeIt.Models
         public int RowNumber { get; set; }
 
         public bool IsSelected { get; set; }
+
 
         // =========================================================
         // Last Trade Information

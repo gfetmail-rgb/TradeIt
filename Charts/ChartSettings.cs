@@ -8,17 +8,20 @@ namespace TradeIt.Charts
         public string FigureBackground { get; set; } = "#FFFFFF";
         public string DataBackground { get; set; } = "#FFFFFF";
         public string GridColor { get; set; } = "#DDDDDD";
+        public string GridPattern { get; set; } = "Solid";
+        public double GridLineWidth { get; set; } = 1;
         public string AxisColor { get; set; } = "#444444";
-        public double LineWidth { get; set; } = 2;
-        public bool GridVisible { get; set; } = true;
-
-        // By default non-trading days are not displayed on the chart.
-        public bool ShowNonTradingDays { get; set; } = false;
-
-        // By default each symbol opens in its own chart tab.
-        public bool OpenSymbolsInSharedChart { get; set; } = false;
-
+        public double LineWidth { get; set; } = 1.5;
+        public double CandleLineWidth { get; set; } = 1;
+        public double BarLineWidth { get; set; } = 1;
+        public bool GridVisible { get; set; } = false;
         public int AutoScrollDelayMilliseconds { get; set; } = 1000;
+        public bool OpenChartInNewTab { get; set; } = true;
+
+        public string CrosshairColor { get; set; } = "#909090";
+        public double CrosshairLineWidth { get; set; } = 1;
+        public string CrosshairPattern { get; set; } = "Dotted";
+        public bool HasUserSavedSettings { get; set; } = false;
 
         public ChartSettings Clone()
         {
@@ -30,12 +33,19 @@ namespace TradeIt.Charts
                 FigureBackground = FigureBackground,
                 DataBackground = DataBackground,
                 GridColor = GridColor,
+                GridPattern = GridPattern,
+                GridLineWidth = GridLineWidth,
                 AxisColor = AxisColor,
                 LineWidth = LineWidth,
+                CandleLineWidth = CandleLineWidth,
+                BarLineWidth = BarLineWidth,
                 GridVisible = GridVisible,
-                ShowNonTradingDays = ShowNonTradingDays,
-                OpenSymbolsInSharedChart = OpenSymbolsInSharedChart,
-                AutoScrollDelayMilliseconds = AutoScrollDelayMilliseconds
+                AutoScrollDelayMilliseconds = AutoScrollDelayMilliseconds,
+                OpenChartInNewTab = OpenChartInNewTab,
+                CrosshairColor = CrosshairColor,
+                CrosshairLineWidth = CrosshairLineWidth,
+                CrosshairPattern = CrosshairPattern,
+                HasUserSavedSettings = HasUserSavedSettings
             };
         }
     }

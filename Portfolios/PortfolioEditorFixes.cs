@@ -1,12 +1,120 @@
 using System;
+using System.IO;
+using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Threading;
 using WpfButton = System.Windows.Controls.Button;
+using WpfTextBox = System.Windows.Controls.TextBox;
+using WpfMessageBox = System.Windows.MessageBox;
+using WpfMessageBoxButton = System.Windows.MessageBoxButton;
+using WpfMessageBoxImage = System.Windows.MessageBoxImage;
 
 namespace TradeIt.Portfolios
 {
     public partial class PortfolioEditorWindow
     {
-        // WPF Button is explicitly aliased above to avoid ambiguity with
-        // System.Windows.Forms.Button in projects that reference WinForms.
+        static PortfolioEditorWindow()
+        {
+            EventManager.RegisterClassHandler(typeof(PortfolioEditorWindow), WpfButton.ClickEvent, new RoutedEventHandler(PortfolioEditor_ButtonClicked));
+            EventManager.RegisterClassHandler(typeof(PortfolioEditorWindow), WpfTextBox.TextChangedEvent, new TextChangedEventHandler(PortfolioEditor_PathChanged));
+        }
+
+        private static void PortfolioEditor_ButtonClicked(object sender, RoutedEventArgs e)
+        {
+            if (sender is not WpfButton button || Window.GetWindow(button) is not PortfolioEditorWindow window)
+                return;
+
+            if (button.Name == "LoadPreviewButton")
+            {
+                string[] files = GetSelectedFiles(window);
+                if (files.Length <= 1)
+                    return;
+
+                e.Handled = true;
+                string originalPath = window.PathTextBox.Text;
+                window.PathTextBox.Text = files[0];
+                window.LoadPreviewButton_Click(window, e);
+                window.PathTextBox.Text = originalPath;
+                return;
+            }
+
+            if (button.Content?.ToString() != "ذخیره سبد")
+                return;
+
+            string[] selectedFiles = GetSelectedFiles(window);
+            if (selectedFiles.Length <= 1)
+                return;
+
+            string folder = Path.GetDirectoryName(selectedFiles[0]) ?? "";
+            if (selectedFiles.Any(x => !string.Equals(Path.GetDirectoryName(x), folder, StringComparison.OrdinalIgnoreCase)))
+            {
+                WpfMessageBox.Show(window, "برای انتخاب چند فایل، فایل‌ها باید در یک پوشه باشند.", "منبع داده", WpfMessageBoxButton.OK, WpfMessageBoxImage.Warning);
+                e.Handled = true;
+                return;
+            }
+
+            e.Handled = true;
+            string original = window.PathTextBox.Text;
+            window.PathTextBox.Text = folder;
+            window.SaveButton_Click(window, e);
+
+            if (window.ResultPortfolio != null)
+            {
+                window.ResultPortfolio.DataSource.SourceType = "Folder";
+                window.ResultPortfolio.DataSource.Path = folder;
+                window.ResultPortfolio.UseExplicitSymbolList = true;
+                window.ResultPortfolio.Symbols = selectedFiles.Select(file => new Models.SymbolInfo
+                {
+                    Symbol = Path.GetFileNameWithoutExtension(file),
+                    DisplayName = Path.GetFileNameWithoutExtension(file),
+                    FilePath = file
+                }).ToList();
+            }
+
+            window.PathTextBox.Text = original;
+        }
+
+        private static string[] GetSelectedFiles(PortfolioEditorWindow window)
+        {
+            return window.PathTextBox.Text
+                .Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Where(File.Exists)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+
+        private static void PortfolioEditor_PathChanged(object sender, TextChangedEventArgs e)
+        {
+            if (sender is not WpfTextBox textBox || Window.GetWindow(textBox) is not PortfolioEditorWindow window)
+                return;
+
+            QueuePreview(window);
+        }
+
+        private static void QueuePreview(PortfolioEditorWindow window)
+        {
+            window.Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(() =>
+            {
+                string path = window.PathTextBox.Text.Trim();
+                string previewFile = path.Split(';').Select(x => x.Trim()).FirstOrDefault(File.Exists) ?? "";
+
+                if (string.IsNullOrWhiteSpace(previewFile) && Directory.Exists(path))
+                    previewFile = path;
+
+                if (string.IsNullOrWhiteSpace(previewFile))
+                    return;
+
+                string original = window.PathTextBox.Text;
+                if (!File.Exists(original))
+                    window.PathTextBox.Text = previewFile;
+
+                window.LoadPreviewButton_Click(window, new RoutedEventArgs());
+
+                if (!string.Equals(window.PathTextBox.Text, original, StringComparison.Ordinal))
+                    window.PathTextBox.Text = original;
+            }));
+        }
     }
 }
