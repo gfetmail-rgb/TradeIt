@@ -8,8 +8,9 @@ namespace TradeIt
     {
         static MainWindow()
         {
-            // Initialized runs early enough to establish the application
-            // window state before normal Loaded processing begins.
+            // Startup state forcing is intentionally disabled.
+            // The application must not force Maximized mode here.
+            /*
             EventManager.RegisterClassHandler(
                 typeof(MainWindow),
                 FrameworkElement.InitializedEvent,
@@ -19,15 +20,16 @@ namespace TradeIt
                 typeof(MainWindow),
                 FrameworkElement.LoadedEvent,
                 new RoutedEventHandler(MainWindow_StartupFixLoaded));
+            */
         }
 
+        // Startup Maximized code intentionally disabled.
+        /*
         private static void MainWindow_StartupWindowInitialized(object sender, RoutedEventArgs e)
         {
             if (sender is not MainWindow window)
                 return;
 
-            // Startup is NORMAL MAXIMIZED application mode.
-            // Chart fullscreen is an explicit user action only.
             window._isFullScreen = false;
             window.WindowStyle = WindowStyle.SingleBorderWindow;
             window.ResizeMode = ResizeMode.CanResize;
@@ -39,7 +41,6 @@ namespace TradeIt
             if (sender is not MainWindow window)
                 return;
 
-            // Re-assert the normal state after all Loaded handlers have run.
             window._isFullScreen = false;
             window.WindowStyle = WindowStyle.SingleBorderWindow;
             window.ResizeMode = ResizeMode.CanResize;
@@ -58,7 +59,10 @@ namespace TradeIt
                 DispatcherPriority.ContextIdle,
                 new Action(window.ClearStartupSelection));
         }
+        */
 
+        // Keep this method available for any existing references, but do not
+        // force any window state from it.
         private void ClearStartupSelection()
         {
             if (PortfolioComboBox == null || SymbolsDataGrid == null)
