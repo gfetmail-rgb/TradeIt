@@ -1,6 +1,10 @@
+using System;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
+using WpfButton = System.Windows.Controls.Button;
+using WpfGrid = System.Windows.Controls.Grid;
+using WpfPanel = System.Windows.Controls.Panel;
+using WpfKey = System.Windows.Input.Key;
+using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
 using TradeIt.Charts;
 
 namespace TradeIt
@@ -29,21 +33,21 @@ namespace TradeIt
 
             tab.Content = null;
 
-            var root = new Grid();
+            var root = new WpfGrid();
             root.Children.Add(chartView);
 
-            var exitButton = new Button
+            var exitButton = new WpfButton
             {
                 Content = "↙ خروج از تمام صفحه",
                 Width = 175,
                 Height = 38,
                 Padding = new Thickness(10, 0, 10, 0),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Top,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+                VerticalAlignment = System.Windows.VerticalAlignment.Top,
                 Margin = new Thickness(0, 12, 12, 0)
             };
 
-            Panel.SetZIndex(exitButton, 10000);
+            WpfPanel.SetZIndex(exitButton, 10000);
             exitButton.Click += (_, _) => ExitChartFullScreen();
             root.Children.Add(exitButton);
 
@@ -68,9 +72,9 @@ namespace TradeIt
             window.Focus();
         }
 
-        private void ChartFullScreenWindow_KeyDown(object sender, KeyEventArgs e)
+        private void ChartFullScreenWindow_KeyDown(object sender, WpfKeyEventArgs e)
         {
-            if (e.Key == Key.Escape)
+            if (e.Key == WpfKey.Escape)
             {
                 ExitChartFullScreen();
                 e.Handled = true;
@@ -87,7 +91,7 @@ namespace TradeIt
             RestoreChartFromFullScreen();
         }
 
-        private void ChartFullScreenWindow_Closed(object? sender, System.EventArgs e)
+        private void ChartFullScreenWindow_Closed(object? sender, EventArgs e)
         {
             RestoreChartFromFullScreen();
         }
