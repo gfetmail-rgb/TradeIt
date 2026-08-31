@@ -24,7 +24,6 @@ namespace TradeIt.Data
                 if (rowNumber == 0 && dataSource.HasHeader) { rowNumber++; continue; }
 
                 string[] fields = line.Split(new[] { dataSource.Delimiter }, StringSplitOptions.None);
-
                 try
                 {
                     bars.Add(ParseFields(fields, dataSource, bars.Count, filePath));
@@ -32,13 +31,10 @@ namespace TradeIt.Data
                 catch (Exception ex)
                 {
                     throw new FormatException(
-                        $"داده ردیف {rowNumber + 1} در فایل «{Path.GetFileName(filePath)}» معتبر نیست: {ex.Message}",
-                        ex);
+                        $"داده ردیف {rowNumber + 1} در فایل «{Path.GetFileName(filePath)}» معتبر نیست: {ex.Message}", ex);
                 }
-
                 rowNumber++;
             }
-
             return bars;
         }
 
@@ -63,13 +59,10 @@ namespace TradeIt.Data
                 if (rowNumber == 0 && dataSource.HasHeader) { rowNumber++; continue; }
 
                 string[] fields = line.Split(new[] { dataSource.Delimiter }, StringSplitOptions.None);
-
                 try
                 {
                     MarketBar bar = ParseSummaryFields(fields, dataSource, index++, filePath);
-                    if (firstBar == null)
-                        firstBar = bar;
-
+                    if (firstBar == null) firstBar = bar;
                     if (dataSource.HasDateTime)
                     {
                         if (bar.Timestamp.HasValue && (!hasTimestamp || bar.Timestamp.Value > latestTimestamp))
@@ -79,21 +72,15 @@ namespace TradeIt.Data
                             hasTimestamp = true;
                         }
                     }
-                    else
-                    {
-                        latestBar = bar;
-                    }
+                    else latestBar = bar;
                 }
                 catch (Exception ex)
                 {
                     throw new FormatException(
-                        $"داده ردیف {rowNumber + 1} در فایل «{Path.GetFileName(filePath)}» معتبر نیست: {ex.Message}",
-                        ex);
+                        $"داده ردیف {rowNumber + 1} در فایل «{Path.GetFileName(filePath)}» معتبر نیست: {ex.Message}", ex);
                 }
-
                 rowNumber++;
             }
-
             return (firstBar, latestBar);
         }
 
@@ -104,12 +91,12 @@ namespace TradeIt.Data
                 Index = index,
                 PersianTicker = GetSymbol(fields, dataSource, filePath),
                 EnglishTicker = GetOptionalString(fields, dataSource.EnglishTickerColumn),
-                Open = GetRequiredDouble(fields, dataSource.OpenColumn),
-                High = GetRequiredDouble(fields, dataSource.HighColumn),
-                Low = GetRequiredDouble(fields, dataSource.LowColumn),
-                Close = GetRequiredDouble(fields, dataSource.CloseColumn),
-                Volume = GetRequiredDouble(fields, dataSource.VolumeColumn),
-                TSEClose = GetRequiredDouble(fields, dataSource.TSECloseColumn)
+                Open = GetRequiredDouble(fields, dataSource.OpenColumn, "قیمت باز شدن"),
+                High = GetRequiredDouble(fields, dataSource.HighColumn, "بیشترین قیمت"),
+                Low = GetRequiredDouble(fields, dataSource.LowColumn, "کمترین قیمت"),
+                Close = GetRequiredDouble(fields, dataSource.CloseColumn, "قیمت پایانی"),
+                Volume = GetRequiredDouble(fields, dataSource.VolumeColumn, "حجم"),
+                TSEClose = GetRequiredDouble(fields, dataSource.TSECloseColumn, "پایانی بورس")
             };
 
             if (dataSource.HasDateTime)
@@ -128,17 +115,17 @@ namespace TradeIt.Data
                 Index = index,
                 PersianTicker = GetSymbol(fields, dataSource, filePath),
                 EnglishTicker = GetOptionalString(fields, dataSource.EnglishTickerColumn),
-                Open = GetRequiredDouble(fields, dataSource.OpenColumn),
-                High = GetRequiredDouble(fields, dataSource.HighColumn),
-                Low = GetRequiredDouble(fields, dataSource.LowColumn),
-                Close = GetRequiredDouble(fields, dataSource.CloseColumn),
-                Volume = GetRequiredDouble(fields, dataSource.VolumeColumn),
-                TSEClose = GetRequiredDouble(fields, dataSource.TSECloseColumn),
-                Previous = GetRequiredDouble(fields, dataSource.PreviousColumn),
-                Value = GetRequiredDouble(fields, dataSource.ValueColumn),
-                TradeCount = GetRequiredInt(fields, dataSource.TradeCountColumn),
-                ShareCount = GetRequiredDouble(fields, dataSource.ShareCountColumn),
-                MarketValue = GetRequiredDouble(fields, dataSource.MarketValueColumn)
+                Open = GetRequiredDouble(fields, dataSource.OpenColumn, "قیمت باز شدن"),
+                High = GetRequiredDouble(fields, dataSource.HighColumn, "بیشترین قیمت"),
+                Low = GetRequiredDouble(fields, dataSource.LowColumn, "کمترین قیمت"),
+                Close = GetRequiredDouble(fields, dataSource.CloseColumn, "قیمت پایانی"),
+                Volume = GetRequiredDouble(fields, dataSource.VolumeColumn, "حجم"),
+                TSEClose = GetRequiredDouble(fields, dataSource.TSECloseColumn, "پایانی بورس"),
+                Previous = GetRequiredDouble(fields, dataSource.PreviousColumn, "قیمت پایانی دیروز"),
+                Value = GetRequiredDouble(fields, dataSource.ValueColumn, "ارزش معاملات"),
+                TradeCount = GetRequiredInt(fields, dataSource.TradeCountColumn, "تعداد معاملات"),
+                ShareCount = GetRequiredDouble(fields, dataSource.ShareCountColumn, "تعداد سهام"),
+                MarketValue = GetRequiredDouble(fields, dataSource.MarketValueColumn, "ارزش بازار")
             };
 
             if (dataSource.HasDateTime)
@@ -159,10 +146,8 @@ namespace TradeIt.Data
                     throw new FormatException("نام نماد از نام فایل قابل استخراج نیست.");
                 return symbol;
             }
-
             if (string.Equals(dataSource.SymbolSource, "FileContent", StringComparison.OrdinalIgnoreCase))
                 return GetRequiredString(fields, dataSource.SymbolColumn, "نام نماد");
-
             throw new FormatException("منبع نام نماد در تنظیمات داده معتبر نیست.");
         }
 
@@ -172,51 +157,47 @@ namespace TradeIt.Data
             return fields[index].Trim();
         }
 
-        private static string GetOptionalString(string[] fields, int index)
-        {
-            return GetString(fields, index);
-        }
+        private static string GetOptionalString(string[] fields, int index) => GetString(fields, index);
 
         private static string GetRequiredString(string[] fields, int index, string columnName)
         {
             if (index < 0 || index >= fields.Length)
-                throw new FormatException($"ستون «{columnName}» (شماره {index}) در فایل داده وجود ندارد. تعداد ستون‌های ردیف: {fields.Length}.");
-
+                throw new FormatException($"ستون «{columnName}» (شماره {index + 1}) در فایل داده وجود ندارد. تعداد ستون‌های ردیف: {fields.Length}.");
             string value = fields[index].Trim();
             if (string.IsNullOrWhiteSpace(value))
                 throw new FormatException($"مقدار ستون «{columnName}» در ردیف خالی است (شماره ستون: {index + 1}).");
-
             return value;
         }
 
-        private static double GetRequiredDouble(string[] fields, int index)
+        private static double GetRequiredDouble(string[] fields, int index, string columnName)
         {
             if (index < 0 || index >= fields.Length)
-                throw new FormatException("ستون عددی موردنیاز در فایل داده وجود ندارد.");
+                throw new FormatException($"ستون عددی «{columnName}» (شماره {index + 1}) در فایل داده وجود ندارد. تعداد ستون‌های ردیف: {fields.Length}.");
 
-            string value = fields[index].Trim().Replace(",", "");
+            string raw = fields[index].Trim();
+            string value = raw.Replace(",", "");
             if (string.IsNullOrWhiteSpace(value))
-                throw new FormatException("مقدار عددی موردنیاز در فایل داده خالی است.");
+                throw new FormatException($"مقدار ستون عددی «{columnName}» خالی است (شماره ستون: {index + 1}). مقدار خام: «{raw}».");
 
             if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ||
                 double.IsNaN(result) || double.IsInfinity(result))
-                throw new FormatException("مقدار عددی فایل داده معتبر نیست.");
+                throw new FormatException($"مقدار ستون عددی «{columnName}» معتبر نیست (شماره ستون: {index + 1}). مقدار خام: «{raw}».");
 
             return result;
         }
 
-        private static int GetRequiredInt(string[] fields, int index)
+        private static int GetRequiredInt(string[] fields, int index, string columnName)
         {
             if (index < 0 || index >= fields.Length)
-                throw new FormatException("ستون عدد صحیح موردنیاز در فایل داده وجود ندارد.");
+                throw new FormatException($"ستون عدد صحیح «{columnName}» (شماره {index + 1}) در فایل داده وجود ندارد. تعداد ستون‌های ردیف: {fields.Length}.");
 
-            string value = fields[index].Trim().Replace(",", "");
+            string raw = fields[index].Trim();
+            string value = raw.Replace(",", "");
             if (string.IsNullOrWhiteSpace(value))
-                throw new FormatException("مقدار عدد صحیح موردنیاز در فایل داده خالی است.");
+                throw new FormatException($"مقدار ستون عدد صحیح «{columnName}» خالی است (شماره ستون: {index + 1}). مقدار خام: «{raw}».");
 
             if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int result))
-                throw new FormatException("مقدار عدد صحیح فایل داده معتبر نیست.");
-
+                throw new FormatException($"مقدار ستون عدد صحیح «{columnName}» معتبر نیست (شماره ستون: {index + 1}). مقدار خام: «{raw}».");
             return result;
         }
 
@@ -228,19 +209,23 @@ namespace TradeIt.Data
             try
             {
                 string combined = string.IsNullOrWhiteSpace(time) ? date : $"{date} {time}";
-                string format = string.IsNullOrWhiteSpace(time) ? dataSource.DateFormat : $"{dataSource.DateFormat} {dataSource.TimeFormat}";
-
-                if (dataSource.Calendar == "Persian")
+                if (dataSource.Calendar == CalendarType.Persian)
                 {
-                    CultureInfo culture = new CultureInfo("fa-IR");
-                    culture.DateTimeFormat.Calendar = new PersianCalendar();
-                    if (DateTime.TryParseExact(combined, format, culture, DateTimeStyles.None, out DateTime result))
-                        return result;
-                    return null;
+                    string normalized = date.Replace("/", "-");
+                    string[] parts = normalized.Split('-');
+                    if (parts.Length >= 3 && int.TryParse(parts[0], out int y) && int.TryParse(parts[1], out int m) && int.TryParse(parts[2], out int d))
+                    {
+                        var pc = new System.Globalization.PersianCalendar();
+                        DateTime dt = pc.ToDateTime(y, m, d, 0, 0, 0, 0);
+                        if (!string.IsNullOrWhiteSpace(time) && TimeSpan.TryParse(time, CultureInfo.InvariantCulture, out TimeSpan ts))
+                            dt = dt.Date + ts;
+                        return dt;
+                    }
                 }
-
-                if (DateTime.TryParseExact(combined, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime gregorianResult))
-                    return gregorianResult;
+                if (DateTime.TryParse(combined, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out DateTime result))
+                    return result;
+                if (DateTime.TryParse(combined, CultureInfo.CurrentCulture, DateTimeStyles.AllowWhiteSpaces, out result))
+                    return result;
             }
             catch { }
             return null;
