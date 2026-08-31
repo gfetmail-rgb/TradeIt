@@ -148,11 +148,6 @@ namespace TradeIt
             FullScreenExitButton.Visibility = Visibility.Collapsed;
         }
 
-        private void ExitFullScreen()
-        {
-            ExitChartFullScreen();
-        }
-
         private void CloseChartFullScreenIfOpen()
         {
             ExitChartFullScreen();
@@ -167,11 +162,6 @@ namespace TradeIt
         }
 
         private void FullScreenExitButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Fullscreen intentionally disabled.
-        }
-
-        private void ExitFullScreen()
         {
             // Fullscreen intentionally disabled.
         }
