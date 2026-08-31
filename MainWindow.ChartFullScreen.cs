@@ -40,8 +40,7 @@ namespace TradeIt
                 Padding = new Thickness(10, 0, 10, 0),
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(0, 12, 12, 0),
-                Panel = null
+                Margin = new Thickness(0, 12, 12, 0)
             };
 
             Panel.SetZIndex(exitButton, 10000);
