@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -8,7 +9,6 @@ namespace TradeIt.Charts
     public partial class ChartTabView
     {
         private ScottPlot.Plottables.Crosshair? _volumeCrosshair;
-        private bool _volumeCrosshairRegistered;
 
         private static readonly bool _performanceVolumeFixesRegistered = RegisterPerformanceVolumeFixes();
 
@@ -27,10 +27,9 @@ namespace TradeIt.Charts
             if (sender is not ChartTabView chart)
                 return;
 
-            // The old UserRequestedFixes handler performs Enumerable.Range(...).OrderBy(...)
-            // on every mouse move. With a large candle history this creates a large amount
-            // of garbage and makes the entire chart feel delayed. DisplayFixes already owns
-            // the current crosshair logic, so the duplicate handler must not remain attached.
+            // UserRequestedFixes has an expensive Enumerable.Range(...).OrderBy(...)
+            // on every mouse move. DisplayFixes already performs the crosshair update,
+            // so remove the duplicate handler after all Loaded handlers have run.
             chart.Dispatcher.BeginInvoke(
                 DispatcherPriority.Loaded,
                 new Action(() =>
@@ -39,6 +38,7 @@ namespace TradeIt.Charts
                 }));
 
             chart.InitializeVolumeCrosshair();
+
             chart.VolumeContainer.IsVisibleChanged -= chart.VolumeContainer_IsVisibleChanged;
             chart.VolumeContainer.IsVisibleChanged += chart.VolumeContainer_IsVisibleChanged;
 
@@ -60,24 +60,47 @@ namespace TradeIt.Charts
                 return;
 
             _volumeCrosshair = VolumeChart.Plot.Add.Crosshair(0, 0);
+            ConfigureVolumeCrosshairStyle(_volumeCrosshair);
             _volumeCrosshair.IsVisible = false;
-            _volumeCrosshair.LineColor = ScottPlot.Color.FromHtml("#707070");
-            _volumeCrosshair.LineWidth = 1;
-            _volumeCrosshair.LinePattern = ScottPlot.LinePattern.Dashed;
-            _volumeCrosshair.MarkerSize = 7;
-            _volumeCrosshair.MarkerColor = ScottPlot.Color.FromHtml("#202020");
-            _volumeCrosshair.MarkerFillColor = ScottPlot.Color.FromHtml("#FFFFFF");
-            _volumeCrosshair.MarkerLineColor = ScottPlot.Color.FromHtml("#202020");
-            _volumeCrosshair.MarkerLineWidth = 1;
-            _volumeCrosshair.TextColor = ScottPlot.Color.FromHtml("#FFFFFF");
-            _volumeCrosshair.TextBackgroundColor = ScottPlot.Color.FromHtml("#202020");
-            _volumeCrosshair.FontSize = 12;
-            _volumeCrosshair.FontBold = true;
-            _volumeCrosshair.HorizontalLine.LabelOppositeAxis = false;
-            _volumeCrosshair.VerticalLine.LabelOppositeAxis = false;
-            _volumeCrosshair.HorizontalLine.LabelAlignment = ScottPlot.Alignment.MiddleRight;
-            _volumeCrosshair.VerticalLine.LabelAlignment = ScottPlot.Alignment.LowerCenter;
-            _volumeCrosshairRegistered = true;
+        }
+
+        private static void ConfigureVolumeCrosshairStyle(ScottPlot.Plottables.Crosshair crosshair)
+        {
+            crosshair.LineColor = ScottPlot.Color.FromHtml("#707070");
+            crosshair.LineWidth = 1;
+            crosshair.LinePattern = ScottPlot.LinePattern.Dashed;
+            crosshair.MarkerSize = 7;
+            crosshair.MarkerColor = ScottPlot.Color.FromHtml("#202020");
+            crosshair.MarkerFillColor = ScottPlot.Color.FromHtml("#FFFFFF");
+            crosshair.MarkerLineColor = ScottPlot.Color.FromHtml("#202020");
+            crosshair.MarkerLineWidth = 1;
+            crosshair.TextColor = ScottPlot.Color.FromHtml("#FFFFFF");
+            crosshair.TextBackgroundColor = ScottPlot.Color.FromHtml("#202020");
+            crosshair.FontSize = 12;
+            crosshair.FontBold = true;
+            crosshair.HorizontalLine.LabelOppositeAxis = false;
+            crosshair.VerticalLine.LabelOppositeAxis = false;
+            crosshair.HorizontalLine.LabelAlignment = ScottPlot.Alignment.MiddleRight;
+            crosshair.VerticalLine.LabelAlignment = ScottPlot.Alignment.LowerCenter;
+        }
+
+        private void EnsureVolumeCrosshair()
+        {
+            if (_volumeCrosshair == null)
+            {
+                InitializeVolumeCrosshair();
+                return;
+            }
+
+            bool exists = VolumeChart.Plot.GetPlottables().Contains(_volumeCrosshair);
+            if (exists)
+                return;
+
+            // DrawVolume() clears all volume plottables. Re-add the crosshair after
+            // every redraw without changing the existing volume drawing code.
+            _volumeCrosshair = VolumeChart.Plot.Add.Crosshair(0, 0);
+            ConfigureVolumeCrosshairStyle(_volumeCrosshair);
+            _volumeCrosshair.IsVisible = false;
         }
 
         private void ApplyVolumeSplitterState()
@@ -97,23 +120,22 @@ namespace TradeIt.Charts
         private void VolumeContainer_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             ApplyVolumeSplitterState();
+            if (VolumeContainer.Visibility == Visibility.Visible)
+                EnsureVolumeCrosshair();
         }
 
         private void PerformanceVolumeFixes_ChartMouseMove(object sender, MouseEventArgs e)
         {
-            if (!_volumeVisible ||
-                !_crosshairVisible ||
-                !_chartVisible ||
-                _volumeCrosshair == null ||
-                _crosshair == null ||
-                !_crosshair.IsVisible)
+            if (!_volumeVisible || !_crosshairVisible || !_chartVisible || _crosshair == null)
             {
                 if (_volumeCrosshair != null)
                     _volumeCrosshair.IsVisible = false;
                 return;
             }
 
-            if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out _))
+            EnsureVolumeCrosshair();
+
+            if (!_crosshair.IsVisible)
                 return;
 
             double x = _crosshair.Position.X;
@@ -123,7 +145,7 @@ namespace TradeIt.Charts
             var limits = VolumeChart.Plot.Axes.GetLimits();
             double y = Math.Clamp(limits.Top * 0.5, limits.Bottom, limits.Top);
 
-            _volumeCrosshair.Position = new ScottPlot.Coordinates(x, y);
+            _volumeCrosshair!.Position = new ScottPlot.Coordinates(x, y);
             _volumeCrosshair.HorizontalLine.Text = "";
             _volumeCrosshair.VerticalLine.Text = _crosshair.VerticalLine.Text;
             _volumeCrosshair.IsVisible = true;
@@ -132,24 +154,28 @@ namespace TradeIt.Charts
 
         private void PerformanceVolumeFixes_VolumeMouseMove(object sender, MouseEventArgs e)
         {
-            if (!_volumeVisible ||
-                !_crosshairVisible ||
-                !_chartVisible ||
-                _volumeCrosshair == null)
+            if (!_volumeVisible || !_crosshairVisible || !_chartVisible)
             {
                 if (_volumeCrosshair != null)
                     _volumeCrosshair.IsVisible = false;
                 return;
             }
 
-            if (!TryGetChartCoordinates(VolumeChart, e.GetPosition(VolumeChart), out ScottPlot.Coordinates coordinates))
+            EnsureVolumeCrosshair();
+
+            if (!TryGetChartCoordinates(
+                    VolumeChart,
+                    e.GetPosition(VolumeChart),
+                    out ScottPlot.Coordinates coordinates))
+            {
                 return;
+            }
 
             double x = coordinates.X;
             if (_crosshair != null && _crosshair.IsVisible)
                 x = _crosshair.Position.X;
 
-            _volumeCrosshair.Position = new ScottPlot.Coordinates(x, coordinates.Y);
+            _volumeCrosshair!.Position = new ScottPlot.Coordinates(x, coordinates.Y);
             _volumeCrosshair.HorizontalLine.Text = (coordinates.Y * VolumeScale).ToString("N0");
             _volumeCrosshair.VerticalLine.Text = _crosshair?.VerticalLine.Text ?? "";
             _volumeCrosshair.IsVisible = true;
