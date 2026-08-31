@@ -5,6 +5,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using TradeIt.Models;
+using WpfButton = System.Windows.Controls.Button;
+using WpfGrid = System.Windows.Controls.Grid;
+using WpfTabControl = System.Windows.Controls.TabControl;
+using WpfTextBox = System.Windows.Controls.TextBox;
 using WpfMessageBox = System.Windows.MessageBox;
 using WpfMessageBoxButton = System.Windows.MessageBoxButton;
 using WpfMessageBoxImage = System.Windows.MessageBoxImage;
@@ -13,15 +17,10 @@ namespace TradeIt
 {
     public partial class MainWindow
     {
-        private TabControl? _symbolToolsTabControl;
-        private Grid? _symbolToolsRowHost;
+        private WpfTabControl? _symbolToolsTabControl;
+        private WpfGrid? _symbolToolsRowHost;
         private bool _symbolToolsExpanded = true;
         private readonly TradeIt.Services.SymbolClassificationStore _classificationStore = new();
-
-        private void MainWindow_SymbolGroupsCollapseLoaded(object sender, RoutedEventArgs e)
-        {
-            BuildSymbolToolsTabs();
-        }
 
         private void BuildSymbolToolsTabs()
         {
@@ -31,7 +30,7 @@ namespace TradeIt
             SymbolsGroupsContent.Children.Remove(SymbolFilterGroup);
             SymbolsGroupsContent.Children.Remove(SymbolOperationsGroup);
 
-            _symbolToolsTabControl = new TabControl
+            _symbolToolsTabControl = new WpfTabControl
             {
                 Margin = new Thickness(0),
                 HorizontalContentAlignment = HorizontalAlignment.Stretch,
@@ -41,16 +40,16 @@ namespace TradeIt
             _symbolToolsTabControl.Items.Add(new TabItem { Header = "فیلترها", Content = SymbolFilterGroup });
             _symbolToolsTabControl.Items.Add(new TabItem { Header = "عملیات", Content = SymbolOperationsGroup });
             _symbolToolsTabControl.Items.Add(new TabItem { Header = "طبقه‌بندی", Content = BuildClassificationPage() });
-            _symbolToolsTabControl.Items.Add(new TabItem { Header = "صفحه جدید", Content = new Grid() });
+            _symbolToolsTabControl.Items.Add(new TabItem { Header = "صفحه جدید", Content = new WpfGrid() });
             _symbolToolsTabControl.SelectionChanged += SymbolToolsTabControl_SelectionChanged;
 
-            var host = new Grid();
+            var host = new WpfGrid();
             _symbolToolsRowHost = host;
             Grid.SetRow(host, 1);
             SymbolsGroupsContent.Children.Add(host);
             host.Children.Add(_symbolToolsTabControl);
 
-            var collapseButton = new Button
+            var collapseButton = new WpfButton
             {
                 Content = "▲",
                 Width = 28,
@@ -71,14 +70,14 @@ namespace TradeIt
 
         private void SymbolToolsCollapseButton_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button button)
+            if (sender is WpfButton button)
             {
                 _symbolToolsExpanded = !_symbolToolsExpanded;
                 UpdateSymbolToolsLayout(button);
             }
         }
 
-        private void UpdateSymbolToolsLayout(Button button)
+        private void UpdateSymbolToolsLayout(WpfButton button)
         {
             if (_symbolToolsRowHost == null)
                 return;
@@ -86,16 +85,12 @@ namespace TradeIt
             if (_symbolToolsExpanded)
             {
                 SymbolTableGroupRow.Height = new GridLength(1, GridUnitType.Auto);
-                SymbolFilterGroupRow.Height = new GridLength(1, GridUnitType.Star);
-                SymbolOperationsGroupRow.Height = new GridLength(0);
                 _symbolToolsRowHost.Visibility = Visibility.Visible;
                 button.Content = "▲";
             }
             else
             {
                 SymbolTableGroupRow.Height = new GridLength(1, GridUnitType.Star);
-                SymbolFilterGroupRow.Height = new GridLength(0);
-                SymbolOperationsGroupRow.Height = new GridLength(0);
                 _symbolToolsRowHost.Visibility = Visibility.Collapsed;
                 button.Content = "▼";
             }
@@ -103,7 +98,7 @@ namespace TradeIt
 
         private FrameworkElement BuildClassificationPage()
         {
-            var root = new Grid { Margin = new Thickness(8) };
+            var root = new WpfGrid { Margin = new Thickness(8) };
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
@@ -134,7 +129,7 @@ namespace TradeIt
             Grid.SetRow(hint, 2);
             root.Children.Add(hint);
 
-            var save = new Button
+            var save = new WpfButton
             {
                 Content = "اعمال طبقه‌بندی",
                 Height = 30,
@@ -147,11 +142,11 @@ namespace TradeIt
             return root;
         }
 
-        private TextBox MakeField(string label)
+        private WpfTextBox MakeField(string label)
         {
             var panel = new StackPanel { Width = 110, Margin = new Thickness(0, 0, 6, 0) };
             panel.Children.Add(new TextBlock { Text = label, Margin = new Thickness(0, 0, 0, 3) });
-            var box = new TextBox { Height = 28, Padding = new Thickness(5, 1, 5, 1) };
+            var box = new WpfTextBox { Height = 28, Padding = new Thickness(5, 1, 5, 1) };
             panel.Children.Add(box);
             return box;
         }
@@ -204,14 +199,14 @@ namespace TradeIt
             StatusTextBlock.Text = $"طبقه‌بندی {selected.Count:N0} نماد اعمال شد.";
         }
 
-        private static IEnumerable<TextBox> FindTextBoxes(DependencyObject root)
+        private static IEnumerable<WpfTextBox> FindTextBoxes(DependencyObject root)
         {
             for (int i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
             {
                 DependencyObject child = VisualTreeHelper.GetChild(root, i);
-                if (child is TextBox textBox)
+                if (child is WpfTextBox textBox)
                     yield return textBox;
-                foreach (TextBox nested in FindTextBoxes(child))
+                foreach (WpfTextBox nested in FindTextBoxes(child))
                     yield return nested;
             }
         }
