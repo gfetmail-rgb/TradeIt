@@ -106,8 +106,11 @@ namespace TradeIt
         private async void Order2AutoScrollTimer_Tick(object? sender, EventArgs e)
         {
             if (!_order2AutoScrollRunning || _order2AutoScrollLoading) return;
+
             _order2AutoScrollIndex++;
-            if (_order2AutoScrollIndex >= _allSymbols.Count) { StopOrder2AutoScroll(); return; }
+            if (_order2AutoScrollIndex >= _allSymbols.Count)
+                _order2AutoScrollIndex = 0;
+
             await ShowOrder2AutoScrollSymbolAsync();
         }
 

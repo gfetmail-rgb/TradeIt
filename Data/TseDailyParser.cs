@@ -22,16 +22,26 @@ namespace TradeIt.Data
                 string line = rawLine.Trim();
                 if (string.IsNullOrWhiteSpace(line)) { rowNumber++; continue; }
                 if (rowNumber == 0 && dataSource.HasHeader) { rowNumber++; continue; }
+
                 string[] fields = line.Split(new[] { dataSource.Delimiter }, StringSplitOptions.None);
-                try { bars.Add(ParseFields(fields, dataSource, bars.Count)); }
-                catch { }
+
+                try
+                {
+                    bars.Add(ParseFields(fields, dataSource, bars.Count));
+                }
+                catch (Exception ex)
+                {
+                    throw new FormatException(
+                        $"داده ردیف {rowNumber + 1} در فایل «{Path.GetFileName(filePath)}» معتبر نیست: {ex.Message}",
+                        ex);
+                }
+
                 rowNumber++;
             }
+
             return bars;
         }
 
-        // Returns the first valid record and the chronologically latest valid record.
-        // For files without date/time, physical order is the only available chronology.
         public (MarketBar? FirstBar, MarketBar? LastBar) ParseSummary(string filePath, DataSource dataSource)
         {
             if (!File.Exists(filePath))
@@ -53,6 +63,7 @@ namespace TradeIt.Data
                 if (rowNumber == 0 && dataSource.HasHeader) { rowNumber++; continue; }
 
                 string[] fields = line.Split(new[] { dataSource.Delimiter }, StringSplitOptions.None);
+
                 try
                 {
                     MarketBar bar = ParseSummaryFields(fields, dataSource, index++);
@@ -73,13 +84,15 @@ namespace TradeIt.Data
                         latestBar = bar;
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    throw new FormatException(
+                        $"داده ردیف {rowNumber + 1} در فایل «{Path.GetFileName(filePath)}» معتبر نیست: {ex.Message}",
+                        ex);
+                }
+
                 rowNumber++;
             }
-
-            // If dates exist but none could be parsed, fall back to the last valid record.
-            if (latestBar == null && firstBar != null)
-                latestBar = firstBar;
 
             return (firstBar, latestBar);
         }
@@ -89,14 +102,14 @@ namespace TradeIt.Data
             var bar = new MarketBar
             {
                 Index = index,
-                PersianTicker = GetString(fields, dataSource.SymbolColumn),
+                PersianTicker = GetRequiredString(fields, dataSource.SymbolColumn),
                 EnglishTicker = GetString(fields, dataSource.EnglishTickerColumn),
-                Open = GetDouble(fields, dataSource.OpenColumn),
-                High = GetDouble(fields, dataSource.HighColumn),
-                Low = GetDouble(fields, dataSource.LowColumn),
-                Close = GetDouble(fields, dataSource.CloseColumn),
-                Volume = GetDouble(fields, dataSource.VolumeColumn),
-                TSEClose = GetDouble(fields, dataSource.TSECloseColumn)
+                Open = GetRequiredDouble(fields, dataSource.OpenColumn),
+                High = GetRequiredDouble(fields, dataSource.HighColumn),
+                Low = GetRequiredDouble(fields, dataSource.LowColumn),
+                Close = GetRequiredDouble(fields, dataSource.CloseColumn),
+                Volume = GetRequiredDouble(fields, dataSource.VolumeColumn),
+                TSEClose = GetRequiredDouble(fields, dataSource.TSECloseColumn)
             };
 
             if (dataSource.HasDateTime)
@@ -113,19 +126,19 @@ namespace TradeIt.Data
             var bar = new MarketBar
             {
                 Index = index,
-                PersianTicker = GetString(fields, dataSource.SymbolColumn),
+                PersianTicker = GetRequiredString(fields, dataSource.SymbolColumn),
                 EnglishTicker = GetString(fields, dataSource.EnglishTickerColumn),
-                Open = GetDouble(fields, dataSource.OpenColumn),
-                High = GetDouble(fields, dataSource.HighColumn),
-                Low = GetDouble(fields, dataSource.LowColumn),
-                Close = GetDouble(fields, dataSource.CloseColumn),
-                Volume = GetDouble(fields, dataSource.VolumeColumn),
-                TSEClose = GetDouble(fields, dataSource.TSECloseColumn),
-                Previous = GetDouble(fields, dataSource.PreviousColumn),
-                Value = GetDouble(fields, dataSource.ValueColumn),
-                TradeCount = GetInt(fields, dataSource.TradeCountColumn),
-                ShareCount = GetDouble(fields, dataSource.ShareCountColumn),
-                MarketValue = GetDouble(fields, dataSource.MarketValueColumn)
+                Open = GetRequiredDouble(fields, dataSource.OpenColumn),
+                High = GetRequiredDouble(fields, dataSource.HighColumn),
+                Low = GetRequiredDouble(fields, dataSource.LowColumn),
+                Close = GetRequiredDouble(fields, dataSource.CloseColumn),
+                Volume = GetRequiredDouble(fields, dataSource.VolumeColumn),
+                TSEClose = GetRequiredDouble(fields, dataSource.TSECloseColumn),
+                Previous = GetRequiredDouble(fields, dataSource.PreviousColumn),
+                Value = GetRequiredDouble(fields, dataSource.ValueColumn),
+                TradeCount = GetRequiredInt(fields, dataSource.TradeCountColumn),
+                ShareCount = GetRequiredDouble(fields, dataSource.ShareCountColumn),
+                MarketValue = GetRequiredDouble(fields, dataSource.MarketValueColumn)
             };
 
             if (dataSource.HasDateTime)
@@ -143,20 +156,47 @@ namespace TradeIt.Data
             return fields[index].Trim();
         }
 
-        private static double GetDouble(string[] fields, int index)
+        private static string GetRequiredString(string[] fields, int index)
         {
-            if (index < 0 || index >= fields.Length) return 0;
-            string value = fields[index].Trim().Replace(",", "");
-            if (string.IsNullOrWhiteSpace(value)) return 0;
-            return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0;
+            if (index < 0 || index >= fields.Length)
+                throw new FormatException("ستون متنی موردنیاز در فایل داده وجود ندارد.");
+
+            string value = fields[index].Trim();
+            if (string.IsNullOrWhiteSpace(value))
+                throw new FormatException("مقدار متنی موردنیاز در فایل داده خالی است.");
+
+            return value;
         }
 
-        private static int GetInt(string[] fields, int index)
+        private static double GetRequiredDouble(string[] fields, int index)
         {
-            if (index < 0 || index >= fields.Length) return 0;
+            if (index < 0 || index >= fields.Length)
+                throw new FormatException("ستون عددی موردنیاز در فایل داده وجود ندارد.");
+
             string value = fields[index].Trim().Replace(",", "");
-            if (string.IsNullOrWhiteSpace(value)) return 0;
-            return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int result) ? result : 0;
+            if (string.IsNullOrWhiteSpace(value))
+                throw new FormatException("مقدار عددی موردنیاز در فایل داده خالی است.");
+
+            if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ||
+                double.IsNaN(result) || double.IsInfinity(result))
+                throw new FormatException("مقدار عددی فایل داده معتبر نیست.");
+
+            return result;
+        }
+
+        private static int GetRequiredInt(string[] fields, int index)
+        {
+            if (index < 0 || index >= fields.Length)
+                throw new FormatException("ستون عدد صحیح موردنیاز در فایل داده وجود ندارد.");
+
+            string value = fields[index].Trim().Replace(",", "");
+            if (string.IsNullOrWhiteSpace(value))
+                throw new FormatException("مقدار عدد صحیح موردنیاز در فایل داده خالی است.");
+
+            if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int result))
+                throw new FormatException("مقدار عدد صحیح فایل داده معتبر نیست.");
+
+            return result;
         }
 
         private static DateTime? ParseTimestamp(string date, string time, DataSource dataSource)

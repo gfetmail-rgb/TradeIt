@@ -967,7 +967,7 @@ namespace TradeIt
             }
 
             string message =
-                $"آیا می‌خواهید {selected.Count:N0} نماد انتخاب‌شده از سبد «{_selectedPortfolio.Name}» حذف شود؟";
+                $"آیا میخواهید {selected.Count:N0} نماد انتخاب‌شده از سبد «{_selectedPortfolio.Name}» حذف شود؟";
 
             MessageBoxResult answer =
                 WpfMessageBox.Show(
