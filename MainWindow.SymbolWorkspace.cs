@@ -28,8 +28,6 @@ namespace TradeIt
             if (_symbolToolsTabControl != null || SymbolsGroupsContent == null)
                 return;
 
-            // Move the existing filter and operation panels into TabItems.
-            // Their controls and event handlers remain unchanged.
             SymbolsGroupsContent.Children.Remove(SymbolFilterGroup);
             SymbolsGroupsContent.Children.Remove(SymbolOperationsGroup);
 
@@ -67,10 +65,8 @@ namespace TradeIt
             Panel.SetZIndex(collapseButton, 10);
             host.Children.Add(collapseButton);
 
-            SymbolTableGroupRow.Height = new GridLength(1, GridUnitType.Auto);
-            SymbolFilterGroupRow.Height = new GridLength(0);
-            SymbolOperationsGroupRow.Height = new GridLength(0);
             _symbolToolsExpanded = true;
+            UpdateSymbolToolsLayout(collapseButton);
         }
 
         private void SymbolToolsCollapseButton_Click(object sender, RoutedEventArgs e)
@@ -78,11 +74,30 @@ namespace TradeIt
             if (sender is Button button)
             {
                 _symbolToolsExpanded = !_symbolToolsExpanded;
-                SymbolTableGroupRow.Height = _symbolToolsExpanded
-                    ? new GridLength(1, GridUnitType.Auto)
-                    : new GridLength(1, GridUnitType.Star);
-                _symbolToolsRowHost!.Visibility = _symbolToolsExpanded ? Visibility.Visible : Visibility.Collapsed;
-                button.Content = _symbolToolsExpanded ? "▲" : "▼";
+                UpdateSymbolToolsLayout(button);
+            }
+        }
+
+        private void UpdateSymbolToolsLayout(Button button)
+        {
+            if (_symbolToolsRowHost == null)
+                return;
+
+            if (_symbolToolsExpanded)
+            {
+                SymbolTableGroupRow.Height = new GridLength(1, GridUnitType.Auto);
+                SymbolFilterGroupRow.Height = new GridLength(1, GridUnitType.Star);
+                SymbolOperationsGroupRow.Height = new GridLength(0);
+                _symbolToolsRowHost.Visibility = Visibility.Visible;
+                button.Content = "▲";
+            }
+            else
+            {
+                SymbolTableGroupRow.Height = new GridLength(1, GridUnitType.Star);
+                SymbolFilterGroupRow.Height = new GridLength(0);
+                SymbolOperationsGroupRow.Height = new GridLength(0);
+                _symbolToolsRowHost.Visibility = Visibility.Collapsed;
+                button.Content = "▼";
             }
         }
 
@@ -94,13 +109,12 @@ namespace TradeIt
             root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            var title = new TextBlock
+            root.Children.Add(new TextBlock
             {
                 Text = "تعیین نوع سهم، صنعت، گروه و زیرگروه",
                 FontWeight = FontWeights.SemiBold,
                 Margin = new Thickness(0, 0, 0, 8)
-            };
-            root.Children.Add(title);
+            });
 
             var fields = new StackPanel { Orientation = Orientation.Horizontal };
             fields.Children.Add(MakeField("نوع سهم"));
