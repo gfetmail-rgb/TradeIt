@@ -10,11 +10,12 @@ namespace TradeIt.Charts
     {
         private void ChartOhlcOverlay_Loaded(object sender, RoutedEventArgs e)
         {
-            // Layout must not be changed here. Doing so after the first render
-            // causes a visible jump when the mouse first enters the chart.
+            // Never change ScottPlot layout here. Doing so after the first render
+            // can move the chart when the mouse first enters it.
             if (ChartTitleTextBlock != null)
                 ChartTitleTextBlock.Text = _symbol.DisplayName;
 
+            InstallSharedChartInteraction();
             UpdateChartOhlcHeader(_bars.Count > 0 ? _bars.Count - 1 : -1);
             UpdateVolumeInfo(_bars.Count > 0 ? _bars.Count - 1 : -1);
         }
