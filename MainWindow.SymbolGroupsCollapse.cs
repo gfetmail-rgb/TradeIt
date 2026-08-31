@@ -25,7 +25,7 @@ namespace TradeIt
             InitializeSymbolGroupsCollapseState();
             DockSymbolGroupButtons();
             EnsureClearFiltersButton();
-            EnterFullScreen();
+            // EnterFullScreen();
         }
 
         private void InitializeSymbolGroupsCollapseState()
