@@ -89,12 +89,14 @@ namespace TradeIt
 
             if (_symbolToolsExpanded)
             {
-                SymbolTableGroupRow.Height = new GridLength(1, GridUnitType.Auto);
+                // The tools occupy the lower part of the symbols panel.
+                SymbolTableGroupRow.Height = new GridLength(1, GridUnitType.Star);
                 _symbolToolsRowHost.Visibility = Visibility.Visible;
                 button.Content = "▲";
             }
             else
             {
+                // Hide the tools and let the symbol table occupy all available height.
                 SymbolTableGroupRow.Height = new GridLength(1, GridUnitType.Star);
                 _symbolToolsRowHost.Visibility = Visibility.Collapsed;
                 button.Content = "▼";
@@ -147,13 +149,28 @@ namespace TradeIt
             return root;
         }
 
-        private WpfTextBox MakeField(string label)
+        // Return the containing panel, not the TextBox itself. A WPF element can
+        // have only one logical parent; returning the TextBox after adding it to
+        // the panel caused InvalidOperationException when the caller added it
+        // to the fields StackPanel a second time.
+        private FrameworkElement MakeField(string label)
         {
-            var panel = new StackPanel { Width = 110, Margin = new Thickness(0, 0, 6, 0) };
-            panel.Children.Add(new TextBlock { Text = label, Margin = new Thickness(0, 0, 0, 3) });
-            var box = new WpfTextBox { Height = 28, Padding = new Thickness(5, 1, 5, 1) };
-            panel.Children.Add(box);
-            return box;
+            var panel = new StackPanel
+            {
+                Width = 110,
+                Margin = new Thickness(0, 0, 6, 0)
+            };
+            panel.Children.Add(new TextBlock
+            {
+                Text = label,
+                Margin = new Thickness(0, 0, 0, 3)
+            });
+            panel.Children.Add(new WpfTextBox
+            {
+                Height = 28,
+                Padding = new Thickness(5, 1, 5, 1)
+            });
+            return panel;
         }
 
         private void SymbolToolsTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
