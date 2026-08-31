@@ -27,7 +27,7 @@ namespace TradeIt.Data
 
                 try
                 {
-                    bars.Add(ParseFields(fields, dataSource, bars.Count));
+                    bars.Add(ParseFields(fields, dataSource, bars.Count, filePath));
                 }
                 catch (Exception ex)
                 {
@@ -66,7 +66,7 @@ namespace TradeIt.Data
 
                 try
                 {
-                    MarketBar bar = ParseSummaryFields(fields, dataSource, index++);
+                    MarketBar bar = ParseSummaryFields(fields, dataSource, index++, filePath);
                     if (firstBar == null)
                         firstBar = bar;
 
@@ -97,12 +97,12 @@ namespace TradeIt.Data
             return (firstBar, latestBar);
         }
 
-        private static MarketBar ParseSummaryFields(string[] fields, DataSource dataSource, int index)
+        private static MarketBar ParseSummaryFields(string[] fields, DataSource dataSource, int index, string filePath)
         {
             var bar = new MarketBar
             {
                 Index = index,
-                PersianTicker = GetRequiredString(fields, dataSource.SymbolColumn),
+                PersianTicker = GetSymbol(fields, dataSource, filePath),
                 EnglishTicker = GetString(fields, dataSource.EnglishTickerColumn),
                 Open = GetRequiredDouble(fields, dataSource.OpenColumn),
                 High = GetRequiredDouble(fields, dataSource.HighColumn),
@@ -121,12 +121,12 @@ namespace TradeIt.Data
             return bar;
         }
 
-        private static MarketBar ParseFields(string[] fields, DataSource dataSource, int index)
+        private static MarketBar ParseFields(string[] fields, DataSource dataSource, int index, string filePath)
         {
             var bar = new MarketBar
             {
                 Index = index,
-                PersianTicker = GetRequiredString(fields, dataSource.SymbolColumn),
+                PersianTicker = GetSymbol(fields, dataSource, filePath),
                 EnglishTicker = GetString(fields, dataSource.EnglishTickerColumn),
                 Open = GetRequiredDouble(fields, dataSource.OpenColumn),
                 High = GetRequiredDouble(fields, dataSource.HighColumn),
@@ -148,6 +148,22 @@ namespace TradeIt.Data
                 bar.Timestamp = ParseTimestamp(bar.JalaliDate, bar.Time, dataSource);
             }
             return bar;
+        }
+
+        private static string GetSymbol(string[] fields, DataSource dataSource, string filePath)
+        {
+            if (string.Equals(dataSource.SymbolSource, "FileName", StringComparison.OrdinalIgnoreCase))
+            {
+                string symbol = Path.GetFileNameWithoutExtension(filePath)?.Trim() ?? "";
+                if (string.IsNullOrWhiteSpace(symbol))
+                    throw new FormatException("نام نماد از نام فایل قابل استخراج نیست.");
+                return symbol;
+            }
+
+            if (string.Equals(dataSource.SymbolSource, "FileContent", StringComparison.OrdinalIgnoreCase))
+                return GetRequiredString(fields, dataSource.SymbolColumn);
+
+            throw new FormatException("منبع نام نماد در تنظیمات داده معتبر نیست.");
         }
 
         private static string GetString(string[] fields, int index)
