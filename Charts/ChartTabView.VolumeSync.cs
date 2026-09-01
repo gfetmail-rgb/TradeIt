@@ -4,11 +4,11 @@ using System.Windows;
 using System.Windows.Threading;
 using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
 using WpfMouseWheelEventArgs = System.Windows.Input.MouseWheelEventArgs;
+
 namespace TradeIt.Charts
 {
     public partial class ChartTabView
     {
-        // One logical crosshair state (selected candle) rendered by each panel.
         private ScottPlot.Plottables.Crosshair? _volumeCrosshair;
         private DispatcherTimer? _volumeSyncTimer;
         private bool _volumeSyncBusy;
@@ -58,21 +58,23 @@ namespace TradeIt.Charts
             double volumeY = _bars[index].Volume / VolumeScale;
             if (double.IsNaN(volumeY) || double.IsInfinity(volumeY) || volumeY < 0) volumeY = 0;
 
-            var priceLimits = Chart.Plot.Axes.GetLimits();
-            double priceY = (priceLimits.Bottom + priceLimits.Top) / 2.0;
             EnsureVolumeCrosshair();
             _volumeCrosshair!.Position = new ScottPlot.Coordinates(x, volumeY);
             _volumeCrosshair.IsVisible = true;
+            _volumeCrosshair.VerticalLine.IsVisible = true;
+            _volumeCrosshair.HorizontalLine.IsVisible = false;
+            ApplyVolumeCrosshairSettings();
 
+            // When the pointer is over Volume, the price-chart crosshair must disappear
+            // completely. In particular, its horizontal price line must not remain frozen.
             if (_crosshair != null)
             {
-                _crosshair.Position = new ScottPlot.Coordinates(x, priceY);
-                _crosshair.IsVisible = true;
+                _crosshair.IsVisible = false;
+                Chart.Refresh();
             }
 
             _crosshairMouseInside = true;
-            UpdateMouseInformation(new ScottPlot.Coordinates(x, priceY));
-            Chart.Refresh();
+            UpdateMouseInformation(new ScottPlot.Coordinates(x, volumeY));
             VolumeChart.Refresh();
         }
 
@@ -132,22 +134,15 @@ namespace TradeIt.Charts
         private void EnsureVolumeCrosshair()
         {
             if (!_volumeVisible) return;
-            if (_volumeCrosshair != null && VolumeChart.Plot.GetPlottables().Contains(_volumeCrosshair)) return;
+            if (_volumeCrosshair != null && VolumeChart.Plot.GetPlottables().Contains(_volumeCrosshair))
+            {
+                ApplyVolumeCrosshairSettings();
+                return;
+            }
 
             _volumeCrosshair = VolumeChart.Plot.Add.Crosshair(0, 0);
             _volumeCrosshair.IsVisible = false;
-            _volumeCrosshair.LineColor = ScottPlot.Color.FromHtml("#707070");
-            _volumeCrosshair.LineWidth = 1;
-            _volumeCrosshair.LinePattern = ScottPlot.LinePattern.Dashed;
-            _volumeCrosshair.MarkerSize = 7;
-            _volumeCrosshair.MarkerColor = ScottPlot.Color.FromHtml("#202020");
-            _volumeCrosshair.MarkerFillColor = ScottPlot.Color.FromHtml("#FFFFFF");
-            _volumeCrosshair.MarkerLineColor = ScottPlot.Color.FromHtml("#202020");
-            _volumeCrosshair.MarkerLineWidth = 1;
-            _volumeCrosshair.TextColor = ScottPlot.Color.FromHtml("#FFFFFF");
-            _volumeCrosshair.TextBackgroundColor = ScottPlot.Color.FromHtml("#202020");
-            _volumeCrosshair.FontSize = 12;
-            _volumeCrosshair.FontBold = true;
+            ApplyVolumeCrosshairSettings();
         }
 
         private void SnapMainCrosshairToCandle()
@@ -169,6 +164,7 @@ namespace TradeIt.Charts
                 if (double.IsNaN(volumeY) || double.IsInfinity(volumeY) || volumeY < 0) volumeY = 0;
                 _volumeCrosshair!.Position = new ScottPlot.Coordinates(x, volumeY);
                 _volumeCrosshair.IsVisible = true;
+                ApplyVolumeCrosshairSettings();
                 VolumeChart.Refresh();
             }
         }
