@@ -44,6 +44,8 @@ namespace TradeIt.Charts
 
             try
             {
+                _settings = ChartSettingsManager.Current;
+
                 const float leftPanel = 85f;
                 const float rightPanel = 30f;
                 const float bottomPanel = 55f;
@@ -55,10 +57,8 @@ namespace TradeIt.Charts
                 VolumeChart.Plot.Axes.Right.MinimumSize = rightPanel;
                 VolumeChart.Plot.Axes.Bottom.MinimumSize = bottomPanel;
 
-                // Do not rescale/synchronize the volume axis here. Settings changes
-                // must only restyle the already-rendered volume chart. Rescaling while
-                // the settings window is closing can run during a ScottPlot redraw and
-                // cause a runtime exception.
+                // Settings changes only restyle the existing volume plot. They do not
+                // change its axis limits or trigger a second synchronization pass.
                 ApplyVolumeBarSettings();
                 ApplyVolumeCrosshairSettings();
 
@@ -75,7 +75,7 @@ namespace TradeIt.Charts
         private void ApplyVolumeBarSettings()
         {
             ScottPlot.Color black = ScottPlot.Color.FromHex("#000000");
-            double width = Math.Max(0.05, _settings?.VolumeBarWidth ?? 0.8);
+            double width = Math.Max(0.05, _settings.VolumeBarWidth);
 
             foreach (var plottable in VolumeChart.Plot.GetPlottables())
             {
@@ -91,7 +91,7 @@ namespace TradeIt.Charts
                     bar.Size = width;
                     bar.FillColor = black;
                     bar.LineColor = black;
-                    bar.LineWidth = (float)Math.Max(0.5, _settings?.VolumeBarWidth ?? 0.8);
+                    bar.LineWidth = (float)Math.Max(0.5, width);
                 }
             }
         }
