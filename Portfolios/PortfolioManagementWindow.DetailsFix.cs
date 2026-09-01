@@ -7,6 +7,19 @@ namespace TradeIt.Portfolios
     public partial class PortfolioManagementWindow
     {
         private bool _detailsFixHandlerAttached;
+        private static readonly bool _detailsFixClassHandlerRegistered = RegisterDetailsFixClassHandler();
+
+        private static bool RegisterDetailsFixClassHandler()
+        {
+            EventManager.RegisterClassHandler(typeof(PortfolioManagementWindow), Window.LoadedEvent, new RoutedEventHandler(DetailsFixLoadedClassHandler));
+            return true;
+        }
+
+        private static void DetailsFixLoadedClassHandler(object sender, RoutedEventArgs e)
+        {
+            if (sender is PortfolioManagementWindow window)
+                window.AttachPortfolioDetailsFix();
+        }
 
         private void AttachPortfolioDetailsFix()
         {
@@ -39,13 +52,6 @@ namespace TradeIt.Portfolios
 
             DateFormatTextBox.Text = dataSource?.DateFormat ?? "";
             TimeFormatTextBox.Text = dataSource?.TimeFormat ?? "";
-        }
-
-        private void PortfolioManagementWindow_DetailsFixLoaded(object sender, RoutedEventArgs e)
-        {
-            AttachPortfolioDetailsFix();
-            if (_selectedPortfolio != null)
-                ShowCalendarAndDateTimeDetails(_selectedPortfolio);
         }
     }
 }
