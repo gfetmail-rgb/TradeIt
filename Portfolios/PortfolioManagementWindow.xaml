@@ -1,539 +1,65 @@
 ﻿<Window x:Class="TradeIt.Portfolios.PortfolioManagementWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="مدیریت سبدها"
-        Height="700"
-        Width="1100"
-        MinHeight="550"
-        MinWidth="850"
-        WindowStartupLocation="CenterOwner"
-        FlowDirection="RightToLeft">
-
+        Title="مدیریت سبدها" Height="700" Width="1100" MinHeight="550" MinWidth="850" WindowStartupLocation="CenterOwner" FlowDirection="RightToLeft">
     <Grid Margin="12">
-
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-
-        <!-- ===================================================== -->
-        <!-- Header -->
-        <!-- ===================================================== -->
-
-        <Border Grid.Row="0"
-                Background="#F5F5F5"
-                BorderBrush="#D0D0D0"
-                BorderThickness="1"
-                CornerRadius="4"
-                Padding="10"
-                Margin="0,0,0,10">
-
-            <Grid>
-
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <TextBlock Grid.Column="0"
-                           Text="مدیریت سبدها"
-                           FontSize="18"
-                           FontWeight="SemiBold"
-                           VerticalAlignment="Center"/>
-
-                <TextBlock x:Name="SelectedPortfolioInfoTextBlock"
-                           Grid.Column="1"
-                           Margin="20,0"
-                           VerticalAlignment="Center"
-                           Foreground="#666666"/>
-
-                <Button x:Name="RefreshButton"
-                        Grid.Column="2"
-                        Content="بازخوانی"
-                        Width="100"
-                        Height="32"
-                        Padding="10,0"
-                        Click="RefreshButton_Click"/>
-
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Border Grid.Row="0" Background="#F5F5F5" BorderBrush="#D0D0D0" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="مدیریت سبدها" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <TextBlock x:Name="SelectedPortfolioInfoTextBlock" Grid.Column="1" Margin="20,0" VerticalAlignment="Center" Foreground="#666666"/>
+                <Button x:Name="RefreshButton" Grid.Column="2" Content="بازخوانی" Width="100" Height="32" Padding="10,0" Click="RefreshButton_Click"/>
             </Grid>
-
         </Border>
-
-
-        <!-- ===================================================== -->
-        <!-- Main Content -->
-        <!-- ===================================================== -->
-
         <Grid Grid.Row="1">
-
-            <Grid.ColumnDefinitions>
-
-                <ColumnDefinition Width="280"/>
-
-                <ColumnDefinition Width="12"/>
-
-                <ColumnDefinition Width="*"/>
-
-            </Grid.ColumnDefinitions>
-
-
-            <!-- ================================================= -->
-            <!-- Portfolio List -->
-            <!-- ================================================= -->
-
-            <GroupBox Grid.Column="0"
-                      Header="سبدهای موجود">
-
-                <Grid Margin="8">
-
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-
-                    <!-- ================================================= -->
-                    <!-- Multi Selection -->
-                    <!-- Ctrl + Click / Shift + Click -->
-                    <!-- ================================================= -->
-
-                    <ListBox x:Name="PortfolioListBox"
-                             Grid.Row="0"
-                             DisplayMemberPath="Name"
-                             SelectionMode="Extended"
-                             SelectionChanged="PortfolioListBox_SelectionChanged"
-                             MouseDoubleClick="PortfolioListBox_MouseDoubleClick"/>
-
-
-                    <!-- ================================================= -->
-                    <!-- Portfolio Buttons -->
-                    <!-- ================================================= -->
-
-                    <StackPanel Grid.Row="1"
-                                Orientation="Horizontal"
-                                HorizontalAlignment="Center"
-                                Margin="0,10,0,0">
-
-                        <Button x:Name="DeletePortfolioButton"
-                                Content="حذف سبدهای انتخاب‌شده"
-                                Width="145"
-                                Height="32"
-                                Margin="0,0,8,0"
-                                Click="DeletePortfolioButton_Click"/>
-
-                        <Button x:Name="EditPortfolioButton"
-                                Content="ویرایش سبد"
-                                Width="100"
-                                Height="32"
-                                Click="EditPortfolioButton_Click"/>
-
+            <Grid.ColumnDefinitions><ColumnDefinition Width="280"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <GroupBox Grid.Column="0" Header="سبدهای موجود">
+                <Grid Margin="8"><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <ListBox x:Name="PortfolioListBox" Grid.Row="0" DisplayMemberPath="Name" SelectionMode="Extended" SelectionChanged="PortfolioListBox_SelectionChanged" MouseDoubleClick="PortfolioListBox_MouseDoubleClick"/>
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,0">
+                        <Button x:Name="DeletePortfolioButton" Content="حذف سبدهای انتخاب‌شده" Width="145" Height="32" Click="DeletePortfolioButton_Click"/>
                     </StackPanel>
-
                 </Grid>
-
             </GroupBox>
-
-
-            <!-- ================================================= -->
-            <!-- Portfolio Details -->
-            <!-- ================================================= -->
-
             <Grid Grid.Column="2">
-
-                <Grid.RowDefinitions>
-
-                    <RowDefinition Height="Auto"/>
-
-                    <RowDefinition Height="12"/>
-
-                    <RowDefinition Height="*"/>
-
-                </Grid.RowDefinitions>
-
-
-                <!-- ============================================= -->
-                <!-- Parameters -->
-                <!-- ============================================= -->
-
-                <GroupBox Grid.Row="0"
-                          Header="پارامترهای سبد">
-
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="12"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <GroupBox Grid.Row="0" Header="پارامترهای سبد">
                     <Grid Margin="10">
-
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="140"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="140"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-
-                        <TextBlock Grid.Row="0"
-                                   Grid.Column="0"
-                                   Text="نام سبد:"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center"/>
-
-                        <TextBox x:Name="PortfolioNameTextBox"
-                                 Grid.Row="0"
-                                 Grid.Column="1"
-                                 IsReadOnly="True"
-                                 Margin="0,0,15,0"/>
-
-
-                        <TextBlock Grid.Row="0"
-                                   Grid.Column="2"
-                                   Text="نوع منبع:"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center"/>
-
-                        <TextBox x:Name="SourceTypeTextBox"
-                                 Grid.Row="0"
-                                 Grid.Column="3"
-                                 IsReadOnly="True"/>
-
-
-                        <TextBlock Grid.Row="1"
-                                   Grid.Column="0"
-                                   Text="مسیر داده:"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Top"
-                                   Margin="0,10,0,0"/>
-
-                        <TextBox x:Name="DataPathTextBox"
-                                 Grid.Row="1"
-                                 Grid.Column="1"
-                                 Grid.ColumnSpan="3"
-                                 IsReadOnly="True"
-                                 Margin="0,10,0,0"
-                                 TextWrapping="Wrap"
-                                 VerticalScrollBarVisibility="Auto"
-                                 MaxHeight="60"/>
-
-
-                        <TextBlock Grid.Row="2"
-                                   Grid.Column="0"
-                                   Text="منبع نام نماد:"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center"
-                                   Margin="0,10,0,0"/>
-
-                        <TextBox x:Name="SymbolSourceTextBox"
-                                 Grid.Row="2"
-                                 Grid.Column="1"
-                                 IsReadOnly="True"
-                                 Margin="0,10,15,0"/>
-
-
-                        <TextBlock Grid.Row="2"
-                                   Grid.Column="2"
-                                   Text="نوع داده:"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center"
-                                   Margin="0,10,0,0"/>
-
-                        <TextBox x:Name="DataTypeTextBox"
-                                 Grid.Row="2"
-                                 Grid.Column="3"
-                                 IsReadOnly="True"
-                                 Margin="0,10,0,0"/>
-
-
-                        <TextBlock Grid.Row="3"
-                                   Grid.Column="0"
-                                   Text="تقویم:"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center"
-                                   Margin="0,10,0,0"/>
-
-                        <TextBox x:Name="CalendarTextBox"
-                                 Grid.Row="3"
-                                 Grid.Column="1"
-                                 IsReadOnly="True"
-                                 Margin="0,10,15,0"/>
-
-
-                        <TextBlock Grid.Row="3"
-                                   Grid.Column="2"
-                                   Text="جداکننده:"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center"
-                                   Margin="0,10,0,0"/>
-
-                        <TextBox x:Name="DelimiterTextBox"
-                                 Grid.Row="3"
-                                 Grid.Column="3"
-                                 IsReadOnly="True"
-                                 Margin="0,10,0,0"/>
-
-
-                        <TextBlock Grid.Row="4"
-                                   Grid.Column="0"
-                                   Text="فرمت تاریخ:"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center"
-                                   Margin="0,10,0,0"/>
-
-                        <TextBox x:Name="DateFormatTextBox"
-                                 Grid.Row="4"
-                                 Grid.Column="1"
-                                 IsReadOnly="True"
-                                 Margin="0,10,15,0"/>
-
-
-                        <TextBlock Grid.Row="4"
-                                   Grid.Column="2"
-                                   Text="فرمت زمان:"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center"
-                                   Margin="0,10,0,0"/>
-
-                        <TextBox x:Name="TimeFormatTextBox"
-                                 Grid.Row="4"
-                                 Grid.Column="3"
-                                 IsReadOnly="True"
-                                 Margin="0,10,0,0"/>
-
-
-                        <TextBlock Grid.Row="5"
-                                   Grid.Column="0"
-                                   Text="تعداد نماد:"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center"
-                                   Margin="0,10,0,0"/>
-
-                        <TextBox x:Name="SymbolCountTextBox"
-                                 Grid.Row="5"
-                                 Grid.Column="1"
-                                 IsReadOnly="True"
-                                 Margin="0,10,15,0"/>
-
-
-                        <TextBlock Grid.Row="5"
-                                   Grid.Column="2"
-                                   Text="Header:"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center"
-                                   Margin="0,10,0,0"/>
-
-                        <TextBox x:Name="HeaderTextBox"
-                                 Grid.Row="5"
-                                 Grid.Column="3"
-                                 IsReadOnly="True"
-                                 Margin="0,10,0,0"/>
-
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="140"/><ColumnDefinition Width="*"/><ColumnDefinition Width="140"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="نام سبد:" FontWeight="SemiBold" VerticalAlignment="Center"/><TextBox x:Name="PortfolioNameTextBox" Grid.Row="0" Grid.Column="1" IsReadOnly="True" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Row="0" Grid.Column="2" Text="نوع منبع:" FontWeight="SemiBold" VerticalAlignment="Center"/><TextBox x:Name="SourceTypeTextBox" Grid.Row="0" Grid.Column="3" IsReadOnly="True"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="مسیر داده:" FontWeight="SemiBold" VerticalAlignment="Top" Margin="0,10,0,0"/><TextBox x:Name="DataPathTextBox" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" IsReadOnly="True" Margin="0,10,0,0" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" MaxHeight="60"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="منبع نام نماد:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,10,0,0"/><TextBox x:Name="SymbolSourceTextBox" Grid.Row="2" Grid.Column="1" IsReadOnly="True" Margin="0,10,15,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="2" Text="نوع داده:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,10,0,0"/><TextBox x:Name="DataTypeTextBox" Grid.Row="2" Grid.Column="3" IsReadOnly="True" Margin="0,10,0,0"/>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="تقویم:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,10,0,0"/><TextBox x:Name="CalendarTextBox" Grid.Row="3" Grid.Column="1" IsReadOnly="True" Margin="0,10,15,0"/>
+                        <TextBlock Grid.Row="3" Grid.Column="2" Text="جداکننده:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,10,0,0"/><TextBox x:Name="DelimiterTextBox" Grid.Row="3" Grid.Column="3" IsReadOnly="True" Margin="0,10,0,0"/>
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="فرمت تاریخ:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,10,0,0"/><TextBox x:Name="DateFormatTextBox" Grid.Row="4" Grid.Column="1" IsReadOnly="True" Margin="0,10,15,0"/>
+                        <TextBlock Grid.Row="4" Grid.Column="2" Text="فرمت زمان:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,10,0,0"/><TextBox x:Name="TimeFormatTextBox" Grid.Row="4" Grid.Column="3" IsReadOnly="True" Margin="0,10,0,0"/>
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="تعداد نماد:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,10,0,0"/><TextBox x:Name="SymbolCountTextBox" Grid.Row="5" Grid.Column="1" IsReadOnly="True" Margin="0,10,15,0"/>
+                        <TextBlock Grid.Row="5" Grid.Column="2" Text="Header:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,10,0,0"/><TextBox x:Name="HeaderTextBox" Grid.Row="5" Grid.Column="3" IsReadOnly="True" Margin="0,10,0,0"/>
                     </Grid>
-
                 </GroupBox>
-
-
-                <!-- ============================================= -->
-                <!-- Symbols -->
-                <!-- ============================================= -->
-
-                <GroupBox Grid.Row="2"
-                          Header="نمادهای سبد">
-
-                    <Grid Margin="8">
-
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="*"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-
-
-                        <!-- ===================================== -->
-                        <!-- Symbols DataGrid -->
-                        <!-- ===================================== -->
-
-                        <DataGrid x:Name="SymbolsDataGrid"
-                                  Grid.Row="0"
-                                  AutoGenerateColumns="False"
-                                  IsReadOnly="False"
-                                  SelectionMode="Extended"
-                                  SelectionUnit="FullRow"
-                                  CanUserAddRows="False"
-                                  CanUserDeleteRows="False"
-                                  HeadersVisibility="Column"
-                                  HorizontalScrollBarVisibility="Auto"
-                                  VerticalScrollBarVisibility="Auto"
-                                  EnableRowVirtualization="True"
-                                  EnableColumnVirtualization="True"
-                                  VirtualizingPanel.IsVirtualizing="True"
-                                  VirtualizingPanel.VirtualizationMode="Recycling"
-                                  ScrollViewer.CanContentScroll="True"
-                                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                                  ScrollViewer.VerticalScrollBarVisibility="Auto">
-
-
+                <GroupBox Grid.Row="2" Header="نمادهای سبد">
+                    <Grid Margin="8"><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <DataGrid x:Name="SymbolsDataGrid" Grid.Row="0" AutoGenerateColumns="False" IsReadOnly="False" SelectionMode="Extended" SelectionUnit="FullRow" CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                             <DataGrid.Columns>
-
-                                <DataGridTextColumn Header="ردیف"
-                                                    Binding="{Binding RowNumber}"
-                                                    Width="55"
-                                                    IsReadOnly="True"/>
-
-
-                                <!-- ================================= -->
-                                <!-- انتخاب -->
-                                <!-- ================================= -->
-
-                                <DataGridTemplateColumn Header="انتخاب"
-                                                        Width="60">
-
-                                    <DataGridTemplateColumn.CellTemplate>
-
-                                        <DataTemplate>
-
-                                            <CheckBox IsChecked="{Binding IsSelected,
-                                                                          Mode=TwoWay,
-                                                                          UpdateSourceTrigger=PropertyChanged}"
-                                                      HorizontalAlignment="Center"
-                                                      VerticalAlignment="Center"/>
-
-                                        </DataTemplate>
-
-                                    </DataGridTemplateColumn.CellTemplate>
-
-                                </DataGridTemplateColumn>
-
-
-                                <!-- ================================= -->
-                                <!-- نماد قابل کلیک -->
-                                <!-- ================================= -->
-
-                                <DataGridTemplateColumn Header="نماد"
-                                                        Width="110">
-
-                                    <DataGridTemplateColumn.CellTemplate>
-
-                                        <DataTemplate>
-
-                                            <TextBlock Text="{Binding Symbol}"
-                                                       Foreground="Blue"
-                                                       TextDecorations="Underline"
-                                                       Cursor="Hand"
-                                                       HorizontalAlignment="Center"
-                                                       VerticalAlignment="Center"
-                                                       MouseLeftButtonUp="SymbolTextBlock_MouseLeftButtonUp"/>
-
-                                        </DataTemplate>
-
-                                    </DataGridTemplateColumn.CellTemplate>
-
-                                </DataGridTemplateColumn>
-
-
-                                <DataGridTextColumn Header="نام نمایشی"
-                                                    Binding="{Binding DisplayName}"
-                                                    Width="140"
-                                                    IsReadOnly="True"/>
-
-
-                                <DataGridTextColumn Header="آخرین معامله"
-                                                    Binding="{Binding LastTradeDate, StringFormat={}{0:yyyy/MM/dd}}"
-                                                    Width="110"
-                                                    IsReadOnly="True"/>
-
-
-                                <DataGridTextColumn Header="حجم"
-                                                    Binding="{Binding LastVolume, StringFormat={}{0:N0}}"
-                                                    Width="110"
-                                                    IsReadOnly="True"/>
-
-
-                                <DataGridTextColumn Header="قیمت پایانی"
-                                                    Binding="{Binding LastFinalFee, StringFormat={}{0:N0}}"
-                                                    Width="110"
-                                                    IsReadOnly="True"/>
-
-
-                                <DataGridTextColumn Header="قیمت آخرین"
-                                                    Binding="{Binding LastClose, StringFormat={}{0:N0}}"
-                                                    Width="110"
-                                                    IsReadOnly="True"/>
-
-
-                                <DataGridTextColumn Header="مسیر فایل"
-                                                    Binding="{Binding FilePath}"
-                                                    Width="450"
-                                                    IsReadOnly="True"/>
-
+                                <DataGridTextColumn Header="ردیف" Binding="{Binding RowNumber}" Width="55" IsReadOnly="True"/>
+                                <DataGridTemplateColumn Header="انتخاب" Width="60"><DataGridTemplateColumn.CellTemplate><DataTemplate><CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="نماد" Width="110"><DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Symbol}" Foreground="Blue" TextDecorations="Underline" Cursor="Hand" HorizontalAlignment="Center" VerticalAlignment="Center" MouseLeftButtonUp="SymbolTextBlock_MouseLeftButtonUp"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTextColumn Header="نام نمایشی" Binding="{Binding DisplayName}" Width="140" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="آخرین معامله" Binding="{Binding LastTradeDate, StringFormat={}{0:yyyy/MM/dd}}" Width="110" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="حجم" Binding="{Binding LastVolume, StringFormat={}{0:N0}}" Width="110" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="قیمت پایانی" Binding="{Binding LastFinalFee, StringFormat={}{0:N0}}" Width="110" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="قیمت آخرین" Binding="{Binding LastClose, StringFormat={}{0:N0}}" Width="110" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="مسیر فایل" Binding="{Binding FilePath}" Width="450" IsReadOnly="True"/>
                             </DataGrid.Columns>
-
                         </DataGrid>
-
-
-                        <!-- ===================================== -->
-                        <!-- Symbol Buttons -->
-                        <!-- ===================================== -->
-
-                        <StackPanel Grid.Row="1"
-                                    Orientation="Horizontal"
-                                    HorizontalAlignment="Left"
-                                    Margin="0,8,0,0">
-
-                            <Button x:Name="DeleteSymbolsButton"
-                                    Content="حذف نمادهای انتخاب‌شده"
-                                    Width="170"
-                                    Height="32"
-                                    Click="DeleteSymbolsButton_Click"/>
-
-                        </StackPanel>
-
+                        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,8,0,0"><Button x:Name="DeleteSymbolsButton" Content="حذف نمادهای انتخاب‌شده" Width="170" Height="32" Click="DeleteSymbolsButton_Click"/></StackPanel>
                     </Grid>
-
                 </GroupBox>
-
             </Grid>
-
         </Grid>
-
-
-        <!-- ===================================================== -->
-        <!-- Bottom Status -->
-        <!-- ===================================================== -->
-
-        <Border Grid.Row="2"
-                Background="#F5F5F5"
-                BorderBrush="#D0D0D0"
-                BorderThickness="1"
-                Padding="8"
-                Margin="0,10,0,0">
-
-            <Grid>
-
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <TextBlock x:Name="StatusTextBlock"
-                           VerticalAlignment="Center"
-                           Text="آماده"/>
-
-                <Button Grid.Column="1"
-                        Content="بستن"
-                        Width="90"
-                        Height="30"
-                        Click="CloseButton_Click"/>
-
-            </Grid>
-
-        </Border>
-
+        <Border Grid.Row="2" Background="#F5F5F5" BorderBrush="#D0D0D0" BorderThickness="1" Padding="8" Margin="0,10,0,0"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock x:Name="StatusTextBlock" VerticalAlignment="Center" Text="آماده"/><Button Grid.Column="1" Content="بستن" Width="90" Height="30" Click="CloseButton_Click"/></Grid></Border>
     </Grid>
-
 </Window>
