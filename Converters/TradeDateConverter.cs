@@ -17,9 +17,7 @@ namespace TradeIt
                 foreach (object value in values)
                 {
                     if (value is DateTime dt)
-                    {
                         date = dt;
-                    }
                     else if (value is string text)
                     {
                         if (text.Equals("Gregorian", StringComparison.OrdinalIgnoreCase) || text.Equals("Persian", StringComparison.OrdinalIgnoreCase))
@@ -30,18 +28,42 @@ namespace TradeIt
                 }
             }
 
-            if (calendar.Equals("Persian", StringComparison.OrdinalIgnoreCase) && TryFormatJalaliSource(sourceDate, out string jalali))
-                return ToPersianDigits(jalali);
+            if (!calendar.Equals("Gregorian", StringComparison.OrdinalIgnoreCase))
+            {
+                if (TryFormatJalaliSource(sourceDate, out string sourceJalali))
+                    return ToPersianDigits(sourceJalali);
+
+                if (!date.HasValue)
+                    return string.Empty;
+
+                // Some existing symbol records contain a Jalali date that was
+                // previously stored in DateTime without converting it to Gregorian.
+                // A year in the normal Jalali range therefore represents Jalali Y/M/D directly.
+                if (date.Value.Year >= 1200 && date.Value.Year <= 1600)
+                {
+                    string directJalali = string.Format(
+                        CultureInfo.InvariantCulture,
+                        "{0:0000}/{1:00}/{2:00}",
+                        date.Value.Year,
+                        date.Value.Month,
+                        date.Value.Day);
+                    return ToPersianDigits(directJalali);
+                }
+
+                PersianCalendar pc = new PersianCalendar();
+                string converted = string.Format(
+                    CultureInfo.InvariantCulture,
+                    "{0:0000}/{1:00}/{2:00}",
+                    pc.GetYear(date.Value),
+                    pc.GetMonth(date.Value),
+                    pc.GetDayOfMonth(date.Value));
+                return ToPersianDigits(converted);
+            }
 
             if (!date.HasValue)
                 return string.Empty;
 
-            if (calendar.Equals("Gregorian", StringComparison.OrdinalIgnoreCase))
-                return date.Value.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture);
-
-            PersianCalendar pc = new PersianCalendar();
-            string result = string.Format(CultureInfo.InvariantCulture, "{0:0000}/{1:00}/{2:00}", pc.GetYear(date.Value), pc.GetMonth(date.Value), pc.GetDayOfMonth(date.Value));
-            return ToPersianDigits(result);
+            return date.Value.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture);
         }
 
         private static bool TryFormatJalaliSource(string source, out string result)
