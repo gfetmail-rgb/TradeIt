@@ -9,6 +9,7 @@ namespace TradeIt
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
             DateTime? date = null;
+            string sourceDate = "";
             string calendar = "Persian";
 
             if (values != null)
@@ -18,18 +19,23 @@ namespace TradeIt
                     if (value is DateTime dt)
                     {
                         date = dt;
-                        continue;
                     }
-
-                    if (value is string text)
+                    else if (value is DateTime? nullableDt && nullableDt.HasValue)
                     {
-                        if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsed))
-                            date = parsed;
-                        else if (text.Equals("Gregorian", StringComparison.OrdinalIgnoreCase) || text.Equals("Persian", StringComparison.OrdinalIgnoreCase))
+                        date = nullableDt.Value;
+                    }
+                    else if (value is string text)
+                    {
+                        if (text.Equals("Gregorian", StringComparison.OrdinalIgnoreCase) || text.Equals("Persian", StringComparison.OrdinalIgnoreCase))
                             calendar = text;
+                        else if (string.IsNullOrWhiteSpace(sourceDate))
+                            sourceDate = text.Trim();
                     }
                 }
             }
+
+            if (calendar.Equals("Persian", StringComparison.OrdinalIgnoreCase) && TryFormatJalaliSource(sourceDate, out string jalali))
+                return ToPersianDigits(jalali);
 
             if (!date.HasValue)
                 return string.Empty;
@@ -42,10 +48,22 @@ namespace TradeIt
             return ToPersianDigits(result);
         }
 
-        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        private static bool TryFormatJalaliSource(string source, out string result)
         {
-            throw new NotSupportedException();
+            result = "";
+            if (string.IsNullOrWhiteSpace(source)) return false;
+            string normalized = source.Trim().Replace('-', '/');
+            string[] p = normalized.Split('/');
+            if (p.Length < 3) return false;
+            if (!int.TryParse(p[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int y) ||
+                !int.TryParse(p[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int m) ||
+                !int.TryParse(p[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out int d)) return false;
+            if (y < 1200 || y > 1600 || m < 1 || m > 12 || d < 1 || d > 31) return false;
+            result = string.Format(CultureInfo.InvariantCulture, "{0:0000}/{1:00}/{2:00}", y, m, d);
+            return true;
         }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => throw new NotSupportedException();
 
         public static string ToPersianDigits(string input)
         {
