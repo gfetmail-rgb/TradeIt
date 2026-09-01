@@ -1,6 +1,5 @@
 using System;
 using System.Windows;
-using System.Windows.Input;
 
 namespace TradeIt.Charts
 {
@@ -10,14 +9,18 @@ namespace TradeIt.Charts
 
         private static bool RegisterVolumeVisualFix()
         {
-            EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.LoadedEvent, new RoutedEventHandler(VolumeVisualFix_Loaded));
+            EventManager.RegisterClassHandler(
+                typeof(ChartTabView),
+                FrameworkElement.LoadedEvent,
+                new RoutedEventHandler(VolumeVisualFix_Loaded));
             return true;
         }
 
         private static void VolumeVisualFix_Loaded(object sender, RoutedEventArgs e)
         {
-            if (sender is not ChartTabView chart) return;
-            chart.VolumeChart.AddHandler(UIElement.PreviewMouseMoveEvent, new System.Windows.Input.MouseEventHandler(chart.VolumeVisualFix_MouseMove), true);
+            if (sender is not ChartTabView chart)
+                return;
+
             ChartSettingsManager.SettingsChanged -= chart.VolumeVisualFix_SettingsChanged;
             ChartSettingsManager.SettingsChanged += chart.VolumeVisualFix_SettingsChanged;
             chart.ApplyVolumeVisualFixes();
@@ -25,21 +28,22 @@ namespace TradeIt.Charts
 
         private void VolumeVisualFix_SettingsChanged(object? sender, EventArgs e)
         {
-            if (Dispatcher.CheckAccess()) ApplyVolumeVisualFixes();
-            else Dispatcher.InvokeAsync(ApplyVolumeVisualFixes);
-        }
+            if (!IsLoaded)
+                return;
 
-        private void VolumeVisualFix_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
-        {
-            if (!_volumeVisible || !_crosshairVisible || !_chartVisible) return;
-            VolumeSync_MouseMove(sender, e);
+            if (Dispatcher.CheckAccess())
+                ApplyVolumeVisualFixes();
+            else
+                Dispatcher.InvokeAsync(ApplyVolumeVisualFixes);
         }
 
         private void ApplyVolumeVisualFixes()
         {
+            if (!IsLoaded)
+                return;
+
             try
             {
-                // ScottPlot 5 uses float MinimumSize values.
                 const float leftPanel = 85f;
                 const float rightPanel = 30f;
                 const float bottomPanel = 55f;
@@ -51,62 +55,45 @@ namespace TradeIt.Charts
                 VolumeChart.Plot.Axes.Right.MinimumSize = rightPanel;
                 VolumeChart.Plot.Axes.Bottom.MinimumSize = bottomPanel;
 
-                if (_volumeVisible)
-                {
-                    SyncVolumeFromPriceLimits();
-                    ApplyVolumeBarSettings();
-                }
+                // Do not rescale/synchronize the volume axis here. Settings changes
+                // must only restyle the already-rendered volume chart. Rescaling while
+                // the settings window is closing can run during a ScottPlot redraw and
+                // cause a runtime exception.
+                ApplyVolumeBarSettings();
+                ApplyVolumeCrosshairSettings();
 
                 Chart.Refresh();
                 VolumeChart.Refresh();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"TradeIt volume visual settings error: {ex}");
+            }
         }
 
         private void ApplyVolumeBarSettings()
         {
-            // Volume is intentionally monochrome; user settings for volume color are ignored.
-            object? black = TryCreateScottPlotColor("#000000");
+            ScottPlot.Color black = ScottPlot.Color.FromHex("#000000");
             double width = Math.Max(0.05, _settings?.VolumeBarWidth ?? 0.8);
 
             foreach (var plottable in VolumeChart.Plot.GetPlottables())
             {
-                if (!plottable.GetType().Name.Contains("Bar", StringComparison.OrdinalIgnoreCase)) continue;
-                SetPropertyIfPresent(plottable, "BarWidth", width);
-                SetPropertyIfPresent(plottable, "Width", width);
-                SetPropertyIfPresent(plottable, "LineWidth", (float)width);
-                if (black != null)
+                if (plottable is not ScottPlot.Plottables.BarPlot barPlot)
+                    continue;
+
+                // ScottPlot 5 BarPlot has no BarWidth property. The width belongs to
+                // each ScottPlot.Bar, while Color applies a common fill color.
+                barPlot.Color = black;
+
+                foreach (ScottPlot.Bar bar in barPlot.Bars)
                 {
-                    SetPropertyIfPresent(plottable, "Color", black);
-                    SetPropertyIfPresent(plottable, "FillColor", black);
-                    SetPropertyIfPresent(plottable, "LineColor", black);
+                    bar.Size = width;
+                    bar.FillColor = black;
+                    bar.LineColor = black;
+                    bar.LineWidth = (float)Math.Max(0.5, _settings?.VolumeBarWidth ?? 0.8);
                 }
             }
-        }
-
-        private static void SetPropertyIfPresent(object target, string propertyName, object value)
-        {
-            try
-            {
-                var property = target.GetType().GetProperty(propertyName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
-                if (property?.CanWrite != true) return;
-                if (property.PropertyType.IsInstanceOfType(value)) property.SetValue(target, value);
-                else if (value is double d && property.PropertyType == typeof(float)) property.SetValue(target, (float)d);
-                else if (value is float f && property.PropertyType == typeof(double)) property.SetValue(target, (double)f);
-            }
-            catch { }
-        }
-
-        private static object? TryCreateScottPlotColor(string hex)
-        {
-            try
-            {
-                Type? colorType = Type.GetType("ScottPlot.Color, ScottPlot");
-                if (colorType == null) return null;
-                var method = colorType.GetMethod("FromHex", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
-                return method?.Invoke(null, new object[] { hex });
-            }
-            catch { return null; }
         }
     }
 }
