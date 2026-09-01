@@ -1,7 +1,11 @@
 using System;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Threading;
+using WpfButton = System.Windows.Controls.Button;
+using WpfGrid = System.Windows.Controls.Grid;
+using WpfRowDefinition = System.Windows.Controls.RowDefinition;
+using WpfHorizontalAlignment = System.Windows.HorizontalAlignment;
+using TradeIt.Models;
 
 namespace TradeIt
 {
@@ -28,26 +32,25 @@ namespace TradeIt
                 return;
 
             _clearFiltersUiAdded = true;
-
             SymbolFilterHost.RowDefinitions.Clear();
-            SymbolFilterHost.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            SymbolFilterHost.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            SymbolFilterHost.RowDefinitions.Add(new WpfRowDefinition { Height = GridLength.Auto });
+            SymbolFilterHost.RowDefinitions.Add(new WpfRowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
             UIElement? existing = SymbolFilterHost.Children.Count > 0 ? SymbolFilterHost.Children[0] : null;
             if (existing != null)
-                Grid.SetRow(existing, 1);
+                WpfGrid.SetRow(existing, 1);
 
-            var clearButton = new Button
+            var clearButton = new WpfButton
             {
                 Content = "پاک کردن تمام فیلترها",
                 Height = 30,
                 Padding = new Thickness(12, 2, 12, 2),
-                HorizontalAlignment = HorizontalAlignment.Right,
+                HorizontalAlignment = WpfHorizontalAlignment.Right,
                 Margin = new Thickness(0, 0, 0, 6),
                 ToolTip = "همه فیلترها را پاک و غیرفعال می‌کند"
             };
             clearButton.Click += ClearAllFiltersButton_Click;
-            Grid.SetRow(clearButton, 0);
+            WpfGrid.SetRow(clearButton, 0);
             SymbolFilterHost.Children.Add(clearButton);
         }
 
@@ -62,7 +65,6 @@ namespace TradeIt
                 if (_daysWithoutTradeCheckBox != null) _daysWithoutTradeCheckBox.IsChecked = false;
                 if (_daysWithTradeCheckBox != null) _daysWithTradeCheckBox.IsChecked = false;
                 if (_volumeFilterCheckBox != null) _volumeFilterCheckBox.IsChecked = false;
-
                 if (_daysWithoutTradeTextBox != null) _daysWithoutTradeTextBox.Text = "5";
                 if (_daysWithTradeTextBox != null) _daysWithTradeTextBox.Text = "5";
                 if (_volumeAverageDaysTextBox != null) _volumeAverageDaysTextBox.Text = "20";
@@ -92,7 +94,6 @@ namespace TradeIt
             {
                 _symbolFiltersApplying = false;
             }
-
             _ = ApplyAllSymbolFiltersAsync();
         }
     }
