@@ -28,7 +28,7 @@ namespace TradeIt.Charts
             if (_volumeCrosshairFix == null) return;
 
             // Use the same user-configured crosshair settings as the price chart.
-            object? color = CreateScottPlotColorForVolume(_settings?.CrosshairColor ?? "#909090");
+            ScottPlot.Color? color = CreateScottPlotColorForVolume(_settings?.CrosshairColor ?? "#909090");
             if (color != null)
                 _volumeCrosshairFix.LineColor = color;
 
@@ -82,14 +82,11 @@ namespace TradeIt.Charts
             }
         }
 
-        private static object? CreateScottPlotColorForVolume(string hex)
+        private static ScottPlot.Color? CreateScottPlotColorForVolume(string hex)
         {
             try
             {
-                Type? colorType = Type.GetType("ScottPlot.Color, ScottPlot");
-                if (colorType == null) return null;
-                var method = colorType.GetMethod("FromHex", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
-                return method?.Invoke(null, new object[] { hex });
+                return ScottPlot.Color.FromHex(hex);
             }
             catch
             {
