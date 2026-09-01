@@ -1,10 +1,7 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using Microsoft.Win32;
 using TradeIt.Models;
 using TradeIt.Services;
 
@@ -36,7 +33,7 @@ namespace TradeIt.Views
             string id = SymbolId12TextBox.Text.Trim();
             if (string.IsNullOrWhiteSpace(id))
             {
-                MessageBox.Show("کد 12 رقمی نماد الزامی است.", "شناسه", MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Windows.MessageBox.Show("کد 12 رقمی نماد الزامی است.", "شناسه", MessageBoxButton.OK, MessageBoxImage.Warning);
                 SymbolId12TextBox.Focus();
                 return;
             }
@@ -50,7 +47,7 @@ namespace TradeIt.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "خطا در ذخیره شناسه", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show(ex.Message, "خطا در ذخیره شناسه", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -58,7 +55,7 @@ namespace TradeIt.Views
         {
             var selected = IdentitiesDataGrid.SelectedItems.Cast<SymbolIdentity>().ToList();
             if (selected.Count == 0) return;
-            if (MessageBox.Show($"{selected.Count:N0} شناسه انتخاب‌شده حذف شود؟", "تأیید حذف", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+            if (System.Windows.MessageBox.Show($"{selected.Count:N0} شناسه انتخاب‌شده حذف شود؟", "تأیید حذف", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
             _store.DeleteMany(selected.Select(x => x.SymbolId12));
             LoadItems();
             ClearEditor();
@@ -67,7 +64,7 @@ namespace TradeIt.Views
         private void DeleteAllButton_Click(object sender, RoutedEventArgs e)
         {
             if (IdentitiesDataGrid.Items.Count == 0) return;
-            if (MessageBox.Show("تمام اطلاعات شناسه‌ها حذف خواهد شد. این عملیات قابل برگشت نیست. ادامه می‌دهید؟", "حذف کامل", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+            if (System.Windows.MessageBox.Show("تمام اطلاعات شناسه‌ها حذف خواهد شد. این عملیات قابل برگشت نیست. ادامه می‌دهید؟", "حذف کامل", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
             _store.DeleteAll();
             LoadItems();
             ClearEditor();
@@ -80,7 +77,7 @@ namespace TradeIt.Views
 
         private void ImportExcelButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("قابلیت Import از Excel در مرحله بعد فعال خواهد شد. دکمه آن برای حفظ ساختار رابط کاربری باقی مانده است.", "Import Excel", MessageBoxButton.OK, MessageBoxImage.Information);
+            System.Windows.MessageBox.Show("قابلیت Import از Excel در مرحله بعد فعال خواهد شد. دکمه آن برای حفظ ساختار رابط کاربری باقی مانده است.", "Import Excel", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private SymbolIdentity ReadEditor() => new()
