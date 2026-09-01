@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 using System.Windows;
 using System.Windows.Input;
 
@@ -40,6 +39,7 @@ namespace TradeIt.Charts
         {
             try
             {
+                // ScottPlot 5 uses float MinimumSize values.
                 const float leftPanel = 85f;
                 const float rightPanel = 30f;
                 const float bottomPanel = 55f;
@@ -65,9 +65,9 @@ namespace TradeIt.Charts
 
         private void ApplyVolumeBarSettings()
         {
-            string color = _settings?.VolumeColor ?? "#607D8B";
+            // Volume is intentionally monochrome; user settings for volume color are ignored.
+            object? black = TryCreateScottPlotColor("#000000");
             double width = Math.Max(0.05, _settings?.VolumeBarWidth ?? 0.8);
-            object? colorObject = TryCreateScottPlotColor(color);
 
             foreach (var plottable in VolumeChart.Plot.GetPlottables())
             {
@@ -75,11 +75,11 @@ namespace TradeIt.Charts
                 SetPropertyIfPresent(plottable, "BarWidth", width);
                 SetPropertyIfPresent(plottable, "Width", width);
                 SetPropertyIfPresent(plottable, "LineWidth", (float)width);
-                if (colorObject != null)
+                if (black != null)
                 {
-                    SetPropertyIfPresent(plottable, "Color", colorObject);
-                    SetPropertyIfPresent(plottable, "FillColor", colorObject);
-                    SetPropertyIfPresent(plottable, "LineColor", colorObject);
+                    SetPropertyIfPresent(plottable, "Color", black);
+                    SetPropertyIfPresent(plottable, "FillColor", black);
+                    SetPropertyIfPresent(plottable, "LineColor", black);
                 }
             }
         }
@@ -88,10 +88,10 @@ namespace TradeIt.Charts
         {
             try
             {
-                PropertyInfo? property = target.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public);
+                var property = target.GetType().GetProperty(propertyName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
                 if (property?.CanWrite != true) return;
-                if (property.PropertyType.IsInstanceOfType(value)) { property.SetValue(target, value); return; }
-                if (value is double d && property.PropertyType == typeof(float)) property.SetValue(target, (float)d);
+                if (property.PropertyType.IsInstanceOfType(value)) property.SetValue(target, value);
+                else if (value is double d && property.PropertyType == typeof(float)) property.SetValue(target, (float)d);
                 else if (value is float f && property.PropertyType == typeof(double)) property.SetValue(target, (double)f);
             }
             catch { }
@@ -103,7 +103,7 @@ namespace TradeIt.Charts
             {
                 Type? colorType = Type.GetType("ScottPlot.Color, ScottPlot");
                 if (colorType == null) return null;
-                MethodInfo? method = colorType.GetMethod("FromHex", BindingFlags.Public | BindingFlags.Static);
+                var method = colorType.GetMethod("FromHex", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
                 return method?.Invoke(null, new object[] { hex });
             }
             catch { return null; }
