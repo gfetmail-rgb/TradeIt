@@ -28,7 +28,7 @@ namespace TradeIt.Charts
             if (_volumeCrosshairFix == null) return;
 
             // Use the same user-configured crosshair settings as the price chart.
-            object? color = TryCreateScottPlotColor(_settings?.CrosshairColor ?? "#909090");
+            object? color = CreateScottPlotColorForVolume(_settings?.CrosshairColor ?? "#909090");
             if (color != null)
                 _volumeCrosshairFix.LineColor = color;
 
@@ -82,7 +82,7 @@ namespace TradeIt.Charts
             }
         }
 
-        private static object? TryCreateScottPlotColor(string hex)
+        private static object? CreateScottPlotColorForVolume(string hex)
         {
             try
             {
