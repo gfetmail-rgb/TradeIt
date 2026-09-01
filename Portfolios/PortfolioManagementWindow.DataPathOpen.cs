@@ -8,6 +8,25 @@ namespace TradeIt.Portfolios
 {
     public partial class PortfolioManagementWindow
     {
+        private static readonly bool _dataPathHandlerRegistered = RegisterDataPathHandler();
+
+        private static bool RegisterDataPathHandler()
+        {
+            EventManager.RegisterClassHandler(typeof(PortfolioManagementWindow), Window.LoadedEvent, new RoutedEventHandler(DataPathLoaded));
+            return true;
+        }
+
+        private static void DataPathLoaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is PortfolioManagementWindow window && window.DataPathTextBox != null)
+            {
+                window.DataPathTextBox.Cursor = Cursors.Hand;
+                window.DataPathTextBox.ToolTip = "برای باز کردن فایل داده کلیک کنید";
+                window.DataPathTextBox.MouseLeftButtonUp -= window.OpenDataPathTextFile;
+                window.DataPathTextBox.MouseLeftButtonUp += window.OpenDataPathTextFile;
+            }
+        }
+
         private void OpenDataPathTextFile(object sender, MouseButtonEventArgs e)
         {
             string path = DataPathTextBox?.Text?.Trim() ?? string.Empty;
