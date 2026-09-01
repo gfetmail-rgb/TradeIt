@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Windows;
 using System.Windows.Data;
 
 namespace TradeIt
@@ -14,8 +15,6 @@ namespace TradeIt
             DateTime date;
             if (values[0] is DateTime dt)
                 date = dt;
-            else if (values[0] is DateTime? ndt && ndt.HasValue)
-                date = ndt.Value;
             else if (!DateTime.TryParse(values[0].ToString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
                 return "";
 
@@ -23,7 +22,9 @@ namespace TradeIt
                 ? values[1].ToString() ?? ""
                 : "";
 
-            if (calendar.Contains("شمسی", StringComparison.OrdinalIgnoreCase) || calendar.Contains("Persian", StringComparison.OrdinalIgnoreCase) || calendar.Contains("Solar", StringComparison.OrdinalIgnoreCase))
+            if (calendar.Contains("شمسی", StringComparison.OrdinalIgnoreCase) ||
+                calendar.Contains("Persian", StringComparison.OrdinalIgnoreCase) ||
+                calendar.Contains("Solar", StringComparison.OrdinalIgnoreCase))
             {
                 PersianCalendar pc = new PersianCalendar();
                 return $"{pc.GetYear(date):0000}/{pc.GetMonth(date):00}/{pc.GetDayOfMonth(date):00}";
@@ -32,6 +33,7 @@ namespace TradeIt
             return date.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture);
         }
 
-        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => throw new NotSupportedException();
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) =>
+            throw new NotSupportedException();
     }
 }
