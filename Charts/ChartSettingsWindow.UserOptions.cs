@@ -86,7 +86,7 @@ namespace TradeIt.Charts
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
             grid.Children.Add(new TextBlock { Text = "رنگ میله‌های حجم:", VerticalAlignment = VerticalAlignment.Center });
-            _volumeColorPreview = new WpfBorder { Width = 32, Height = 25, BorderBrush = Brushes.Gray, BorderThickness = new Thickness(1), HorizontalAlignment = System.Windows.HorizontalAlignment.Center };
+            _volumeColorPreview = new WpfBorder { Width = 32, Height = 25, BorderBrush = System.Windows.Media.Brushes.Gray, BorderThickness = new Thickness(1), HorizontalAlignment = System.Windows.HorizontalAlignment.Center };
             Grid.SetColumn(_volumeColorPreview, 1); grid.Children.Add(_volumeColorPreview);
             var colorButton = new WpfButton { Content = "انتخاب رنگ", Width = 100, Height = 28, HorizontalAlignment = System.Windows.HorizontalAlignment.Left };
             colorButton.Click += VolumeColorButton_Click; Grid.SetColumn(colorButton, 2); grid.Children.Add(colorButton);
@@ -129,7 +129,7 @@ namespace TradeIt.Charts
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
             grid.Children.Add(new TextBlock { Text = "رنگ Crosshair:", VerticalAlignment = VerticalAlignment.Center });
-            _crosshairColorPreview = new WpfBorder { Width = 32, Height = 25, BorderBrush = Brushes.Gray, BorderThickness = new Thickness(1), HorizontalAlignment = System.Windows.HorizontalAlignment.Center };
+            _crosshairColorPreview = new WpfBorder { Width = 32, Height = 25, BorderBrush = System.Windows.Media.Brushes.Gray, BorderThickness = new Thickness(1), HorizontalAlignment = System.Windows.HorizontalAlignment.Center };
             Grid.SetColumn(_crosshairColorPreview, 1); grid.Children.Add(_crosshairColorPreview);
             var colorButton = new WpfButton { Content = "انتخاب رنگ", Width = 100, Height = 28, HorizontalAlignment = System.Windows.HorizontalAlignment.Left };
             colorButton.Click += CrosshairColorButton_Click; Grid.SetColumn(colorButton, 2); grid.Children.Add(colorButton);
