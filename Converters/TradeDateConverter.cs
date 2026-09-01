@@ -20,10 +20,6 @@ namespace TradeIt
                     {
                         date = dt;
                     }
-                    else if (value is DateTime? nullableDt && nullableDt.HasValue)
-                    {
-                        date = nullableDt.Value;
-                    }
                     else if (value is string text)
                     {
                         if (text.Equals("Gregorian", StringComparison.OrdinalIgnoreCase) || text.Equals("Persian", StringComparison.OrdinalIgnoreCase))
