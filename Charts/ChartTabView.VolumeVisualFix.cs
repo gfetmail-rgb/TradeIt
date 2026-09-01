@@ -40,9 +40,9 @@ namespace TradeIt.Charts
         {
             try
             {
-                const double leftPanel = 85;
-                const double rightPanel = 30;
-                const double bottomPanel = 55;
+                const float leftPanel = 85f;
+                const float rightPanel = 30f;
+                const float bottomPanel = 55f;
 
                 Chart.Plot.Axes.Left.MinimumSize = leftPanel;
                 Chart.Plot.Axes.Right.MinimumSize = rightPanel;
