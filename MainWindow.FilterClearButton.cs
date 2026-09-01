@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -7,6 +8,19 @@ namespace TradeIt
     public partial class MainWindow
     {
         private bool _clearFiltersUiAdded;
+        private static readonly bool _filterClearHandlerRegistered = RegisterFilterClearHandler();
+
+        private static bool RegisterFilterClearHandler()
+        {
+            EventManager.RegisterClassHandler(typeof(MainWindow), Window.LoadedEvent, new RoutedEventHandler(FilterClearLoadedClassHandler));
+            return true;
+        }
+
+        private static void FilterClearLoadedClassHandler(object sender, RoutedEventArgs e)
+        {
+            if (sender is MainWindow window)
+                window.Dispatcher.BeginInvoke(new Action(window.AddClearAllFiltersButton), DispatcherPriority.Loaded);
+        }
 
         private void AddClearAllFiltersButton()
         {
@@ -80,11 +94,6 @@ namespace TradeIt
             }
 
             _ = ApplyAllSymbolFiltersAsync();
-        }
-
-        private void MainWindow_FilterClearLoaded(object sender, RoutedEventArgs e)
-        {
-            Dispatcher.BeginInvoke(new Action(AddClearAllFiltersButton), DispatcherPriority.Loaded);
         }
     }
 }
