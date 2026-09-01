@@ -29,8 +29,8 @@ namespace TradeIt.Charts
 
             // Use the same user-configured crosshair settings as the price chart.
             ScottPlot.Color? color = CreateScottPlotColorForVolume(_settings?.CrosshairColor ?? "#909090");
-            if (color != null)
-                _volumeCrosshairFix.LineColor = color;
+            if (color.HasValue)
+                _volumeCrosshairFix.LineColor = color.Value;
 
             _volumeCrosshairFix.LineWidth = (float)Math.Max(0.1, _settings?.CrosshairLineWidth ?? 1.0);
 
