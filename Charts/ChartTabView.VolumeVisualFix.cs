@@ -18,7 +18,7 @@ namespace TradeIt.Charts
         private static void VolumeVisualFix_Loaded(object sender, RoutedEventArgs e)
         {
             if (sender is not ChartTabView chart) return;
-            chart.VolumeChart.AddHandler(UIElement.PreviewMouseMoveEvent, new MouseEventHandler(chart.VolumeVisualFix_MouseMove), true);
+            chart.VolumeChart.AddHandler(UIElement.PreviewMouseMoveEvent, new System.Windows.Input.MouseEventHandler(chart.VolumeVisualFix_MouseMove), true);
             ChartSettingsManager.SettingsChanged -= chart.VolumeVisualFix_SettingsChanged;
             ChartSettingsManager.SettingsChanged += chart.VolumeVisualFix_SettingsChanged;
             chart.ApplyVolumeVisualFixes();
@@ -30,7 +30,7 @@ namespace TradeIt.Charts
             else Dispatcher.InvokeAsync(ApplyVolumeVisualFixes);
         }
 
-        private void VolumeVisualFix_MouseMove(object sender, MouseEventArgs e)
+        private void VolumeVisualFix_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             if (!_volumeVisible || !_crosshairVisible || !_chartVisible) return;
             VolumeSync_MouseMove(sender, e);
@@ -101,7 +101,9 @@ namespace TradeIt.Charts
         {
             try
             {
-                MethodInfo? method = typeof(ScottPlot.Color).GetMethod("FromHtml", BindingFlags.Public | BindingFlags.Static, binder: null, new[] { typeof(string) }, modifiers: null);
+                Type? colorType = Type.GetType("ScottPlot.Color, ScottPlot");
+                if (colorType == null) return null;
+                MethodInfo? method = colorType.GetMethod("FromHex", BindingFlags.Public | BindingFlags.Static);
                 return method?.Invoke(null, new object[] { hex });
             }
             catch { return null; }
