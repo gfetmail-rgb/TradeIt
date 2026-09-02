@@ -8,9 +8,14 @@
     public class PriceFilter
     {
         public bool Enabled { get; set; }
-        public PriceField Field { get; set; }
+
+        // هر فیلتر یک مقایسه کامل بین دو مقدار تاریخی است.
+        // DayOffset = 0 یعنی کندل جاری، 1 یعنی یک کندل قبل، و ...
+        public PriceField LeftField { get; set; }
+        public int LeftDayOffset { get; set; }
         public NumericComparison Comparison { get; set; }
-        public int Days { get; set; } = 1;
+        public PriceField RightField { get; set; }
+        public int RightDayOffset { get; set; }
     }
 
     public class SymbolFilterSettings
