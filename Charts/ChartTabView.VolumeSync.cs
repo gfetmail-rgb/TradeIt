@@ -25,8 +25,6 @@ namespace TradeIt.Charts
 
             view._volumeAxisSyncHooked = true;
 
-            // ScottPlot raises this event whenever the price axis limits change,
-            // including left-click drag panning. Keep the volume X window synced.
             view.Chart.Plot.RenderManager.AxisLimitsChanged +=
                 view.Chart_Plot_AxisLimitsChangedForVolume;
         }
@@ -54,21 +52,23 @@ namespace TradeIt.Charts
                     priceLimits.Top <= priceLimits.Bottom)
                     return;
 
-                var bars = VolumeChart.Plot.GetPlottables()
+                var visibleBars = VolumeChart.Plot.GetPlottables()
                     .OfType<ScottPlot.Plottables.BarPlot>()
                     .SelectMany(x => x.Bars)
-                    .Where(x => double.IsFinite(x.Value) && x.Value >= 0)
+                    .Where(x => double.IsFinite(x.Position) &&
+                                x.Position >= priceLimits.Left &&
+                                x.Position <= priceLimits.Right &&
+                                double.IsFinite(x.Value) &&
+                                x.Value >= 0)
                     .ToList();
 
-                if (bars.Count == 0)
+                if (visibleBars.Count == 0)
                     return;
 
-                double maxVolume = bars.Max(x => x.Value);
+                double maxVolume = visibleBars.Max(x => x.Value);
                 if (!double.IsFinite(maxVolume) || maxVolume <= 0)
                     maxVolume = 1;
 
-                // Only 2% headroom: the largest volume bar should be close to
-                // the top without being clipped.
                 double top = maxVolume * 1.02;
                 if (!double.IsFinite(top) || top <= 0)
                     top = 1;
@@ -83,8 +83,6 @@ namespace TradeIt.Charts
             }
             catch
             {
-                // Axis information may be unavailable during initial rendering.
-                // The next synchronization pass will retry.
             }
         }
     }
