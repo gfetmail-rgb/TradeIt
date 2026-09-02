@@ -1,5 +1,7 @@
 using System;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 
 namespace TradeIt.Charts
 {
@@ -14,6 +16,15 @@ namespace TradeIt.Charts
                 typeof(ChartTabView),
                 FrameworkElement.LoadedEvent,
                 new RoutedEventHandler(DisplayStatePersistence_Loaded));
+
+            // Click bubbles from the three display-state buttons to ChartTabView.
+            // This class handler runs after the button's own Click handler, so the
+            // new in-memory state is saved, not the previous state.
+            EventManager.RegisterClassHandler(
+                typeof(ChartTabView),
+                ButtonBase.ClickEvent,
+                new RoutedEventHandler(DisplayStatePersistence_Click));
+
             return true;
         }
 
@@ -35,6 +46,8 @@ namespace TradeIt.Charts
 
             _displayStatePersistenceInitialized = true;
 
+            // ChartSettingsManager.Current is the single global source of truth.
+            // Every newly opened chart reads the last state saved by the user.
             ChartSettings settings = ChartSettingsManager.Current;
             _settings = settings;
             _gridVisible = settings.GridVisible;
@@ -53,20 +66,20 @@ namespace TradeIt.Charts
             GridButton.Content = _gridVisible
                 ? "GRID"
                 : "GRID خاموش";
-
-            // These handlers run after the XAML Click handlers, therefore the
-            // in-memory state has already been toggled when it is saved.
-            CrosshairButton.Click -= DisplayStatePersistence_ButtonClick;
-            VolumeButton.Click -= DisplayStatePersistence_ButtonClick;
-            GridButton.Click -= DisplayStatePersistence_ButtonClick;
-            CrosshairButton.Click += DisplayStatePersistence_ButtonClick;
-            VolumeButton.Click += DisplayStatePersistence_ButtonClick;
-            GridButton.Click += DisplayStatePersistence_ButtonClick;
         }
 
-        private void DisplayStatePersistence_ButtonClick(object sender, RoutedEventArgs e)
+        private static void DisplayStatePersistence_Click(object sender, RoutedEventArgs e)
         {
-            SaveCurrentDisplayState();
+            if (e.OriginalSource is not Button button)
+                return;
+
+            if (button.Name != nameof(CrosshairButton) &&
+                button.Name != nameof(VolumeButton) &&
+                button.Name != nameof(GridButton))
+                return;
+
+            if (sender is ChartTabView chart)
+                chart.SaveCurrentDisplayState();
         }
 
         private void SaveCurrentDisplayState()
