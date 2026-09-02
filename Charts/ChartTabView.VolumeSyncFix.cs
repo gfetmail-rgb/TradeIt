@@ -26,10 +26,11 @@ namespace TradeIt.Charts
 
             chart._volumeSyncFixLoaded = true;
 
-            // Volume is a follower only. It must never pan/zoom by itself.
+            // The volume chart is a follower. It must never process its own pan/zoom input.
             chart.VolumeChart.UserInputProcessor.IsEnabled = false;
 
-            // Recalculate volume Y immediately after every main-chart interaction.
+            // ScottPlot performs its pan/zoom during the WPF input event. Therefore the
+            // volume limits must be recalculated AFTER that event has completely finished.
             chart.Chart.PreviewMouseMove += chart.VolumeSyncFix_MainChartMouseMove;
             chart.Chart.PreviewMouseLeftButtonUp += chart.VolumeSyncFix_MainChartInteractionFinished;
             chart.Chart.PreviewMouseRightButtonUp += chart.VolumeSyncFix_MainChartInteractionFinished;
@@ -43,9 +44,7 @@ namespace TradeIt.Charts
                     button.PreviewMouseLeftButtonUp += chart.VolumeSyncFix_MainChartInteractionFinished;
             }
 
-            chart.Dispatcher.BeginInvoke(
-                DispatcherPriority.Render,
-                new Action(chart.RefreshVolumeFollower));
+            chart.ScheduleVolumeFollowerRefresh();
         }
 
         private void VolumeSyncFix_MainChartMouseMove(object? sender, System.Windows.Input.MouseEventArgs e)
@@ -77,12 +76,24 @@ namespace TradeIt.Charts
 
             _volumeSyncRefreshPending = true;
 
+            // ContextIdle is deliberately used instead of Render. Render can occur before
+            // ScottPlot has completed the interaction response. At ContextIdle the final
+            // main-chart limits are available, so volume can follow the exact viewport.
             Dispatcher.BeginInvoke(
-                DispatcherPriority.Render,
+                DispatcherPriority.ContextIdle,
                 new Action(() =>
                 {
                     _volumeSyncRefreshPending = false;
                     RefreshVolumeFollower();
+
+                    // A second pass catches interactions where ScottPlot requests another
+                    // layout/render immediately after the input event.
+                    if (_volumeVisible)
+                    {
+                        Dispatcher.BeginInvoke(
+                            DispatcherPriority.ContextIdle,
+                            new Action(() => RefreshVolumeFollower()));
+                    }
                 }));
         }
 
@@ -99,53 +110,37 @@ namespace TradeIt.Charts
                 return;
 
             double maxVisibleVolume = 0;
+            double nearestDistance = double.MaxValue;
+            double nearestVolume = 0;
 
             for (int i = 0; i < _bars.Count; i++)
             {
                 double x = GetBarDateTime(_bars[i], i).ToOADate();
-                if (x < left || x > right)
-                    continue;
-
                 double volume = _bars[i].Volume / VolumeScale;
-                if (double.IsFinite(volume) && volume > maxVisibleVolume)
-                    maxVisibleVolume = volume;
-            }
+                if (!double.IsFinite(volume) || volume < 0)
+                    volume = 0;
 
-            // If the viewport falls between bars, use the nearest bar so the
-            // volume panel never becomes visually empty.
-            if (maxVisibleVolume <= 0)
-            {
-                int nearest = 0;
-                double nearestDistance = double.MaxValue;
+                if (x >= left && x <= right)
+                    maxVisibleVolume = Math.Max(maxVisibleVolume, volume);
 
-                for (int i = 0; i < _bars.Count; i++)
+                double distance = x < left ? left - x : x > right ? x - right : 0;
+                if (distance < nearestDistance)
                 {
-                    double x = GetBarDateTime(_bars[i], i).ToOADate();
-                    double distance = x < left ? left - x : x > right ? x - right : 0;
-
-                    if (distance < nearestDistance)
-                    {
-                        nearestDistance = distance;
-                        nearest = i;
-                    }
+                    nearestDistance = distance;
+                    nearestVolume = volume;
                 }
-
-                double volume = _bars[nearest].Volume / VolumeScale;
-                if (double.IsFinite(volume) && volume > 0)
-                    maxVisibleVolume = volume;
             }
 
-            // The tallest visible bar is intentionally close to the ceiling.
+            // If the viewport is between bars, retain a useful scale rather than allowing
+            // the panel to collapse to zero.
+            if (maxVisibleVolume <= 0)
+                maxVisibleVolume = nearestVolume;
+
             double volumeTop = maxVisibleVolume > 0
                 ? maxVisibleVolume * 1.05
                 : 1.0;
 
-            VolumeChart.Plot.Axes.SetLimits(
-                left,
-                right,
-                0,
-                volumeTop);
-
+            VolumeChart.Plot.Axes.SetLimits(left, right, 0, volumeTop);
             ConfigureVolumeAxes();
             VolumeChart.Refresh();
         }
