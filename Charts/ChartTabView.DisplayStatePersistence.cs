@@ -54,8 +54,9 @@ namespace TradeIt.Charts
                 new MouseButtonEventHandler(chart.DisplayStatePersistence_ChartMouseDown),
                 true);
 
-            foreach (Button button in chart.FindDisplayStateButtons())
-                button.Click += chart.DisplayStatePersistence_ButtonClick;
+            chart.CrosshairButton.Click += chart.DisplayStatePersistence_ButtonClick;
+            chart.VolumeButton.Click += chart.DisplayStatePersistence_ButtonClick;
+            chart.GridButton.Click += chart.DisplayStatePersistence_ButtonClick;
         }
 
         private void DisplayStatePersistence_ButtonClick(object sender, RoutedEventArgs e)
@@ -101,34 +102,6 @@ namespace TradeIt.Charts
         {
             if (_crosshair != null)
                 _crosshair.IsVisible = _crosshairVisible && _chartVisible && _crosshairMouseInside;
-        }
-
-        private System.Collections.Generic.IEnumerable<Button> FindDisplayStateButtons()
-        {
-            int count = System.Windows.Media.VisualTreeHelper.GetChildrenCount(this);
-            for (int i = 0; i < count; i++)
-            {
-                DependencyObject child = System.Windows.Media.VisualTreeHelper.GetChild(this, i);
-                if (child is Button button)
-                    yield return button;
-
-                foreach (Button descendant in FindDisplayStateButtons(child))
-                    yield return descendant;
-            }
-        }
-
-        private static System.Collections.Generic.IEnumerable<Button> FindDisplayStateButtons(DependencyObject root)
-        {
-            int count = System.Windows.Media.VisualTreeHelper.GetChildrenCount(root);
-            for (int i = 0; i < count; i++)
-            {
-                DependencyObject child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
-                if (child is Button button)
-                    yield return button;
-
-                foreach (Button descendant in FindDisplayStateButtons(child))
-                    yield return descendant;
-            }
         }
     }
 }
