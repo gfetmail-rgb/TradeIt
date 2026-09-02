@@ -22,7 +22,7 @@ namespace TradeIt.Charts
             // new in-memory state is saved, not the previous state.
             EventManager.RegisterClassHandler(
                 typeof(ChartTabView),
-                ButtonBase.ClickEvent,
+                System.Windows.Controls.Primitives.ButtonBase.ClickEvent,
                 new RoutedEventHandler(DisplayStatePersistence_Click));
 
             return true;
@@ -70,7 +70,7 @@ namespace TradeIt.Charts
 
         private static void DisplayStatePersistence_Click(object sender, RoutedEventArgs e)
         {
-            if (e.OriginalSource is not Button button)
+            if (e.OriginalSource is not System.Windows.Controls.Button button)
                 return;
 
             if (button.Name != nameof(CrosshairButton) &&
