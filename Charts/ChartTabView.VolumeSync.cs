@@ -65,8 +65,6 @@ namespace TradeIt.Charts
             _volumeCrosshair.HorizontalLine.IsVisible = false;
             ApplyVolumeCrosshairSettings();
 
-            // When the pointer is over Volume, the price-chart crosshair must disappear
-            // completely. In particular, its horizontal price line must not remain frozen.
             if (_crosshair != null)
             {
                 _crosshair.IsVisible = false;
@@ -101,8 +99,15 @@ namespace TradeIt.Charts
                 VolumeContainer.Visibility = Visibility.Visible;
                 VolumeSplitterRow.Height = new GridLength(6);
                 VolumeChart.UserInputProcessor.IsEnabled = false;
+
+                // First synchronize the X coordinate limits, then force the
+                // Volume data rectangle to occupy exactly the same pixel
+                // rectangle as the Price chart. This fixes the right-edge
+                // overhang caused by different axis-panel widths.
                 SyncVolumeFromPriceLimits();
+                AlignVolumeDataRectToPrice();
                 EnsureVolumeCrosshair();
+                VolumeChart.Refresh();
             }
             finally { _volumeSyncBusy = false; }
         }
