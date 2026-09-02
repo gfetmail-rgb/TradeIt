@@ -1,8 +1,5 @@
 using System;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Threading;
 
 namespace TradeIt.Charts
 {
@@ -28,9 +25,9 @@ namespace TradeIt.Charts
             chart.InitializeDisplayStatePersistence();
         }
 
-        // Apply the latest global display state immediately when a chart is created.
-        // Loaded is kept as a safety net for charts created before their visual tree
-        // is connected, but initialization is performed only once per chart.
+        // The latest state is read when each chart is loaded. Saving is performed
+        // directly by the controls which change the state, so a newly opened chart
+        // always receives the exact state last chosen by the user.
         private void InitializeDisplayStatePersistence()
         {
             if (_displayStatePersistenceInitialized)
@@ -56,36 +53,6 @@ namespace TradeIt.Charts
             GridButton.Content = _gridVisible
                 ? "GRID"
                 : "GRID خاموش";
-
-            Chart.AddHandler(
-                UIElement.PreviewMouseDownEvent,
-                new MouseButtonEventHandler(DisplayStatePersistence_ChartMouseDown),
-                true);
-            VolumeChart.AddHandler(
-                UIElement.PreviewMouseDownEvent,
-                new MouseButtonEventHandler(DisplayStatePersistence_ChartMouseDown),
-                true);
-
-            CrosshairButton.Click += DisplayStatePersistence_ButtonClick;
-            VolumeButton.Click += DisplayStatePersistence_ButtonClick;
-            GridButton.Click += DisplayStatePersistence_ButtonClick;
-        }
-
-        private void DisplayStatePersistence_ButtonClick(object sender, RoutedEventArgs e)
-        {
-            Dispatcher.BeginInvoke(
-                DispatcherPriority.Input,
-                new Action(SaveCurrentDisplayState));
-        }
-
-        private void DisplayStatePersistence_ChartMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton != MouseButton.Middle)
-                return;
-
-            Dispatcher.BeginInvoke(
-                DispatcherPriority.Input,
-                new Action(SaveCurrentDisplayState));
         }
 
         private void SaveCurrentDisplayState()
