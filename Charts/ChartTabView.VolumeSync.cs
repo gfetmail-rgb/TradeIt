@@ -1,10 +1,47 @@
 using System;
 using System.Linq;
+using System.Windows;
 
 namespace TradeIt.Charts
 {
     public partial class ChartTabView
     {
+        private bool _volumeAxisSyncHooked;
+
+        static ChartTabView()
+        {
+            EventManager.RegisterClassHandler(
+                typeof(ChartTabView),
+                FrameworkElement.LoadedEvent,
+                new RoutedEventHandler(OnChartTabViewLoadedForVolumeSync));
+        }
+
+        private static void OnChartTabViewLoadedForVolumeSync(
+            object sender,
+            RoutedEventArgs e)
+        {
+            if (sender is not ChartTabView view || view._volumeAxisSyncHooked)
+                return;
+
+            view._volumeAxisSyncHooked = true;
+
+            // ScottPlot raises this event whenever the price axis limits change,
+            // including left-click drag panning. Keep the volume X window synced.
+            view.Chart.Plot.RenderManager.AxisLimitsChanged +=
+                view.Chart_Plot_AxisLimitsChangedForVolume;
+        }
+
+        private void Chart_Plot_AxisLimitsChangedForVolume(
+            object? sender,
+            ScottPlot.RenderDetails e)
+        {
+            if (!_volumeVisible)
+                return;
+
+            SyncVolumeLimitsToPrice();
+            VolumeChart.Refresh();
+        }
+
         private void SyncVolumeLimitsToPrice()
         {
             if (!_volumeVisible)
@@ -30,8 +67,8 @@ namespace TradeIt.Charts
                 if (!double.IsFinite(maxVolume) || maxVolume <= 0)
                     maxVolume = 1;
 
-                // Keep only a very small headroom so the largest real volume
-                // is visually close to the top of the volume panel.
+                // Only 2% headroom: the largest volume bar should be close to
+                // the top without being clipped.
                 double top = maxVolume * 1.02;
                 if (!double.IsFinite(top) || top <= 0)
                     top = 1;
@@ -42,9 +79,6 @@ namespace TradeIt.Charts
                     0,
                     top);
 
-                // The X limits are copied from the price chart on every sync,
-                // so panning/zooming the price chart keeps the volume window
-                // on exactly the same candles.
                 AlignVolumeDataRectToPrice();
             }
             catch
