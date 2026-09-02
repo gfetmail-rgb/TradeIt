@@ -135,7 +135,15 @@ namespace TradeIt.Charts
 
         private void ApplyDisplayCrosshairLayout()
         {
-            Chart.Plot.Axes.Left.MinimumSize = Math.Max(85, Chart.Plot.Axes.Left.MinimumSize);
+            // Keep the volume data rectangle horizontally aligned with the price data rectangle.
+            float leftWidth = Math.Max(85, Chart.Plot.Axes.Left.MinimumSize);
+            float rightWidth = Math.Max(0, Chart.Plot.Axes.Right.MinimumSize);
+
+            Chart.Plot.Axes.Left.MinimumSize = leftWidth;
+            VolumeChart.Plot.Axes.Left.MinimumSize = leftWidth;
+            Chart.Plot.Axes.Right.MinimumSize = rightWidth;
+            VolumeChart.Plot.Axes.Right.MinimumSize = rightWidth;
+
             Chart.Plot.Axes.Bottom.MinimumSize = Math.Max(38, Chart.Plot.Axes.Bottom.MinimumSize);
         }
 
@@ -197,8 +205,6 @@ namespace TradeIt.Charts
                 }
                 else
                 {
-                    // Timestamp-less data is indexed data. Use a Numeric axis instead
-                    // of assigning a NumericManual generator to a Date axis.
                     var axis = plot.Plot.Axes.NumericTicksBottom();
                     int count = _bars.Count;
                     if (count == 0) return;
