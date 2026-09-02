@@ -41,14 +41,54 @@ namespace TradeIt.Charts
             if (plot == null || (!ReferenceEquals(plot, chart.Chart) && !ReferenceEquals(plot, chart.VolumeChart))) return;
 
             System.Windows.Point point = e.GetPosition(plot);
+
+            // IMPORTANT:
+            // Timestamp-less charts use DateTime/OADate values only as synthetic X coordinates.
+            // ScottPlot's DateTime coordinate conversion can throw when its DateTime tick generator
+            // is not ready yet (typically while the chart is being initialized). Do not call
+            // Plot.GetCoordinates() in that case. Calculate the bar index directly from the
+            // current X limits and mouse position, then snap the crosshair to that bar.
+            bool hasRealTimestamp = chart._bars.Any(b =>
+                b.Timestamp.HasValue &&
+                b.Timestamp.Value > DateTime.MinValue &&
+                b.Timestamp.Value < DateTime.MaxValue);
+
+            if (!hasRealTimestamp)
+            {
+                int index = chart.DisplayFixes_FindNearestBarIndexFromMouseX(plot, point.X);
+                if (index < 0 || index >= chart._bars.Count) return;
+
+                double x = chart.GetBarDateTime(chart._bars[index], index).ToOADate();
+                double y = chart.DisplayFixes_GetMouseYFromPixel(plot, point.Y);
+
+                chart._crosshair.Position = new ScottPlot.Coordinates(x, y);
+                chart._crosshair.IsVisible = true;
+                chart._crosshairMouseInside = true;
+
+                chart._crosshair.HorizontalLine.LabelOppositeAxis = false;
+                chart._crosshair.VerticalLine.LabelOppositeAxis = false;
+                chart._crosshair.HorizontalLine.LabelAlignment = ScottPlot.Alignment.MiddleRight;
+                chart._crosshair.VerticalLine.LabelAlignment = ScottPlot.Alignment.LowerCenter;
+
+                chart._crosshair.VerticalLine.Text = $"کندل {index + 1}";
+                chart._crosshair.HorizontalLine.Text = y.ToString("N2", CultureInfo.InvariantCulture);
+                chart.UpdateSnappedMouseInformation(index, y);
+                chart.Chart.Refresh();
+
+                // Prevent ChartTabView.xaml.cs from entering TryGetChartCoordinates()
+                // for this event. That is the path which can trigger the DateTime generator exception.
+                e.Handled = true;
+                return;
+            }
+
             if (!chart.TryGetChartCoordinates(plot, point, out ScottPlot.Coordinates coordinates)) return;
 
-            int index = chart.DisplayFixes_FindNearestBarIndex(coordinates.X);
-            if (index < 0 || index >= chart._bars.Count) return;
+            int realIndex = chart.DisplayFixes_FindNearestBarIndex(coordinates.X);
+            if (realIndex < 0 || realIndex >= chart._bars.Count) return;
 
-            double x = chart.GetBarDateTime(chart._bars[index], index).ToOADate();
-            double y = coordinates.Y;
-            chart._crosshair.Position = new ScottPlot.Coordinates(x, y);
+            double realX = chart.GetBarDateTime(chart._bars[realIndex], realIndex).ToOADate();
+            double realY = coordinates.Y;
+            chart._crosshair.Position = new ScottPlot.Coordinates(realX, realY);
             chart._crosshair.IsVisible = true;
             chart._crosshairMouseInside = true;
 
@@ -57,14 +97,14 @@ namespace TradeIt.Charts
             chart._crosshair.HorizontalLine.LabelAlignment = ScottPlot.Alignment.MiddleRight;
             chart._crosshair.VerticalLine.LabelAlignment = ScottPlot.Alignment.LowerCenter;
 
-            if (index != chart._displayFixesLastBarIndex)
+            if (realIndex != chart._displayFixesLastBarIndex)
             {
-                chart._displayFixesLastBarIndex = index;
-                chart._crosshair.VerticalLine.Text = chart.DisplayFixes_GetCrosshairXLabel(index);
-                chart.UpdateSnappedMouseInformation(index, y);
+                chart._displayFixesLastBarIndex = realIndex;
+                chart._crosshair.VerticalLine.Text = chart.DisplayFixes_GetCrosshairXLabel(realIndex);
+                chart.UpdateSnappedMouseInformation(realIndex, realY);
             }
 
-            chart._crosshair.HorizontalLine.Text = y.ToString("N2", CultureInfo.InvariantCulture);
+            chart._crosshair.HorizontalLine.Text = realY.ToString("N2", CultureInfo.InvariantCulture);
             chart.Chart.Refresh();
             e.Handled = true;
         }
@@ -78,6 +118,32 @@ namespace TradeIt.Charts
                 current = System.Windows.Media.VisualTreeHelper.GetParent(current);
             }
             return null;
+        }
+
+        private int DisplayFixes_FindNearestBarIndexFromMouseX(ScottPlot.WPF.WpfPlot plot, double mouseX)
+        {
+            if (_bars.Count == 0 || plot.ActualWidth <= 0) return -1;
+
+            var limits = plot.Plot.Axes.GetLimits();
+            double xRange = limits.Right - limits.Left;
+            if (xRange <= 0) return -1;
+
+            // The plot control includes axis margins. Using its full width is intentionally
+            // conservative here; the result is immediately snapped to the nearest real bar.
+            double x = limits.Left + (mouseX / plot.ActualWidth) * xRange;
+            return DisplayFixes_FindNearestBarIndex(x);
+        }
+
+        private static double DisplayFixes_GetMouseYFromPixel(ScottPlot.WPF.WpfPlot plot, double mouseY)
+        {
+            if (plot.ActualHeight <= 0) return 0;
+
+            var limits = plot.Plot.Axes.GetLimits();
+            double yRange = limits.Top - limits.Bottom;
+            if (yRange <= 0) return limits.Bottom;
+
+            double normalized = 1.0 - Math.Clamp(mouseY / plot.ActualHeight, 0.0, 1.0);
+            return limits.Bottom + normalized * yRange;
         }
 
         private void UpdateSnappedMouseInformation(int index, double crosshairPrice)
@@ -203,10 +269,6 @@ namespace TradeIt.Charts
                 }
                 else
                 {
-                    // Timestamp-less charts still use OADate coordinates (2000-01-01 + index)
-                    // so they can remain aligned with the price/volume charts. Do NOT leave
-                    // the DateTime axis with an automatic generator here. Explicit DateTimeManual
-                    // ticks guarantee that ScottPlot always has a valid DateTime tick generator.
                     var manualTicks = new ScottPlot.TickGenerators.DateTimeManual();
                     int count = _bars.Count;
                     int step = Math.Max(1, count / 8);
