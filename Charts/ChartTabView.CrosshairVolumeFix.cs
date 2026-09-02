@@ -9,7 +9,7 @@ namespace TradeIt.Charts
     {
         private ScottPlot.Plottables.Crosshair? _volumeCrosshair;
 
-        private bool _crosshairVisualFixRegistered = RegisterCrosshairVisualFix();
+        private static readonly bool _crosshairVisualFixRegistered = RegisterCrosshairVisualFix();
 
         private static bool RegisterCrosshairVisualFix()
         {
@@ -51,16 +51,9 @@ namespace TradeIt.Charts
                 return;
             }
 
-            WpfPointResult result =
-                plot == view.Chart
-                    ? new WpfPointResult(
-                        true,
-                        e.GetPosition(view.Chart),
-                        true)
-                    : new WpfPointResult(
-                        true,
-                        e.GetPosition(view.VolumeChart),
-                        false);
+            var result = new WpfPointResult(
+                e.GetPosition(plot),
+                ReferenceEquals(plot, view.Chart));
 
             view.UpdateSynchronizedCrosshair(result);
         }
@@ -90,8 +83,11 @@ namespace TradeIt.Charts
 
         private void UpdateSynchronizedCrosshair(WpfPointResult result)
         {
+            ScottPlot.WPF.WpfPlot sourcePlot =
+                result.IsMainChart ? Chart : VolumeChart;
+
             if (!TryGetChartCoordinates(
-                    result.IsMainChart ? Chart : VolumeChart,
+                    sourcePlot,
                     result.Position,
                     out ScottPlot.Coordinates coordinates))
             {
@@ -99,12 +95,10 @@ namespace TradeIt.Charts
             }
 
             double x = coordinates.X;
+            var priceLimits = Chart.Plot.Axes.GetLimits();
 
-            if (x < Chart.Plot.Axes.GetLimits().Left ||
-                x > Chart.Plot.Axes.GetLimits().Right)
-            {
+            if (x < priceLimits.Left || x > priceLimits.Right)
                 return;
-            }
 
             MarketBar? nearestBar = GetNearestBar(x);
 
@@ -120,11 +114,9 @@ namespace TradeIt.Charts
 
             if (_crosshair != null)
             {
-                double priceY =
-                    result.IsMainChart
-                        ? coordinates.Y
-                        : (Chart.Plot.Axes.GetLimits().Bottom +
-                           Chart.Plot.Axes.GetLimits().Top) / 2.0;
+                double priceY = result.IsMainChart
+                    ? coordinates.Y
+                    : (priceLimits.Bottom + priceLimits.Top) / 2.0;
 
                 _crosshair.Position =
                     new ScottPlot.Coordinates(x, priceY);
@@ -137,17 +129,14 @@ namespace TradeIt.Charts
             if (_volumeCrosshair != null)
             {
                 _volumeCrosshair.Position =
-                    new ScottPlot.Coordinates(
-                        x,
-                        0);
+                    new ScottPlot.Coordinates(x, 0);
 
                 _volumeCrosshair.IsVisible = true;
             }
 
             if (nearestBar != null)
             {
-                double volumeK =
-                    nearestBar.Volume / VolumeScale;
+                double volumeK = nearestBar.Volume / VolumeScale;
 
                 if (!double.IsFinite(volumeK) || volumeK < 0)
                     volumeK = 0;
@@ -172,10 +161,7 @@ namespace TradeIt.Charts
             _crosshair.TextColor = ScottPlot.Colors.White;
 
             if (_volumeCrosshair != null)
-            {
                 _volumeCrosshair.LineColor = color;
-                _volumeCrosshair.VerticalLine.Color = color;
-            }
         }
 
         private void EnsureVolumeCrosshair()
@@ -194,7 +180,6 @@ namespace TradeIt.Charts
             _volumeCrosshair.LinePattern = ScottPlot.LinePattern.Dashed;
             _volumeCrosshair.MarkerSize = 0;
             _volumeCrosshair.IsVisible = false;
-            _volumeCrosshair.ExcludeFromLegend = true;
         }
 
         private MarketBar? GetNearestBar(double x)
@@ -219,9 +204,7 @@ namespace TradeIt.Charts
                 }
             }
 
-            return nearestIndex >= 0
-                ? _bars[nearestIndex]
-                : null;
+            return nearestIndex >= 0 ? _bars[nearestIndex] : null;
         }
 
         private static ScottPlot.WPF.WpfPlot? FindPlot(DependencyObject source)
@@ -240,7 +223,6 @@ namespace TradeIt.Charts
         }
 
         private readonly record struct WpfPointResult(
-            bool Valid,
             System.Windows.Point Position,
             bool IsMainChart);
     }
