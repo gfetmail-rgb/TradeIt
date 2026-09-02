@@ -45,8 +45,14 @@ namespace TradeIt.Charts
                 ? "GRID"
                 : "GRID خاموش";
 
-            chart.Chart.Click += chart.DisplayStatePersistence_ButtonClick;
-            chart.VolumeChart.MouseDown += chart.DisplayStatePersistence_ChartMouseDown;
+            chart.Chart.AddHandler(
+                UIElement.PreviewMouseDownEvent,
+                new MouseButtonEventHandler(chart.DisplayStatePersistence_ChartMouseDown),
+                true);
+            chart.VolumeChart.AddHandler(
+                UIElement.PreviewMouseDownEvent,
+                new MouseButtonEventHandler(chart.DisplayStatePersistence_ChartMouseDown),
+                true);
 
             foreach (Button button in chart.FindDisplayStateButtons())
                 button.Click += chart.DisplayStatePersistence_ButtonClick;
@@ -106,11 +112,8 @@ namespace TradeIt.Charts
                 if (child is Button button)
                     yield return button;
 
-                if (child is FrameworkElement element)
-                {
-                    foreach (Button descendant in FindDisplayStateButtons(element))
-                        yield return descendant;
-                }
+                foreach (Button descendant in FindDisplayStateButtons(child))
+                    yield return descendant;
             }
         }
 
