@@ -35,7 +35,7 @@ namespace TradeIt
         private WpfCheckBox? _volumeFilterCheckBox;
         private WpfTextBox? _volumeAverageDaysTextBox;
         private WpfTextBox? _volumeMultiplierTextBox;
-        private readonly List<(WpfCheckBox Enabled, WpfComboBox Field, WpfComboBox Comparison, WpfTextBox Days)> _priceFilterControls = new();
+        private readonly List<(WpfCheckBox Enabled, WpfComboBox LeftField, WpfTextBox LeftDays, WpfComboBox Comparison, WpfComboBox RightField, WpfTextBox RightDays)> _priceFilterControls = new();
         private TextBlock? _symbolFilterStatusTextBlock;
 
         private static readonly bool _symbolFiltersHandlerRegistered = RegisterSymbolFiltersHandler();
@@ -98,7 +98,7 @@ namespace TradeIt
             _volumeFilterCheckBox.Checked += SymbolFilterInputChanged; _volumeFilterCheckBox.Unchecked += SymbolFilterInputChanged; _volumeAverageDaysTextBox.TextChanged += SymbolFilterInputChanged; _volumeMultiplierTextBox.TextChanged += SymbolFilterInputChanged;
             stack.Children.Add(LabeledControl("حجم آخر ≥ میانگین X روز × Y:", Inline(_volumeFilterCheckBox, _volumeAverageDaysTextBox, new TextBlock { Text = "×", Margin = new Thickness(4, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center }, _volumeMultiplierTextBox)));
 
-            stack.Children.Add(new TextBlock { Text = "فیلترهای O/H/L/C/V/FINAL FEE — هر کدام مستقل", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 4, 0, 2) });
+            stack.Children.Add(new TextBlock { Text = "فیلترهای O/H/L/C/V/FINAL FEE — مقایسه دو طرفه بین کندل‌ها", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 4, 0, 2) });
             for (int i = 0; i < 5; i++) stack.Children.Add(BuildPriceFilterRow(i));
             _symbolFilterStatusTextBlock = new TextBlock { Foreground = WpfBrushes.Gray, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) }; stack.Children.Add(_symbolFilterStatusTextBlock);
             return outer;
@@ -107,12 +107,33 @@ namespace TradeIt
         private FrameworkElement BuildPriceFilterRow(int index)
         {
             var enabled = new WpfCheckBox { Content = $"{index + 1}", Width = 28, VerticalAlignment = VerticalAlignment.Center };
-            var field = new WpfComboBox { Width = 72, Height = 26 }; AddComboItems(field, (PriceField.Open, "O"), (PriceField.High, "H"), (PriceField.Low, "L"), (PriceField.Close, "C"), (PriceField.Volume, "V"), (PriceField.FinalFee, "FINAL FEE"));
-            var comparison = new WpfComboBox { Width = 55, Height = 26, Margin = new Thickness(3, 0, 3, 0) }; AddComboItems(comparison, (NumericComparison.GreaterThan, ">"), (NumericComparison.GreaterOrEqual, ">="), (NumericComparison.Equal, "="), (NumericComparison.NotEqual, "≠"), (NumericComparison.LessOrEqual, "<="), (NumericComparison.LessThan, "<"));
-            var days = new WpfTextBox { Width = 42, Height = 26, Text = "1", HorizontalContentAlignment = WpfHorizontalAlignment.Center };
-            enabled.Checked += SymbolFilterInputChanged; enabled.Unchecked += SymbolFilterInputChanged; field.SelectionChanged += SymbolFilterInputChanged; comparison.SelectionChanged += SymbolFilterInputChanged; days.TextChanged += SymbolFilterInputChanged;
-            _priceFilterControls.Add((enabled, field, comparison, days));
-            return Inline(enabled, field, comparison, new TextBlock { Text = "روز قبل:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 2, 0) }, days);
+            var leftField = new WpfComboBox { Width = 72, Height = 26 };
+            AddComboItems(leftField, (PriceField.Open, "O"), (PriceField.High, "H"), (PriceField.Low, "L"), (PriceField.Close, "C"), (PriceField.Volume, "V"), (PriceField.FinalFee, "FINAL FEE"));
+            var leftDays = new WpfTextBox { Width = 42, Height = 26, Text = "0", HorizontalContentAlignment = WpfHorizontalAlignment.Center };
+            var comparison = new WpfComboBox { Width = 55, Height = 26, Margin = new Thickness(3, 0, 3, 0) };
+            AddComboItems(comparison, (NumericComparison.GreaterThan, ">"), (NumericComparison.GreaterOrEqual, ">="), (NumericComparison.Equal, "="), (NumericComparison.NotEqual, "≠"), (NumericComparison.LessOrEqual, "<="), (NumericComparison.LessThan, "<"));
+            var rightField = new WpfComboBox { Width = 72, Height = 26 };
+            AddComboItems(rightField, (PriceField.Open, "O"), (PriceField.High, "H"), (PriceField.Low, "L"), (PriceField.Close, "C"), (PriceField.Volume, "V"), (PriceField.FinalFee, "FINAL FEE"));
+            var rightDays = new WpfTextBox { Width = 42, Height = 26, Text = "1", HorizontalContentAlignment = WpfHorizontalAlignment.Center };
+
+            enabled.Checked += SymbolFilterInputChanged; enabled.Unchecked += SymbolFilterInputChanged;
+            leftField.SelectionChanged += SymbolFilterInputChanged; leftDays.TextChanged += SymbolFilterInputChanged;
+            comparison.SelectionChanged += SymbolFilterInputChanged;
+            rightField.SelectionChanged += SymbolFilterInputChanged; rightDays.TextChanged += SymbolFilterInputChanged;
+
+            _priceFilterControls.Add((enabled, leftField, leftDays, comparison, rightField, rightDays));
+
+            return Inline(
+                enabled,
+                leftField,
+                new TextBlock { Text = "[", VerticalAlignment = VerticalAlignment.Center },
+                leftDays,
+                new TextBlock { Text = "]", VerticalAlignment = VerticalAlignment.Center },
+                comparison,
+                rightField,
+                new TextBlock { Text = "[", VerticalAlignment = VerticalAlignment.Center },
+                rightDays,
+                new TextBlock { Text = "]", VerticalAlignment = VerticalAlignment.Center });
         }
 
         private static StackPanel Inline(params UIElement[] children) { var panel = new StackPanel { Orientation = WpfOrientation.Horizontal }; foreach (UIElement child in children) panel.Children.Add(child); return panel; }
@@ -154,7 +175,17 @@ namespace TradeIt
             _symbolFilterSettings.DaysWithoutTradeEnabled = _daysWithoutTradeCheckBox!.IsChecked == true; _symbolFilterSettings.DaysWithoutTrade = ParsePositiveInt(_daysWithoutTradeTextBox!.Text, 0);
             _symbolFilterSettings.DaysWithTradeEnabled = _daysWithTradeCheckBox!.IsChecked == true; _symbolFilterSettings.DaysWithTrade = ParsePositiveInt(_daysWithTradeTextBox!.Text, 0);
             _symbolFilterSettings.VolumeFilterEnabled = _volumeFilterCheckBox!.IsChecked == true; _symbolFilterSettings.VolumeAverageDays = ParsePositiveInt(_volumeAverageDaysTextBox!.Text, 20); _symbolFilterSettings.VolumeMultiplier = ParsePositiveDouble(_volumeMultiplierTextBox!.Text, 2.0);
-            for (int i = 0; i < 5; i++) { var ui = _priceFilterControls[i]; var model = _symbolFilterSettings.PriceFilters[i]; model.Enabled = ui.Enabled.IsChecked == true; model.Field = GetComboValue<PriceField>(ui.Field); model.Comparison = GetComboValue<NumericComparison>(ui.Comparison); model.Days = ParsePositiveInt(ui.Days.Text, 1); }
+            for (int i = 0; i < 5; i++)
+            {
+                var ui = _priceFilterControls[i];
+                var model = _symbolFilterSettings.PriceFilters[i];
+                model.Enabled = ui.Enabled.IsChecked == true;
+                model.LeftField = GetComboValue<PriceField>(ui.LeftField);
+                model.LeftDayOffset = ParseNonNegativeInt(ui.LeftDays.Text, 0);
+                model.Comparison = GetComboValue<NumericComparison>(ui.Comparison);
+                model.RightField = GetComboValue<PriceField>(ui.RightField);
+                model.RightDayOffset = ParseNonNegativeInt(ui.RightDays.Text, 0);
+            }
         }
 
         private static bool MatchName(string value, string text, SymbolNameFilter filter)
@@ -172,13 +203,27 @@ namespace TradeIt
         {
             if (!_symbolFilterBars.TryGetValue(symbol.FilePath, out List<MarketBar>? bars) || bars.Count == 0) return false;
             if (settings.VolumeFilterEnabled) { int n = Math.Max(1, settings.VolumeAverageDays); if (bars.Count < n) return false; double average = bars.TakeLast(n).Average(x => x.Volume); if (bars[^1].Volume < average * settings.VolumeMultiplier) return false; }
-            foreach (PriceFilter filter in settings.PriceFilters) { if (!filter.Enabled) continue; int days = Math.Max(1, filter.Days); if (bars.Count <= days) return false; double latest = GetPriceField(bars[^1], filter.Field); double previous = GetPriceField(bars[bars.Count - 1 - days], filter.Field); if (!Compare(latest, previous, filter.Comparison)) return false; }
+            foreach (PriceFilter filter in settings.PriceFilters)
+            {
+                if (!filter.Enabled) continue;
+                int leftOffset = Math.Max(0, filter.LeftDayOffset);
+                int rightOffset = Math.Max(0, filter.RightDayOffset);
+                if (bars.Count <= leftOffset || bars.Count <= rightOffset) return false;
+
+                MarketBar leftBar = bars[bars.Count - 1 - leftOffset];
+                MarketBar rightBar = bars[bars.Count - 1 - rightOffset];
+                double leftValue = GetPriceField(leftBar, filter.LeftField);
+                double rightValue = GetPriceField(rightBar, filter.RightField);
+
+                if (!Compare(leftValue, rightValue, filter.Comparison)) return false;
+            }
             return true;
         }
 
         private static double GetPriceField(MarketBar bar, PriceField field) => field switch { PriceField.Open => bar.Open, PriceField.High => bar.High, PriceField.Low => bar.Low, PriceField.Close => bar.Close, PriceField.Volume => bar.Volume, PriceField.FinalFee => bar.TSEClose, _ => double.NaN };
         private static bool Compare(double left, double right, NumericComparison comparison) { if (double.IsNaN(left) || double.IsNaN(right)) return false; const double epsilon = 1e-9; return comparison switch { NumericComparison.GreaterThan => left > right, NumericComparison.GreaterOrEqual => left >= right, NumericComparison.Equal => Math.Abs(left - right) <= epsilon, NumericComparison.NotEqual => Math.Abs(left - right) > epsilon, NumericComparison.LessOrEqual => left <= right, NumericComparison.LessThan => left < right, _ => true }; }
         private static int ParsePositiveInt(string text, int fallback) => int.TryParse(text.Trim(), out int value) && value > 0 ? value : fallback;
+        private static int ParseNonNegativeInt(string text, int fallback) => int.TryParse(text.Trim(), out int value) && value >= 0 ? value : fallback;
         private static double ParsePositiveDouble(string text, double fallback) => double.TryParse(text.Trim(), out double value) && value > 0 ? value : fallback;
         private static void RenumberFilteredSymbols(List<SymbolInfo> symbols) { for (int i = 0; i < symbols.Count; i++) symbols[i].RowNumber = i + 1; }
     }
