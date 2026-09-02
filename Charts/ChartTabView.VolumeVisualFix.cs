@@ -29,15 +29,14 @@ namespace TradeIt.Charts
                 Pattern = ScottPlot.LinePattern.Solid
             };
 
-            // The price chart reserves fixed horizontal space for its left and
-            // right axis panels. The volume chart hides its axes, so give it
-            // the same horizontal padding while preserving its own full height.
+            // PixelPadding uses float values in the ScottPlot version used by
+            // this project. The axis widths are kept as doubles elsewhere.
             VolumeChart.Plot.Layout.Fixed(
                 new ScottPlot.PixelPadding(
-                    left: LeftAxisWidth,
-                    right: RightAxisWidth,
-                    top: 0,
-                    bottom: 0));
+                    left: (float)LeftAxisWidth,
+                    right: (float)RightAxisWidth,
+                    top: 0f,
+                    bottom: 0f));
 
             // Volume bars are intentionally monochrome for now.
             foreach (var plottable in VolumeChart.Plot.GetPlottables())
