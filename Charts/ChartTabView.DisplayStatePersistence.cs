@@ -22,41 +22,53 @@ namespace TradeIt.Charts
 
         private static void DisplayStatePersistence_Loaded(object sender, RoutedEventArgs e)
         {
-            if (sender is not ChartTabView chart || chart._displayStatePersistenceInitialized)
+            if (sender is not ChartTabView chart)
                 return;
 
-            chart._displayStatePersistenceInitialized = true;
+            chart.InitializeDisplayStatePersistence();
+        }
+
+        // Apply the latest global display state immediately when a chart is created.
+        // Loaded is kept as a safety net for charts created before their visual tree
+        // is connected, but initialization is performed only once per chart.
+        private void InitializeDisplayStatePersistence()
+        {
+            if (_displayStatePersistenceInitialized)
+                return;
+
+            _displayStatePersistenceInitialized = true;
 
             ChartSettings settings = ChartSettingsManager.Current;
-            chart._gridVisible = settings.GridVisible;
-            chart._crosshairVisible = settings.CrosshairVisible;
+            _settings = settings;
+            _gridVisible = settings.GridVisible;
+            _crosshairVisible = settings.CrosshairVisible;
 
-            chart.ApplyGridDisplayState();
-            chart.ApplyCrosshairDisplayState();
-            chart.SetVolumeVisible(settings.VolumeVisible, false);
+            ApplyGridDisplayState();
+            ApplyCrosshairDisplayState();
+            SetVolumeVisible(settings.VolumeVisible, false);
 
-            chart.CrosshairButton.Content = chart._crosshairVisible
+            CrosshairButton.Content = _crosshairVisible
                 ? "Crosshair روشن"
                 : "Crosshair خاموش";
-            chart.VolumeButton.Content = chart._volumeVisible
+            VolumeButton.Content = _volumeVisible
                 ? "پنهان کردن حجم"
                 : "نمایش حجم";
-            chart.GridButton.Content = chart._gridVisible
+            GridButton.Content = _gridVisible
                 ? "GRID"
                 : "GRID خاموش";
 
-            chart.Chart.AddHandler(
+            Chart.AddHandler(
                 UIElement.PreviewMouseDownEvent,
-                new MouseButtonEventHandler(chart.DisplayStatePersistence_ChartMouseDown),
+                new MouseButtonEventHandler(DisplayStatePersistence_ChartMouseDown),
                 true);
-            chart.VolumeChart.AddHandler(
+            VolumeChart.AddHandler(
                 UIElement.PreviewMouseDownEvent,
-                new MouseButtonEventHandler(chart.DisplayStatePersistence_ChartMouseDown),
+                new MouseButtonEventHandler(DisplayStatePersistence_ChartMouseDown),
                 true);
 
-            chart.CrosshairButton.Click += chart.DisplayStatePersistence_ButtonClick;
-            chart.VolumeButton.Click += chart.DisplayStatePersistence_ButtonClick;
-            chart.GridButton.Click += chart.DisplayStatePersistence_ButtonClick;
+            CrosshairButton.Click += DisplayStatePersistence_ButtonClick;
+            VolumeButton.Click += DisplayStatePersistence_ButtonClick;
+            GridButton.Click += DisplayStatePersistence_ButtonClick;
         }
 
         private void DisplayStatePersistence_ButtonClick(object sender, RoutedEventArgs e)
