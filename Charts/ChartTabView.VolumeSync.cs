@@ -26,14 +26,13 @@ namespace TradeIt.Charts
                 if (bars.Count == 0)
                     return;
 
-                // The volume axis is based on the actual maximum volume.
-                // Do not use percentile-based scaling, which can distort the
-                // visual relationship between normal and exceptional volumes.
                 double maxVolume = bars.Max(x => x.Value);
                 if (!double.IsFinite(maxVolume) || maxVolume <= 0)
                     maxVolume = 1;
 
-                double top = maxVolume * 1.10;
+                // Keep only a very small headroom so the largest real volume
+                // is visually close to the top of the volume panel.
+                double top = maxVolume * 1.02;
                 if (!double.IsFinite(top) || top <= 0)
                     top = 1;
 
@@ -42,6 +41,11 @@ namespace TradeIt.Charts
                     priceLimits.Right,
                     0,
                     top);
+
+                // The X limits are copied from the price chart on every sync,
+                // so panning/zooming the price chart keeps the volume window
+                // on exactly the same candles.
+                AlignVolumeDataRectToPrice();
             }
             catch
             {
