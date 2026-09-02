@@ -7,12 +7,20 @@ namespace TradeIt.Charts
     {
         private void ApplyVolumeVisualFrame()
         {
-            // Keep the volume panel visually bounded on all four sides.
-            // The frame is applied to the plot itself so it follows the exact
-            // dimensions of the volume chart area.
-            VolumeChart.Plot.Axes.Color(ScottPlot.Color.FromHtml("#000000"));
+            // Draw the border around the actual ScottPlot data rectangle,
+            // not around the larger WPF container. The data rectangle is now
+            // horizontally aligned with the price chart by DisplayFixes.
             VolumeChart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml("#FFFFFF");
             VolumeChart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml("#FFFFFF");
+            VolumeChart.Plot.Axes.Color(ScottPlot.Color.FromHtml("#000000"));
+
+            VolumeChart.Plot.Axes.Frame(false);
+            VolumeChart.Plot.DataBorder = new ScottPlot.LineStyle
+            {
+                Color = ScottPlot.Color.FromHtml("#000000"),
+                Width = 1,
+                Pattern = ScottPlot.LinePattern.Solid
+            };
         }
     }
 }
