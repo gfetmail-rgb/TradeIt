@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Windows;
 
 namespace TradeIt.Charts
 {
@@ -14,7 +13,8 @@ namespace TradeIt.Charts
             try
             {
                 var priceLimits = Chart.Plot.Axes.GetLimits();
-                if (priceLimits.Width <= 0 || priceLimits.Height <= 0)
+                if (priceLimits.Right <= priceLimits.Left ||
+                    priceLimits.Top <= priceLimits.Bottom)
                     return;
 
                 var bars = VolumeChart.Plot.GetPlottables()
@@ -26,10 +26,9 @@ namespace TradeIt.Charts
                 if (bars.Count == 0)
                     return;
 
-                // The volume axis must be based on the actual data, not on a
-                // percentile or on the current visible price range. Using a
-                // percentile here makes many normal bars appear artificially
-                // close to the ceiling when a few large-volume bars exist.
+                // The volume axis is based on the actual maximum volume.
+                // Do not use percentile-based scaling, which can distort the
+                // visual relationship between normal and exceptional volumes.
                 double maxVolume = bars.Max(x => x.Value);
                 if (!double.IsFinite(maxVolume) || maxVolume <= 0)
                     maxVolume = 1;
@@ -46,8 +45,8 @@ namespace TradeIt.Charts
             }
             catch
             {
-                // Layout/axis information may be unavailable during initial
-                // rendering. The next synchronization pass will retry.
+                // Axis information may be unavailable during initial rendering.
+                // The next synchronization pass will retry.
             }
         }
     }
