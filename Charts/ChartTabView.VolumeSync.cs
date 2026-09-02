@@ -50,25 +50,5 @@ namespace TradeIt.Charts
                 // rendering. The next synchronization pass will retry.
             }
         }
-
-        private void AlignVolumeDataRectToPrice()
-        {
-            try
-            {
-                var priceLayout = Chart.Plot.LastRender.Layout;
-                var priceDataRect = priceLayout.DataRect;
-
-                if (priceDataRect.Width <= 0 || priceDataRect.Height <= 0)
-                    return;
-
-                VolumeChart.Plot.Layout.Fixed(priceDataRect);
-                ApplyVolumeVisualFrame();
-            }
-            catch
-            {
-                // Layout information is not available until the price plot
-                // has rendered at least once. The next sync tick will retry.
-            }
-        }
     }
 }
