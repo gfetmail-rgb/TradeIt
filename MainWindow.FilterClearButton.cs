@@ -73,9 +73,11 @@ namespace TradeIt
                 foreach (var row in _priceFilterControls)
                 {
                     row.Enabled.IsChecked = false;
-                    row.Field.SelectedIndex = 0;
+                    row.LeftField.SelectedIndex = 0;
+                    row.LeftDays.Text = "0";
                     row.Comparison.SelectedIndex = 0;
-                    row.Days.Text = "1";
+                    row.RightField.SelectedIndex = 0;
+                    row.RightDays.Text = "1";
                 }
 
                 _symbolFilterSettings.TradeStatus = TradeStatusFilter.All;
