@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
+using TradeIt.Models;
 
 namespace TradeIt.Charts
 {
@@ -30,7 +31,7 @@ namespace TradeIt.Charts
 
         private static void CrosshairVisualFix_PreviewMouseMove(
             object sender,
-            MouseEventArgs e)
+            System.Windows.Input.MouseEventArgs e)
         {
             if (sender is not ChartTabView view ||
                 !view._volumeVisible ||
@@ -60,7 +61,7 @@ namespace TradeIt.Charts
 
         private static void CrosshairVisualFix_MouseLeave(
             object sender,
-            MouseEventArgs e)
+            System.Windows.Input.MouseEventArgs e)
         {
             if (sender is not ChartTabView view)
                 return;
