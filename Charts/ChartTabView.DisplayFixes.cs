@@ -69,17 +69,6 @@ namespace TradeIt.Charts
             e.Handled = true;
         }
 
-        private static ScottPlot.WPF.WpfPlot? FindPlot(System.Windows.DependencyObject source)
-        {
-            DependencyObject? current = source;
-            while (current != null)
-            {
-                if (current is ScottPlot.WPF.WpfPlot plot) return plot;
-                current = System.Windows.Media.VisualTreeHelper.GetParent(current);
-            }
-            return null;
-        }
-
         private void UpdateSnappedMouseInformation(int index, double crosshairPrice)
         {
             if (index < 0 || index >= _bars.Count) return;
@@ -135,7 +124,6 @@ namespace TradeIt.Charts
 
         private void ApplyDisplayCrosshairLayout()
         {
-            // Keep the volume data rectangle horizontally aligned with the price data rectangle.
             float leftWidth = Math.Max(85, Chart.Plot.Axes.Left.MinimumSize);
             float rightWidth = Math.Max(0, Chart.Plot.Axes.Right.MinimumSize);
 
