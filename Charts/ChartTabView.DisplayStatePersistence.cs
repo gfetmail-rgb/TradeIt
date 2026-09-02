@@ -25,9 +25,6 @@ namespace TradeIt.Charts
             chart.InitializeDisplayStatePersistence();
         }
 
-        // The latest state is read when each chart is loaded. Saving is performed
-        // directly by the controls which change the state, so a newly opened chart
-        // always receives the exact state last chosen by the user.
         private void InitializeDisplayStatePersistence()
         {
             if (_displayStatePersistenceInitialized)
@@ -53,6 +50,20 @@ namespace TradeIt.Charts
             GridButton.Content = _gridVisible
                 ? "GRID"
                 : "GRID خاموش";
+
+            // These handlers run after the XAML Click handlers, therefore the
+            // in-memory state has already been toggled when it is saved.
+            CrosshairButton.Click -= DisplayStatePersistence_ButtonClick;
+            VolumeButton.Click -= DisplayStatePersistence_ButtonClick;
+            GridButton.Click -= DisplayStatePersistence_ButtonClick;
+            CrosshairButton.Click += DisplayStatePersistence_ButtonClick;
+            VolumeButton.Click += DisplayStatePersistence_ButtonClick;
+            GridButton.Click += DisplayStatePersistence_ButtonClick;
+        }
+
+        private void DisplayStatePersistence_ButtonClick(object sender, RoutedEventArgs e)
+        {
+            SaveCurrentDisplayState();
         }
 
         private void SaveCurrentDisplayState()
