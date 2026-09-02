@@ -1,24 +1,21 @@
 using System;
 using System.Linq;
-using System.Windows;
 
 namespace TradeIt.Charts
 {
     public partial class ChartTabView
     {
         /// <summary>
-        /// Make the Volume plot's data rectangle use exactly the same pixel
-        /// rectangle as the Price plot. This prevents the Volume area from
-        /// extending farther to the right (or starting at a different X).
-        /// The simple DataBorder then draws a four-sided box around that area.
+        /// Keep the volume data rectangle horizontally aligned with the price
+        /// data rectangle without copying the price rectangle's vertical size.
+        /// The two WpfPlot controls have different heights, so copying the full
+        /// PixelRect was incorrect and compressed the volume bars vertically.
         /// </summary>
         private void ApplyVolumeVisualFrame()
         {
             VolumeChart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml("#FFFFFF");
             VolumeChart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml("#FFFFFF");
 
-            // We do not want real axis lines/ticks to form the frame.
-            // The border below is the only frame around the volume data area.
             VolumeChart.Plot.Axes.Left.IsVisible = false;
             VolumeChart.Plot.Axes.Right.IsVisible = false;
             VolumeChart.Plot.Axes.Top.IsVisible = false;
@@ -32,8 +29,17 @@ namespace TradeIt.Charts
                 Pattern = ScottPlot.LinePattern.Solid
             };
 
+            // The price chart reserves fixed horizontal space for its left and
+            // right axis panels. The volume chart hides its axes, so give it
+            // the same horizontal padding while preserving its own full height.
+            VolumeChart.Plot.Layout.Fixed(
+                new ScottPlot.PixelPadding(
+                    left: LeftAxisWidth,
+                    right: RightAxisWidth,
+                    top: 0,
+                    bottom: 0));
+
             // Volume bars are intentionally monochrome for now.
-            // User-selectable volume colors can be added later through settings.
             foreach (var plottable in VolumeChart.Plot.GetPlottables())
             {
                 if (plottable is ScottPlot.Plottables.BarPlot barPlot)
@@ -47,30 +53,12 @@ namespace TradeIt.Charts
             }
         }
 
-        /// <summary>
-        /// Copy the already-rendered Price chart data rectangle to the Volume
-        /// chart. ScottPlot calculates data-area width from its axis panels,
-        /// so simply giving both plots identical coordinate limits is not
-        /// sufficient to guarantee identical pixel boundaries.
-        /// </summary>
         private void AlignVolumeDataRectToPrice()
         {
-            try
-            {
-                var priceLayout = Chart.Plot.LastRender.Layout;
-                var priceDataRect = priceLayout.DataRect;
-
-                if (priceDataRect.Width <= 0 || priceDataRect.Height <= 0)
-                    return;
-
-                VolumeChart.Plot.Layout.Fixed(priceDataRect);
-                ApplyVolumeVisualFrame();
-            }
-            catch
-            {
-                // Layout information is not available until the price plot
-                // has rendered at least once. The next sync tick will retry.
-            }
+            // Do not copy the price chart's complete DataRect: that would also
+            // copy its height and make the volume bars occupy only a fraction
+            // of the available volume panel.
+            ApplyVolumeVisualFrame();
         }
     }
 }
