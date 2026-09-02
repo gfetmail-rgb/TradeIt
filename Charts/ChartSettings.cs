@@ -17,6 +17,8 @@ namespace TradeIt.Charts
         public double CandleLineWidth { get; set; } = 1;
         public double BarLineWidth { get; set; } = 1;
         public bool GridVisible { get; set; } = false;
+        public bool CrosshairVisible { get; set; } = true;
+        public bool VolumeVisible { get; set; } = false;
         public int AutoScrollDelayMilliseconds { get; set; } = 1000;
         public bool OpenChartInNewTab { get; set; } = true;
         public string CrosshairColor { get; set; } = "#909090";
@@ -43,6 +45,8 @@ namespace TradeIt.Charts
                 CandleLineWidth = CandleLineWidth,
                 BarLineWidth = BarLineWidth,
                 GridVisible = GridVisible,
+                CrosshairVisible = CrosshairVisible,
+                VolumeVisible = VolumeVisible,
                 AutoScrollDelayMilliseconds = AutoScrollDelayMilliseconds,
                 OpenChartInNewTab = OpenChartInNewTab,
                 CrosshairColor = CrosshairColor,
