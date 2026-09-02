@@ -189,45 +189,41 @@ namespace TradeIt.Charts
             bool hasRealTimestamp = _bars.Any(b => b.Timestamp.HasValue && b.Timestamp.Value > DateTime.MinValue && b.Timestamp.Value < DateTime.MaxValue);
             try
             {
-                // ScottPlot 5 requires a DateTime-compatible tick generator when the
-                // bottom axis is a Date axis. This is also true for timestamp-less
-                // charts because their X coordinates are still represented as OADates.
-                // Do not assign NumericManual here; that causes:
-                // "Date axis must have a ITickGenerator generator".
                 var axis = plot.Plot.Axes.DateTimeTicksBottom();
-                if (axis.TickGenerator is ScottPlot.TickGenerators.DateTimeAutomatic auto)
+
+                if (hasRealTimestamp)
                 {
-                    if (hasRealTimestamp)
+                    if (axis.TickGenerator is ScottPlot.TickGenerators.DateTimeAutomatic auto)
                     {
                         auto.LabelFormatter = dt =>
                             dt.TimeOfDay == TimeSpan.Zero
                                 ? dt.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture)
                                 : dt.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
                     }
-                    else
+                }
+                else
+                {
+                    // Timestamp-less charts still use OADate coordinates (2000-01-01 + index)
+                    // so they can remain aligned with the price/volume charts. Do NOT leave
+                    // the DateTime axis with an automatic generator here. Explicit DateTimeManual
+                    // ticks guarantee that ScottPlot always has a valid DateTime tick generator.
+                    var manualTicks = new ScottPlot.TickGenerators.DateTimeManual();
+                    int count = _bars.Count;
+                    int step = Math.Max(1, count / 8);
+
+                    for (int i = 0; i < count; i += step)
                     {
-                        auto.LabelFormatter = dt =>
-                        {
-                            int nearestIndex = -1;
-                            double bestDistance = double.MaxValue;
-                            double x = dt.ToOADate();
-
-                            for (int i = 0; i < _bars.Count; i++)
-                            {
-                                double barX = GetBarDateTime(_bars[i], i).ToOADate();
-                                double distance = Math.Abs(barX - x);
-                                if (distance < bestDistance)
-                                {
-                                    bestDistance = distance;
-                                    nearestIndex = i;
-                                }
-                            }
-
-                            return nearestIndex >= 0
-                                ? $"کندل {nearestIndex + 1}"
-                                : string.Empty;
-                        };
+                        DateTime dt = GetBarDateTime(_bars[i], i);
+                        manualTicks.AddMajor(dt, $"کندل {i + 1}");
                     }
+
+                    if (count > 0)
+                    {
+                        DateTime last = GetBarDateTime(_bars[count - 1], count - 1);
+                        manualTicks.AddMajor(last, $"کندل {count}");
+                    }
+
+                    axis.TickGenerator = manualTicks;
                 }
             }
             catch { }
