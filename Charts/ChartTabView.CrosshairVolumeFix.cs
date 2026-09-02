@@ -17,13 +17,13 @@ namespace TradeIt.Charts
             EventManager.RegisterClassHandler(
                 typeof(ChartTabView),
                 UIElement.PreviewMouseMoveEvent,
-                new MouseEventHandler(CrosshairVisualFix_PreviewMouseMove),
+                new System.Windows.Input.MouseEventHandler(CrosshairVisualFix_PreviewMouseMove),
                 true);
 
             EventManager.RegisterClassHandler(
                 typeof(ChartTabView),
                 UIElement.MouseLeaveEvent,
-                new MouseEventHandler(CrosshairVisualFix_MouseLeave),
+                new System.Windows.Input.MouseEventHandler(CrosshairVisualFix_MouseLeave),
                 true);
 
             return true;
