@@ -46,13 +46,7 @@ namespace TradeIt.Charts
             int index = chart.DisplayFixes_FindNearestBarIndex(coordinates.X);
             if (index < 0 || index >= chart._bars.Count) return;
 
-            // IMPORTANT: do this synchronously. Queuing MouseMove work with Dispatcher
-            // can execute old mouse positions after newer ones and makes the snap appear
-            // to jump backward and forward between candles.
             double x = chart.GetBarDateTime(chart._bars[index], index).ToOADate();
-
-            // X is snapped to the candle. Y follows the mouse continuously so the
-            // horizontal crosshair remains a true price crosshair.
             double y = coordinates.Y;
             chart._crosshair.Position = new ScottPlot.Coordinates(x, y);
             chart._crosshair.IsVisible = true;
@@ -63,8 +57,6 @@ namespace TradeIt.Charts
             chart._crosshair.HorizontalLine.LabelAlignment = ScottPlot.Alignment.MiddleRight;
             chart._crosshair.VerticalLine.LabelAlignment = ScottPlot.Alignment.LowerCenter;
 
-            // Only the X label changes when the selected candle changes.
-            // This prevents needless layout changes while the mouse moves inside one candle.
             if (index != chart._displayFixesLastBarIndex)
             {
                 chart._displayFixesLastBarIndex = index;
@@ -72,9 +64,6 @@ namespace TradeIt.Charts
                 chart.UpdateSnappedMouseInformation(index, y);
             }
 
-            // Price follows the actual crosshair Y position, but its axis panel has a
-            // fixed minimum width (see ApplyDisplayCrosshairLayout) so changing the
-            // number of digits cannot make the label jump horizontally.
             chart._crosshair.HorizontalLine.Text = y.ToString("N2", CultureInfo.InvariantCulture);
             chart.Chart.Refresh();
             e.Handled = true;
@@ -146,10 +135,6 @@ namespace TradeIt.Charts
 
         private void ApplyDisplayCrosshairLayout()
         {
-            // ScottPlot calculates the axis panel size from its contents. When the
-            // horizontal crosshair label changes from e.g. "9,999.00" to "10,000.00",
-            // the left panel can resize and make the label appear to jump several cm.
-            // Reserve stable space for the price label so its X position never changes.
             Chart.Plot.Axes.Left.MinimumSize = Math.Max(85, Chart.Plot.Axes.Left.MinimumSize);
             Chart.Plot.Axes.Bottom.MinimumSize = Math.Max(38, Chart.Plot.Axes.Bottom.MinimumSize);
         }
@@ -212,22 +197,30 @@ namespace TradeIt.Charts
                 }
                 else
                 {
+                    // Timestamp-less data is indexed data. Use a Numeric axis instead
+                    // of assigning a NumericManual generator to a Date axis.
+                    var axis = plot.Plot.Axes.NumericTicksBottom();
                     int count = _bars.Count;
                     if (count == 0) return;
+
                     int step = Math.Max(1, count / 8);
                     var positions = new System.Collections.Generic.List<double>();
                     var labels = new System.Collections.Generic.List<string>();
+
                     for (int i = 0; i < count; i += step)
                     {
                         positions.Add(GetBarDateTime(_bars[i], i).ToOADate());
                         labels.Add($"کندل {i + 1}");
                     }
-                    if (positions.Count == 0 || positions[^1] != GetBarDateTime(_bars[count - 1], count - 1).ToOADate())
+
+                    double lastPosition = GetBarDateTime(_bars[count - 1], count - 1).ToOADate();
+                    if (positions.Count == 0 || Math.Abs(positions[^1] - lastPosition) > 1e-12)
                     {
-                        positions.Add(GetBarDateTime(_bars[count - 1], count - 1).ToOADate());
+                        positions.Add(lastPosition);
                         labels.Add($"کندل {count}");
                     }
-                    plot.Plot.Axes.Bottom.TickGenerator = new ScottPlot.TickGenerators.NumericManual(positions.ToArray(), labels.ToArray());
+
+                    axis.TickGenerator = new ScottPlot.TickGenerators.NumericManual(positions.ToArray(), labels.ToArray());
                 }
             }
             catch { }
