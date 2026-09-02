@@ -23,6 +23,9 @@ namespace TradeIt.Charts
                 return;
 
             chart.InitializeDisplayStatePersistence();
+            chart.AlignVolumeDataRectToPrice();
+            if (chart._volumeVisible)
+                chart.VolumeChart.Refresh();
         }
 
         private void InitializeDisplayStatePersistence()
