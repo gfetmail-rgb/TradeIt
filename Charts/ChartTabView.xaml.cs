@@ -62,26 +62,20 @@ namespace TradeIt.Charts
             _settings = ChartSettingsManager.Current;
             ChartTypeComboBox.SelectedIndex = 0;
             ConfigureInteraction();
-
             Chart.PreviewMouseWheel += Chart_PreviewMouseWheel;
             Chart.PreviewMouseLeftButtonDown += Chart_PreviewMouseLeftButtonDown;
             Chart.PreviewMouseMove += Chart_PreviewMouseMove;
             Chart.PreviewMouseLeftButtonUp += Chart_PreviewMouseLeftButtonUp;
             Chart.MouseLeave += Chart_MouseLeave;
-
             VolumeChart.PreviewMouseWheel += VolumeChart_PreviewMouseWheel;
             VolumeChart.PreviewMouseMove += VolumeChart_PreviewMouseMove;
             VolumeChart.MouseLeave += VolumeChart_MouseLeave;
-
             VolumeContainer.Visibility = Visibility.Collapsed;
             VolumeChartRow.Height = new GridLength(0);
-
             InitializeCrosshair();
             DrawChart();
-
             SetGridVisibility(Chart, _gridVisible);
             SetGridVisibility(VolumeChart, _gridVisible);
-
             CrosshairButton.Content = "Crosshair روشن";
             VolumeButton.Content = "نمایش حجم";
             GridButton.Content = "GRID";
@@ -115,42 +109,109 @@ namespace TradeIt.Charts
             foreach (var plottable in plottables) VolumeChart.Plot.Remove(plottable);
         }
 
+        private void InitializeCrosshair()
+        {
+            if (_crosshair != null) return;
+            _crosshair = Chart.Plot.Add.Crosshair(0, 0);
+            _crosshair.IsVisible = false;
+            _crosshair.LineColor = ScottPlot.Color.FromHtml("#707070");
+            _crosshair.LineWidth = 1;
+            _crosshair.LinePattern = ScottPlot.LinePattern.Dashed;
+            _crosshair.MarkerSize = 7;
+            _crosshair.MarkerColor = ScottPlot.Color.FromHtml("#202020");
+            _crosshair.MarkerFillColor = ScottPlot.Color.FromHtml("#FFFFFF");
+            _crosshair.MarkerLineColor = ScottPlot.Color.FromHtml("#202020");
+            _crosshair.MarkerLineWidth = 1;
+            _crosshair.TextColor = ScottPlot.Color.FromHtml("#FFFFFF");
+            _crosshair.TextBackgroundColor = ScottPlot.Color.FromHtml("#202020");
+            _crosshair.FontSize = 12;
+            _crosshair.FontBold = true;
+        }
+
+        private bool TryGetChartCoordinates(ScottPlot.WPF.WpfPlot chart, WpfPoint mousePosition, out ScottPlot.Coordinates coordinates)
+        {
+            coordinates = default;
+            double width = chart.ActualWidth;
+            double height = chart.ActualHeight;
+            if (width <= 0 || height <= 0) return false;
+            if (mousePosition.X < 0 || mousePosition.Y < 0 || mousePosition.X > width || mousePosition.Y > height) return false;
+            double scale = chart.DisplayScale;
+            if (scale <= 0) scale = 1.0;
+            try
+            {
+                var pixel = new ScottPlot.Pixel(mousePosition.X * scale, mousePosition.Y * scale);
+                coordinates = chart.Plot.GetCoordinates(pixel);
+                return true;
+            }
+            catch { return false; }
+        }
+
+        private void UpdateCrosshair(WpfPoint mousePosition)
+        {
+            if (_crosshair == null) return;
+            if (!_chartVisible || !_crosshairVisible)
+            {
+                _crosshair.IsVisible = false;
+                Chart.Refresh();
+                return;
+            }
+            if (!TryGetChartCoordinates(Chart, mousePosition, out ScottPlot.Coordinates coordinates))
+            {
+                _crosshair.IsVisible = false;
+                Chart.Refresh();
+                return;
+            }
+            _crosshair.Position = coordinates;
+            _crosshair.IsVisible = true;
+            _crosshairMouseInside = true;
+            UpdateMouseInformation(coordinates);
+            Chart.Refresh();
+        }
+
+        private void UpdateCrosshairFromVolume(WpfPoint mousePosition)
+        {
+            if (_crosshair == null) return;
+            if (!_chartVisible || !_crosshairVisible)
+            {
+                _crosshair.IsVisible = false;
+                Chart.Refresh();
+                return;
+            }
+            if (!TryGetChartCoordinates(VolumeChart, mousePosition, out ScottPlot.Coordinates volumeCoordinates)) return;
+            var mainLimits = Chart.Plot.Axes.GetLimits();
+            double x = volumeCoordinates.X;
+            if (x < mainLimits.Left || x > mainLimits.Right) return;
+            double y = (mainLimits.Bottom + mainLimits.Top) / 2.0;
+            _crosshair.Position = new ScottPlot.Coordinates(x, y);
+            _crosshair.IsVisible = true;
+            _crosshairMouseInside = true;
+            UpdateMouseInformation(new ScottPlot.Coordinates(x, y));
+            Chart.Refresh();
+        }
+
         private void UpdateMouseInformation(ScottPlot.Coordinates coordinates)
         {
             try
             {
                 DateTime dateTime = DateTime.FromOADate(coordinates.X);
-                string dateText = dateTime.TimeOfDay == TimeSpan.Zero
-                    ? dateTime.ToString("yyyy/MM/dd")
-                    : dateTime.ToString("yyyy/MM/dd HH:mm");
+                string dateText = dateTime.TimeOfDay == TimeSpan.Zero ? dateTime.ToString("yyyy/MM/dd") : dateTime.ToString("yyyy/MM/dd HH:mm");
                 string priceText = coordinates.Y.ToString("N2");
                 ChartInfoTextBlock.Text = $"{_symbol.Symbol} | زمان: {dateText} | قیمت: {priceText}";
             }
-            catch
-            {
-                ChartInfoTextBlock.Text = $"{_symbol.Symbol} | قیمت: {coordinates.Y:N2}";
-            }
+            catch { ChartInfoTextBlock.Text = $"{_symbol.Symbol} | قیمت: {coordinates.Y:N2}"; }
         }
 
         private void Chart_MouseLeave(object sender, WpfMouseEventArgs e)
         {
             _crosshairMouseInside = false;
-            if (_crosshair != null)
-            {
-                _crosshair.IsVisible = false;
-                Chart.Refresh();
-            }
+            if (_crosshair != null) { _crosshair.IsVisible = false; Chart.Refresh(); }
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | {_bars.Count:N0} داده";
         }
 
         private void VolumeChart_MouseLeave(object sender, WpfMouseEventArgs e)
         {
             _crosshairMouseInside = false;
-            if (_crosshair != null)
-            {
-                _crosshair.IsVisible = false;
-                Chart.Refresh();
-            }
+            if (_crosshair != null) { _crosshair.IsVisible = false; Chart.Refresh(); }
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | {_bars.Count:N0} داده";
         }
 
@@ -170,20 +231,16 @@ namespace TradeIt.Charts
         {
             if (!_hasInitialView) return;
             var limits = Chart.Plot.Axes.GetLimits();
-            double xMin = limits.Left;
-            double xMax = limits.Right;
-            double yMin = limits.Bottom;
-            double yMax = limits.Top;
-            double range = xMax - xMin;
+            double range = limits.Right - limits.Left;
             if (range <= 0) return;
             double initialRange = _initialXMax - _initialXMin;
             if (initialRange <= 0) initialRange = range;
             double minimumRange = initialRange / 10000.0;
             double maximumRange = initialRange * 2.0;
             double newRange = Math.Max(minimumRange, Math.Min(maximumRange, range * factor));
-            double right = xMax;
+            double right = limits.Right;
             double left = right - newRange;
-            Chart.Plot.Axes.SetLimits(left, right, yMin, yMax);
+            Chart.Plot.Axes.SetLimits(left, right, limits.Bottom, limits.Top);
             SyncVolumeXAxis();
             Chart.Refresh();
             if (_volumeVisible) VolumeChart.Refresh();
@@ -195,9 +252,7 @@ namespace TradeIt.Charts
             AxisDragMode mode = GetAxisDragMode(p.X, p.Y);
             if (e.ClickCount == 2 && mode == AxisDragMode.PriceAxis)
             {
-                AutoFitVisiblePriceRange();
-                e.Handled = true;
-                return;
+                AutoFitVisiblePriceRange(); e.Handled = true; return;
             }
             if (mode == AxisDragMode.None) return;
             _axisDragMode = mode;
@@ -212,28 +267,16 @@ namespace TradeIt.Charts
             WpfPoint p = e.GetPosition(Chart);
             UpdateCrosshair(p);
             if (_axisDragMode == AxisDragMode.None) return;
-            if (e.LeftButton != WpfMouseButtonState.Pressed)
-            {
-                EndAxisDrag();
-                return;
-            }
+            if (e.LeftButton != WpfMouseButtonState.Pressed) { EndAxisDrag(); return; }
             double deltaX = p.X - _axisDragStartX;
             double deltaY = p.Y - _axisDragStartY;
-            if (_axisDragMode == AxisDragMode.TimeAxis)
+            if (_axisDragMode == AxisDragMode.TimeAxis && Math.Abs(deltaX) >= 1)
             {
-                if (Math.Abs(deltaX) >= 1)
-                {
-                    ApplyHorizontalAxisZoom(deltaX);
-                    _axisDragStartX = p.X;
-                }
+                ApplyHorizontalAxisZoom(deltaX); _axisDragStartX = p.X;
             }
-            else if (_axisDragMode == AxisDragMode.PriceAxis)
+            else if (_axisDragMode == AxisDragMode.PriceAxis && Math.Abs(deltaY) >= 1)
             {
-                if (Math.Abs(deltaY) >= 1)
-                {
-                    ApplyVerticalAxisZoom(deltaY);
-                    _axisDragStartY = p.Y;
-                }
+                ApplyVerticalAxisZoom(deltaY); _axisDragStartY = p.Y;
             }
             e.Handled = true;
         }
@@ -247,16 +290,13 @@ namespace TradeIt.Charts
         private void Chart_PreviewMouseLeftButtonUp(object sender, WpfMouseButtonEventArgs e)
         {
             if (_axisDragMode == AxisDragMode.None) return;
-            EndAxisDrag();
-            e.Handled = true;
+            EndAxisDrag(); e.Handled = true;
         }
 
         private void EndAxisDrag()
         {
             _axisDragMode = AxisDragMode.None;
             if (Chart.IsMouseCaptured) Chart.ReleaseMouseCapture();
-            SyncVolumeXAxis();
-            if (_volumeVisible) VolumeChart.Refresh();
         }
 
         private AxisDragMode GetAxisDragMode(double x, double y)
@@ -319,8 +359,7 @@ namespace TradeIt.Charts
             double maxPrice = double.MinValue;
             for (int i = 0; i < _bars.Count; i++)
             {
-                DateTime time = GetBarDateTime(_bars[i], i);
-                double x = time.ToOADate();
+                double x = GetBarDateTime(_bars[i], i).ToOADate();
                 if (x < visibleXMin || x > visibleXMax) continue;
                 minPrice = Math.Min(minPrice, _bars[i].Low);
                 maxPrice = Math.Max(maxPrice, _bars[i].High);
@@ -331,31 +370,22 @@ namespace TradeIt.Charts
             {
                 double padding = Math.Abs(maxPrice) * 0.01;
                 if (padding <= 0) padding = 1;
-                minPrice -= padding;
-                maxPrice += padding;
+                minPrice -= padding; maxPrice += padding;
             }
             else
             {
                 double padding = range * 0.05;
-                minPrice -= padding;
-                maxPrice += padding;
+                minPrice -= padding; maxPrice += padding;
             }
             Chart.Plot.Axes.SetLimits(visibleXMin, visibleXMax, minPrice, maxPrice);
             Chart.Refresh();
-            SyncVolumeXAxis();
-            if (_volumeVisible) VolumeChart.Refresh();
         }
 
         private void DrawChart()
         {
             if (_bars.Count == 0)
             {
-                ClearMainChart();
-                ClearVolumeChart();
-                _hasInitialView = false;
-                Chart.Refresh();
-                VolumeChart.Refresh();
-                return;
+                ClearMainChart(); ClearVolumeChart(); _hasInitialView = false; Chart.Refresh(); VolumeChart.Refresh(); return;
             }
             bool preserveCurrentView = _hasInitialView && Chart.ActualWidth > 0 && Chart.ActualHeight > 0;
             ScottPlot.AxisLimits currentLimits = default;
@@ -371,8 +401,7 @@ namespace TradeIt.Charts
             DrawVolume();
             if (!preserveCurrentView)
             {
-                Chart.Plot.Axes.AutoScale();
-                SaveInitialView();
+                Chart.Plot.Axes.AutoScale(); SaveInitialView();
             }
             else
             {
@@ -380,10 +409,7 @@ namespace TradeIt.Charts
             }
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | {_bars.Count:N0} داده";
             if (_volumeVisible) SyncVolumeXAxis();
-            if (_crosshair != null)
-            {
-                _crosshair.IsVisible = _crosshairVisible && _chartVisible && _crosshairMouseInside;
-            }
+            if (_crosshair != null) _crosshair.IsVisible = _crosshairVisible && _chartVisible && _crosshairMouseInside;
             Chart.Refresh();
             if (_volumeVisible) VolumeChart.Refresh();
             if (!_volumeVisible)
@@ -413,11 +439,7 @@ namespace TradeIt.Charts
         {
             var xs = new DateTime[_bars.Count];
             var ys = new double[_bars.Count];
-            for (int i = 0; i < _bars.Count; i++)
-            {
-                xs[i] = GetBarDateTime(_bars[i], i);
-                ys[i] = _bars[i].Close;
-            }
+            for (int i = 0; i < _bars.Count; i++) { xs[i] = GetBarDateTime(_bars[i], i); ys[i] = _bars[i].Close; }
             var line = Chart.Plot.Add.Scatter(xs, ys);
             line.MarkerSize = 0;
             line.LineWidth = (float)_settings.LineWidth;
@@ -456,8 +478,8 @@ namespace TradeIt.Charts
                 {
                     Position = time.ToOADate(),
                     Value = volumeK,
-                    FillColor = ScottPlot.Color.FromHtml("#000000"),
-                    LineColor = ScottPlot.Color.FromHtml("#000000"),
+                    FillColor = marketBar.Close >= marketBar.Open ? ScottPlot.Color.FromHtml(_settings.RisingColor) : ScottPlot.Color.FromHtml(_settings.FallingColor),
+                    LineColor = ScottPlot.Color.FromHtml(_settings.AxisColor),
                     LineWidth = 0
                 });
             }
@@ -472,7 +494,7 @@ namespace TradeIt.Charts
             double maxVolume = bars.Max(x => x.Value);
             if (maxVolume <= 0) maxVolume = 1;
             var mainLimits = Chart.Plot.Axes.GetLimits();
-            VolumeChart.Plot.Axes.SetLimits(mainLimits.Left, mainLimits.Right, 0, maxVolume * 1.05);
+            VolumeChart.Plot.Axes.SetLimits(mainLimits.Left, mainLimits.Right, 0, maxVolume * 1.10);
             SetGridVisibility(VolumeChart, _gridVisible);
         }
 
@@ -487,8 +509,7 @@ namespace TradeIt.Charts
 
         private DateTime GetBarDateTime(MarketBar bar, int index)
         {
-            if (bar.Timestamp.HasValue && bar.Timestamp.Value > DateTime.MinValue && bar.Timestamp.Value < DateTime.MaxValue)
-                return bar.Timestamp.Value;
+            if (bar.Timestamp.HasValue && bar.Timestamp.Value > DateTime.MinValue && bar.Timestamp.Value < DateTime.MaxValue) return bar.Timestamp.Value;
             return new DateTime(2000, 1, 1).AddDays(index);
         }
 
@@ -518,42 +539,20 @@ namespace TradeIt.Charts
 
         private void SyncVolumeXAxis()
         {
-            if (!_volumeVisible || _bars.Count == 0) return;
-
+            if (!_volumeVisible) return;
             var mainLimits = Chart.Plot.Axes.GetLimits();
-            double left = mainLimits.Left;
-            double right = mainLimits.Right;
-            if (!double.IsFinite(left) || !double.IsFinite(right) || right <= left) return;
-
-            double maxVisibleVolume = 0;
-            for (int i = 0; i < _bars.Count; i++)
+            var volumeLimits = VolumeChart.Plot.Axes.GetLimits();
+            double volumeTop = volumeLimits.Top;
+            if (volumeTop <= 0)
             {
-                double x = GetBarDateTime(_bars[i], i).ToOADate();
-                if (x < left || x > right) continue;
-                double volume = _bars[i].Volume / VolumeScale;
-                if (double.IsFinite(volume) && volume > maxVisibleVolume) maxVisibleVolume = volume;
+                double maxVolume = _bars.Count > 0 ? _bars.Max(x => x.Volume / VolumeScale) : 1;
+                volumeTop = Math.Max(1, maxVolume * 1.10);
             }
-
-            if (maxVisibleVolume <= 0)
-            {
-                double maxVolume = 0;
-                for (int i = 0; i < _bars.Count; i++)
-                {
-                    double volume = _bars[i].Volume / VolumeScale;
-                    if (double.IsFinite(volume) && volume > maxVolume) maxVolume = volume;
-                }
-                maxVisibleVolume = maxVolume;
-            }
-
-            double volumeTop = maxVisibleVolume > 0 ? maxVisibleVolume * 1.05 : 1.0;
-            VolumeChart.Plot.Axes.SetLimits(left, right, 0, volumeTop);
+            VolumeChart.Plot.Axes.SetLimits(mainLimits.Left, mainLimits.Right, 0, volumeTop);
             ConfigureVolumeAxes();
         }
 
-        private void VolumeButton_Click(object sender, RoutedEventArgs e)
-        {
-            SetVolumeVisible(!_volumeVisible, true);
-        }
+        private void VolumeButton_Click(object sender, RoutedEventArgs e) => SetVolumeVisible(!_volumeVisible, true);
 
         private void SetVolumeVisible(bool visible, bool refresh)
         {
@@ -563,19 +562,155 @@ namespace TradeIt.Charts
                 MainChartRow.Height = new GridLength(3, GridUnitType.Star);
                 VolumeChartRow.Height = new GridLength(1, GridUnitType.Star);
                 VolumeContainer.Visibility = Visibility.Visible;
+                DrawVolume();
                 SyncVolumeXAxis();
+                VolumeButton.Content = "پنهان کردن حجم";
             }
             else
             {
-                VolumeContainer.Visibility = Visibility.Collapsed;
-                VolumeChartRow.Height = new GridLength(0);
                 MainChartRow.Height = new GridLength(1, GridUnitType.Star);
+                VolumeChartRow.Height = new GridLength(0);
+                VolumeContainer.Visibility = Visibility.Collapsed;
+                VolumeButton.Content = "نمایش حجم";
             }
             if (refresh)
             {
                 Chart.Refresh();
-                VolumeChart.Refresh();
+                if (_volumeVisible) VolumeChart.Refresh();
             }
         }
+
+        private void GridButton_Click(object sender, RoutedEventArgs e)
+        {
+            _gridVisible = !_gridVisible;
+            SetGridVisibility(Chart, _gridVisible);
+            SetGridVisibility(VolumeChart, _gridVisible);
+            GridButton.Content = _gridVisible ? "GRID" : "GRID خاموش";
+            Chart.Refresh();
+            if (_volumeVisible) VolumeChart.Refresh();
+        }
+
+        private void SetGridVisibility(ScottPlot.WPF.WpfPlot plot, bool visible) => plot.Plot.Grid.IsVisible = visible;
+
+        private void CrosshairButton_Click(object sender, RoutedEventArgs e)
+        {
+            _crosshairVisible = !_crosshairVisible;
+            if (_crosshair != null) _crosshair.IsVisible = _crosshairVisible && _chartVisible && _crosshairMouseInside;
+            CrosshairButton.Content = _crosshairVisible ? "Crosshair روشن" : "Crosshair خاموش";
+            Chart.Refresh();
+        }
+
+        private void ScreenshotButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                int width = (int)Math.Max(1, ActualWidth);
+                int height = (int)Math.Max(1, ActualHeight);
+                var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(width, height, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+                bitmap.Render(this);
+                var dialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Title = "ذخیره تصویر نمودار",
+                    Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg",
+                    FileName = $"{_symbol.Symbol}_{DateTime.Now:yyyyMMdd_HHmmss}.png"
+                };
+                if (dialog.ShowDialog() != true) return;
+                System.Windows.Media.Imaging.BitmapEncoder encoder;
+                if (Path.GetExtension(dialog.FileName).Equals(".jpg", StringComparison.OrdinalIgnoreCase)) encoder = new System.Windows.Media.Imaging.JpegBitmapEncoder();
+                else encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+                using FileStream stream = new FileStream(dialog.FileName, FileMode.Create);
+                encoder.Save(stream);
+                BottomInfoTextBlock.Text = $"تصویر ذخیره شد: {dialog.FileName}";
+            }
+            catch (Exception ex)
+            {
+                WpfMessageBox.Show($"خطا در گرفتن تصویر نمودار:\n{ex.Message}", "Screenshot", WpfMessageBoxButton.OK, WpfMessageBoxImage.Error);
+            }
+        }
+
+        private void PrintButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new WpfPrintDialog();
+                if (dialog.ShowDialog() != true) return;
+                dialog.PrintVisual(this, $"TradeIt - {_symbol.Symbol}");
+                BottomInfoTextBlock.Text = "نمودار برای چاپ ارسال شد.";
+            }
+            catch (Exception ex)
+            {
+                WpfMessageBox.Show($"خطا در چاپ نمودار:\n{ex.Message}", "Print", WpfMessageBoxButton.OK, WpfMessageBoxImage.Error);
+            }
+        }
+
+        private void ChartTypeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ChartTypeComboBox.SelectedItem is not ComboBoxItem item) return;
+            string type = item.Tag?.ToString() ?? "";
+            _chartType = type switch { "Line" => ChartDisplayType.Line, "Bar" => ChartDisplayType.Bar, _ => ChartDisplayType.Candlestick };
+            if (IsLoaded) DrawChart();
+        }
+
+        private void SettingsButton_Click(object sender, RoutedEventArgs e) => OpenSettings();
+
+        private void OpenSettings()
+        {
+            var window = new ChartSettingsWindow(_settings) { Owner = Window.GetWindow(this) };
+            if (window.ShowDialog() == true)
+            {
+                _settings = ChartSettingsManager.Clone(window.Settings);
+                ChartSettingsManager.SetDefaults(_settings);
+                DrawChart();
+            }
+        }
+
+        private void HideChartButton_Click(object sender, RoutedEventArgs e)
+        {
+            _chartVisible = !_chartVisible;
+            foreach (var plottable in Chart.Plot.GetPlottables())
+            {
+                if (ReferenceEquals(plottable, _crosshair)) continue;
+                plottable.IsVisible = _chartVisible;
+            }
+            if (_crosshair != null) _crosshair.IsVisible = _chartVisible && _crosshairVisible && _crosshairMouseInside;
+            Chart.Refresh();
+            HideChartButton.Content = _chartVisible ? "پنهان کردن نمودار" : "نمایش نمودار";
+        }
+
+        private void HideToolsButton_Click(object sender, RoutedEventArgs e)
+        {
+            _toolsVisible = !_toolsVisible;
+            HideToolsButton.Content = _toolsVisible ? "پنهان کردن ابزارهای تکنیکال" : "نمایش ابزارهای تکنیکال";
+        }
+
+        private void ZoomInButton_Click(object sender, RoutedEventArgs e) => ZoomXAxis(0.80);
+        private void ZoomOutButton_Click(object sender, RoutedEventArgs e) => ZoomXAxis(1.25);
+
+        private void ResetZoomButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_hasInitialView) return;
+            Chart.Plot.Axes.SetLimits(_initialXMin, _initialXMax, _initialYMin, _initialYMax);
+            SyncVolumeXAxis();
+            Chart.Refresh();
+            if (_volumeVisible) VolumeChart.Refresh();
+        }
+
+        private void FullViewButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_bars.Count == 0) return;
+            Chart.Plot.Axes.AutoScale();
+            SaveInitialView();
+            SyncVolumeXAxis();
+            Chart.Refresh();
+            if (_volumeVisible) VolumeChart.Refresh();
+        }
+    }
+
+    public enum ChartDisplayType
+    {
+        Candlestick,
+        Line,
+        Bar
     }
 }
