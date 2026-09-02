@@ -32,6 +32,9 @@ namespace TradeIt.Charts
             Chart.Refresh();
             VolumeChart.Refresh();
 
+            // Middle-click changes the display state, so persist it immediately.
+            SaveCurrentDisplayState();
+
             e.Handled = true;
         }
     }
