@@ -13,6 +13,7 @@ namespace TradeIt.Charts
         private DispatcherTimer? _volumeSyncTimer;
         private bool _volumeSyncBusy;
         private const double VolumeTopPaddingFactor = 1.05;
+        private const double VolumeRobustPercentile = 0.95;
 
         private void ChartTabView_Loaded(object sender, RoutedEventArgs e)
         {
@@ -120,20 +121,63 @@ namespace TradeIt.Charts
             double right = priceLimits.Right;
             if (right <= left) return;
 
-            double maxVisibleVolume = 0;
-            for (int i = 0; i < _bars.Count; i++)
-            {
-                double x = GetBarDateTime(_bars[i], i).ToOADate();
-                if (x < left || x > right) continue;
-                double v = _bars[i].Volume / VolumeScale;
-                if (!double.IsNaN(v) && !double.IsInfinity(v) && v > maxVisibleVolume) maxVisibleVolume = v;
-            }
-            if (maxVisibleVolume <= 0) maxVisibleVolume = 1;
+            var visibleVolumes = _bars
+                .Select((bar, index) => new
+                {
+                    X = GetBarDateTime(bar, index).ToOADate(),
+                    Volume = bar.Volume / VolumeScale
+                })
+                .Where(x => x.X >= left &&
+                            x.X <= right &&
+                            !double.IsNaN(x.Volume) &&
+                            !double.IsInfinity(x.Volume) &&
+                            x.Volume > 0)
+                .Select(x => x.Volume)
+                .OrderBy(x => x)
+                .ToList();
 
-            VolumeChart.Plot.Axes.SetLimits(left, right, 0, maxVisibleVolume * VolumeTopPaddingFactor);
+            double volumeTop = GetRobustVolumeTop(visibleVolumes);
+
+            VolumeChart.Plot.Axes.SetLimits(
+                left,
+                right,
+                0,
+                volumeTop);
+
             ConfigureVolumeAxes();
             EnsureVolumeCrosshair();
             VolumeChart.Refresh();
+        }
+
+        /// <summary>
+        /// Determine a useful volume-axis ceiling without allowing one or two
+        /// exceptional volume spikes to flatten all the normal bars.
+        /// The upper 5% may therefore be clipped, while the ordinary volume
+        /// bars remain clearly visible.
+        /// </summary>
+        private static double GetRobustVolumeTop(System.Collections.Generic.List<double> sortedVolumes)
+        {
+            if (sortedVolumes.Count == 0)
+                return 1;
+
+            int percentileIndex = Math.Max(
+                0,
+                (int)Math.Ceiling(sortedVolumes.Count * VolumeRobustPercentile) - 1);
+
+            double percentileVolume = sortedVolumes[percentileIndex];
+            double maximumVolume = sortedVolumes[^1];
+
+            if (percentileVolume <= 0 || double.IsNaN(percentileVolume) || double.IsInfinity(percentileVolume))
+                return Math.Max(1, maximumVolume * VolumeTopPaddingFactor);
+
+            // If the maximum is close to the 95th percentile, keep the full
+            // range. Otherwise treat the extreme spike as an outlier for the
+            // purpose of fitting the visible volume panel.
+            double topBase = maximumVolume <= percentileVolume * 1.25
+                ? maximumVolume
+                : percentileVolume;
+
+            return Math.Max(1, topBase * VolumeTopPaddingFactor);
         }
 
         private void EnsureVolumeCrosshair()
