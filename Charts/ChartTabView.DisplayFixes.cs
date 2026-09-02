@@ -41,13 +41,6 @@ namespace TradeIt.Charts
             if (plot == null || (!ReferenceEquals(plot, chart.Chart) && !ReferenceEquals(plot, chart.VolumeChart))) return;
 
             System.Windows.Point point = e.GetPosition(plot);
-
-            // IMPORTANT:
-            // Timestamp-less charts use DateTime/OADate values only as synthetic X coordinates.
-            // ScottPlot's DateTime coordinate conversion can throw when its DateTime tick generator
-            // is not ready yet (typically while the chart is being initialized). Do not call
-            // Plot.GetCoordinates() in that case. Calculate the bar index directly from the
-            // current X limits and mouse position, then snap the crosshair to that bar.
             bool hasRealTimestamp = chart._bars.Any(b =>
                 b.Timestamp.HasValue &&
                 b.Timestamp.Value > DateTime.MinValue &&
@@ -64,19 +57,14 @@ namespace TradeIt.Charts
                 chart._crosshair.Position = new ScottPlot.Coordinates(x, y);
                 chart._crosshair.IsVisible = true;
                 chart._crosshairMouseInside = true;
-
                 chart._crosshair.HorizontalLine.LabelOppositeAxis = false;
                 chart._crosshair.VerticalLine.LabelOppositeAxis = false;
                 chart._crosshair.HorizontalLine.LabelAlignment = ScottPlot.Alignment.MiddleRight;
                 chart._crosshair.VerticalLine.LabelAlignment = ScottPlot.Alignment.LowerCenter;
-
                 chart._crosshair.VerticalLine.Text = $"کندل {index + 1}";
                 chart._crosshair.HorizontalLine.Text = y.ToString("N2", CultureInfo.InvariantCulture);
                 chart.UpdateSnappedMouseInformation(index, y);
                 chart.Chart.Refresh();
-
-                // Prevent ChartTabView.xaml.cs from entering TryGetChartCoordinates()
-                // for this event. That is the path which can trigger the DateTime generator exception.
                 e.Handled = true;
                 return;
             }
@@ -91,7 +79,6 @@ namespace TradeIt.Charts
             chart._crosshair.Position = new ScottPlot.Coordinates(realX, realY);
             chart._crosshair.IsVisible = true;
             chart._crosshairMouseInside = true;
-
             chart._crosshair.HorizontalLine.LabelOppositeAxis = false;
             chart._crosshair.VerticalLine.LabelOppositeAxis = false;
             chart._crosshair.HorizontalLine.LabelAlignment = ScottPlot.Alignment.MiddleRight;
@@ -123,13 +110,9 @@ namespace TradeIt.Charts
         private int DisplayFixes_FindNearestBarIndexFromMouseX(ScottPlot.WPF.WpfPlot plot, double mouseX)
         {
             if (_bars.Count == 0 || plot.ActualWidth <= 0) return -1;
-
             var limits = plot.Plot.Axes.GetLimits();
             double xRange = limits.Right - limits.Left;
             if (xRange <= 0) return -1;
-
-            // The plot control includes axis margins. Using its full width is intentionally
-            // conservative here; the result is immediately snapped to the nearest real bar.
             double x = limits.Left + (mouseX / plot.ActualWidth) * xRange;
             return DisplayFixes_FindNearestBarIndex(x);
         }
@@ -137,11 +120,9 @@ namespace TradeIt.Charts
         private static double DisplayFixes_GetMouseYFromPixel(ScottPlot.WPF.WpfPlot plot, double mouseY)
         {
             if (plot.ActualHeight <= 0) return 0;
-
             var limits = plot.Plot.Axes.GetLimits();
             double yRange = limits.Top - limits.Bottom;
             if (yRange <= 0) return limits.Bottom;
-
             double normalized = 1.0 - Math.Clamp(mouseY / plot.ActualHeight, 0.0, 1.0);
             return limits.Bottom + normalized * yRange;
         }
@@ -255,10 +236,9 @@ namespace TradeIt.Charts
             bool hasRealTimestamp = _bars.Any(b => b.Timestamp.HasValue && b.Timestamp.Value > DateTime.MinValue && b.Timestamp.Value < DateTime.MaxValue);
             try
             {
-                var axis = plot.Plot.Axes.DateTimeTicksBottom();
-
                 if (hasRealTimestamp)
                 {
+                    var axis = plot.Plot.Axes.DateTimeTicksBottom();
                     if (axis.TickGenerator is ScottPlot.TickGenerators.DateTimeAutomatic auto)
                     {
                         auto.LabelFormatter = dt =>
@@ -269,23 +249,29 @@ namespace TradeIt.Charts
                 }
                 else
                 {
-                    var manualTicks = new ScottPlot.TickGenerators.DateTimeManual();
+                    // A chart without timestamps must never use a DateTime axis.
+                    // DateTimeManual still requires a DateTime tick generator and can throw
+                    // while ScottPlot is converting pixels to coordinates. Use a numeric axis
+                    // and keep the synthetic OADate values only as numeric X coordinates.
+                    plot.Plot.Axes.NumericTicksBottom();
+
+                    var manualTicks = new ScottPlot.TickGenerators.NumericManual();
                     int count = _bars.Count;
                     int step = Math.Max(1, count / 8);
 
                     for (int i = 0; i < count; i += step)
                     {
-                        DateTime dt = GetBarDateTime(_bars[i], i);
-                        manualTicks.AddMajor(dt, $"کندل {i + 1}");
+                        double x = GetBarDateTime(_bars[i], i).ToOADate();
+                        manualTicks.AddMajor(x, $"کندل {i + 1}");
                     }
 
                     if (count > 0)
                     {
-                        DateTime last = GetBarDateTime(_bars[count - 1], count - 1);
-                        manualTicks.AddMajor(last, $"کندل {count}");
+                        double x = GetBarDateTime(_bars[count - 1], count - 1).ToOADate();
+                        manualTicks.AddMajor(x, $"کندل {count}");
                     }
 
-                    axis.TickGenerator = manualTicks;
+                    plot.Plot.Axes.Bottom.TickGenerator = manualTicks;
                 }
             }
             catch { }
