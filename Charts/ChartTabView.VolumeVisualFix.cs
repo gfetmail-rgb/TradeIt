@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Windows;
 
 namespace TradeIt.Charts
@@ -30,6 +31,20 @@ namespace TradeIt.Charts
                 Width = 1,
                 Pattern = ScottPlot.LinePattern.Solid
             };
+
+            // Volume bars are intentionally monochrome for now.
+            // User-selectable volume colors can be added later through settings.
+            foreach (var plottable in VolumeChart.Plot.GetPlottables())
+            {
+                if (plottable is ScottPlot.Plottables.BarPlot barPlot)
+                {
+                    foreach (var bar in barPlot.Bars)
+                    {
+                        bar.FillColor = ScottPlot.Color.FromHtml("#000000");
+                        bar.LineColor = ScottPlot.Color.FromHtml("#000000");
+                    }
+                }
+            }
         }
 
         /// <summary>
