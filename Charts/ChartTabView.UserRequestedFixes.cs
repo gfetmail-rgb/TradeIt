@@ -9,71 +9,26 @@ namespace TradeIt.Charts
 {
     public partial class ChartTabView
     {
+        // Mouse-move crosshair handling is registered centrally by
+        // ChartTabView.DisplayFixes.cs. Do not register a second handler here:
+        // duplicate handlers caused unnecessary work and could run against a
+        // different axis configuration.
         private static readonly bool _userRequestedFixesRegistered = RegisterUserRequestedFixes();
 
         private static bool RegisterUserRequestedFixes()
         {
-            EventManager.RegisterClassHandler(
-                typeof(ChartTabView),
-                FrameworkElement.LoadedEvent,
-                new RoutedEventHandler(UserRequestedChartLoaded));
             return true;
         }
 
         private static void UserRequestedChartLoaded(object sender, RoutedEventArgs e)
         {
-            if (sender is not ChartTabView chart)
-                return;
-
-            chart.Chart.MouseMove -= chart.UserFixesChart_MouseMove;
-            chart.Chart.MouseMove += chart.UserFixesChart_MouseMove;
+            // Intentionally empty. Crosshair mouse handling is owned by DisplayFixes.
         }
 
         private void UserFixesChart_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            if (_crosshair == null || !_crosshairVisible || !_chartVisible || _bars.Count == 0)
-                return;
-
-            var p = e.GetPosition(Chart);
-            if (!TryGetChartCoordinates(Chart, p, out ScottPlot.Coordinates coordinates))
-                return;
-
-            int nearestIndex = Enumerable.Range(0, _bars.Count)
-                .OrderBy(i => Math.Abs(GetBarDateTime(_bars[i], i).ToOADate() - coordinates.X))
-                .First();
-
-            DateTime barTime = GetBarDateTime(_bars[nearestIndex], nearestIndex);
-            double x = barTime.ToOADate();
-            var limits = Chart.Plot.Axes.GetLimits();
-
-            // X always snaps to the center of the nearest bar.
-            // Y remains at the actual mouse price so the horizontal price
-            // label represents the exact crosshair price.
-            double y = Math.Clamp(coordinates.Y, limits.Bottom, limits.Top);
-
-            _crosshair.Position = new ScottPlot.Coordinates(x, y);
-            _crosshair.IsVisible = true;
-            _crosshairMouseInside = true;
-
-            var bar = _bars[nearestIndex];
-            bool hasRealTimestamp =
-                bar.Timestamp.HasValue &&
-                bar.Timestamp.Value > DateTime.MinValue &&
-                bar.Timestamp.Value < DateTime.MaxValue;
-
-            string xLabel = hasRealTimestamp
-                ? (barTime.TimeOfDay == TimeSpan.Zero
-                    ? barTime.ToString("yyyy/MM/dd")
-                    : barTime.ToString("yyyy/MM/dd HH:mm"))
-                : $"کندل {nearestIndex + 1}";
-
-            _crosshair.HorizontalLine.Text = y.ToString("N2");
-            _crosshair.VerticalLine.Text = xLabel;
-
-            ChartInfoTextBlock.Text =
-                $"{_symbol.Symbol}    O: {bar.Open:N2}  H: {bar.High:N2}  L: {bar.Low:N2}  C: {bar.Close:N2}  V: {bar.Volume:N0}";
-
-            Chart.Refresh();
+            // Intentionally unused. Kept for compatibility with existing partial
+            // class references; DisplayFixes_PreviewMouseMove is the single handler.
         }
 
         private void ScreenshotChartOnlyButton_Click(object sender, RoutedEventArgs e)
