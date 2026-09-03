@@ -29,6 +29,7 @@ namespace TradeIt.Charts
             SelectMainComboValue(BarLineWidthComboBox, Settings.BarLineWidth);
             SelectMainComboValue(GridLineWidthComboBox, Settings.GridLineWidth);
             SelectMainTag(GridPatternComboBox, Settings.GridPattern);
+            ShowTimeGapsCheckBox.IsChecked = Settings.ShowTimeGaps;
             OpenChartInNewTabCheckBox.IsChecked = Settings.OpenChartInNewTab;
         }
 
@@ -102,6 +103,7 @@ namespace TradeIt.Charts
             Settings.GridLineWidth = ReadMainComboValue(GridLineWidthComboBox, Settings.GridLineWidth);
             if (GridPatternComboBox.SelectedItem is System.Windows.Controls.ComboBoxItem gridPattern)
                 Settings.GridPattern = gridPattern.Tag?.ToString() ?? "Solid";
+            Settings.ShowTimeGaps = ShowTimeGapsCheckBox.IsChecked == true;
             Settings.OpenChartInNewTab = OpenChartInNewTabCheckBox.IsChecked == true;
             Settings.HasUserSavedSettings = true;
             ChartSettingsManager.Save(Settings);
