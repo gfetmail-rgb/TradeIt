@@ -1,4 +1,4 @@
-﻿
+using System;
 using System.Data;
 using System.IO;
 using System.Linq;
@@ -24,18 +24,6 @@ namespace TradeIt.Portfolios
             UpdateDateTimeControls();
         }
 
-        private void SourceTypeChanged(object sender, RoutedEventArgs e)
-        {
-            if (BrowseButton == null) return;
-            BrowseButton.Content = FolderRadio.IsChecked == true ? "انتخاب پوشه..." : "انتخاب فایل...";
-            if (FileRadio.IsChecked != true)
-            {
-                _symbolSelectionConfirmed = false;
-                _symbolSelectionItems.Clear();
-                UpdateSelectedSymbolsCount();
-            }
-        }
-
         private void NoDateTimeCheckBox_Changed(object sender, RoutedEventArgs e)
         {
             UpdateDateTimeControls();
@@ -54,117 +42,122 @@ namespace TradeIt.Portfolios
 
         private void BrowseButton_Click(object sender, RoutedEventArgs e)
         {
-            if (FolderRadio.IsChecked == true)
+            var dialog = new Microsoft.Win32.OpenFolderDialog
             {
-                var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "پوشه داده‌های بازار را انتخاب کنید" };
-                if (dialog.ShowDialog() == true) PathTextBox.Text = dialog.FolderName;
-            }
-            else
+                Title = "پوشه فایل‌های داده بازار را انتخاب کنید"
+            };
+
+            if (dialog.ShowDialog() == true)
             {
-                var dialog = new Microsoft.Win32.OpenFileDialog
-                {
-                    Title = "انتخاب فایل داده",
-                    Filter = "Data Files (*.txt;*.csv)|*.txt;*.csv|All Files (*.*)|*.*"
-                };
-                if (dialog.ShowDialog() == true)
-                {
-                    PathTextBox.Text = dialog.FileName;
-                    _symbolSelectionConfirmed = false;
-                    _symbolSelectionItems.Clear();
-                    UpdateSelectedSymbolsCount();
-                }
+                PathTextBox.Text = dialog.FolderName;
+                LoadPreviewFromCurrentFolder();
             }
         }
 
         private void LoadPreviewButton_Click(object sender, RoutedEventArgs e)
         {
+            LoadPreviewFromCurrentFolder();
+        }
+
+        private void LoadPreviewFromCurrentFolder()
+        {
             try
             {
-                string path = PathTextBox.Text.Trim();
-                if (string.IsNullOrWhiteSpace(path))
+                string folder = PathTextBox.Text.Trim();
+                if (string.IsNullOrWhiteSpace(folder))
                 {
-                    System.Windows.MessageBox.Show("ابتدا فایل یا پوشه را انتخاب کنید.");
+                    System.Windows.MessageBox.Show("ابتدا مسیر پوشه داده را انتخاب کنید.");
                     return;
                 }
 
-                string filePath = path;
-                if (Directory.Exists(path))
+                if (!Directory.Exists(folder))
                 {
-                    string[] files = Directory.GetFiles(path, "*.*", SearchOption.TopDirectoryOnly)
-                        .Where(x => string.Equals(Path.GetExtension(x), ".csv", System.StringComparison.OrdinalIgnoreCase)
-                                 || string.Equals(Path.GetExtension(x), ".txt", System.StringComparison.OrdinalIgnoreCase))
-                        .ToArray();
-                    if (files.Length == 0)
-                    {
-                        System.Windows.MessageBox.Show("در این پوشه فایل CSV یا TXT پیدا نشد.");
-                        return;
-                    }
-                    filePath = files[0];
-                }
-
-                if (!File.Exists(filePath))
-                {
-                    System.Windows.MessageBox.Show("فایل پیدا نشد.");
+                    System.Windows.MessageBox.Show("مسیر انتخاب‌شده یک پوشه معتبر نیست.");
                     return;
                 }
 
-                string delimiter = GetSelectedDelimiter();
-                string[] lines = File.ReadLines(filePath).Take(100).ToArray();
-                if (lines.Length == 0)
+                string[] files = Directory.GetFiles(folder, "*.*", SearchOption.TopDirectoryOnly)
+                    .Where(IsDataFile)
+                    .OrderBy(x => Path.GetFileName(x), StringComparer.CurrentCultureIgnoreCase)
+                    .ToArray();
+
+                if (files.Length == 0)
                 {
-                    System.Windows.MessageBox.Show("فایل خالی است.");
+                    _symbolSelectionItems.Clear();
+                    UpdateSelectedSymbolsCount();
+                    PreviewGrid.ItemsSource = null;
+                    System.Windows.MessageBox.Show("در این پوشه فایل CSV یا TXT پیدا نشد.");
                     return;
                 }
 
-                bool hasHeader = HeaderCheckBox.IsChecked == true;
-                string[] headers;
-                int startRow;
-                if (hasHeader)
-                {
-                    headers = SplitLine(lines[0], delimiter);
-                    startRow = 1;
-                }
-                else
-                {
-                    string[] firstRow = SplitLine(lines[0], delimiter);
-                    headers = Enumerable.Range(1, firstRow.Length).Select(x => $"Column {x}").ToArray();
-                    startRow = 0;
-                }
-
-                BuildColumnCombos(headers);
-                _previewTable = new DataTable();
-                foreach (string header in headers)
-                {
-                    string safeHeader = string.IsNullOrWhiteSpace(header) ? "Column" : header.Trim();
-                    string original = safeHeader;
-                    int counter = 2;
-                    while (_previewTable.Columns.Contains(safeHeader))
-                    {
-                        safeHeader = $"{original}_{counter}";
-                        counter++;
-                    }
-                    _previewTable.Columns.Add(safeHeader);
-                }
-
-                for (int i = startRow; i < lines.Length; i++)
-                {
-                    if (string.IsNullOrWhiteSpace(lines[i])) continue;
-                    string[] values = SplitLine(lines[i], delimiter);
-                    DataRow row = _previewTable.NewRow();
-                    for (int c = 0; c < _previewTable.Columns.Count; c++)
-                        row[c] = c < values.Length ? values[c].Trim() : "";
-                    _previewTable.Rows.Add(row);
-                }
-
-                AutoDetectColumns(headers);
-
-                if (FileRadio.IsChecked == true)
-                    PopulateSymbolSelectionList();
+                LoadPreviewFile(files[0]);
+                PopulateSymbolSelectionList(files);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 System.Windows.MessageBox.Show(ex.ToString(), "خطا", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private static bool IsDataFile(string path)
+        {
+            string extension = Path.GetExtension(path);
+            return string.Equals(extension, ".csv", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(extension, ".txt", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void LoadPreviewFile(string filePath)
+        {
+            string delimiter = GetSelectedDelimiter();
+            string[] lines = File.ReadLines(filePath).Take(100).ToArray();
+            if (lines.Length == 0)
+            {
+                System.Windows.MessageBox.Show("فایل نمونه خالی است.");
+                return;
+            }
+
+            bool hasHeader = HeaderCheckBox.IsChecked == true;
+            string[] headers;
+            int startRow;
+            if (hasHeader)
+            {
+                headers = SplitLine(lines[0], delimiter);
+                startRow = 1;
+            }
+            else
+            {
+                string[] firstRow = SplitLine(lines[0], delimiter);
+                headers = Enumerable.Range(1, firstRow.Length).Select(x => $"Column {x}").ToArray();
+                startRow = 0;
+            }
+
+            BuildColumnCombos(headers);
+            _previewTable = new DataTable();
+            foreach (string header in headers)
+            {
+                string safeHeader = string.IsNullOrWhiteSpace(header) ? "Column" : header.Trim();
+                string original = safeHeader;
+                int counter = 2;
+                while (_previewTable.Columns.Contains(safeHeader))
+                {
+                    safeHeader = $"{original}_{counter}";
+                    counter++;
+                }
+                _previewTable.Columns.Add(safeHeader);
+            }
+
+            for (int i = startRow; i < lines.Length; i++)
+            {
+                if (string.IsNullOrWhiteSpace(lines[i])) continue;
+                string[] values = SplitLine(lines[i], delimiter);
+                DataRow row = _previewTable.NewRow();
+                for (int c = 0; c < _previewTable.Columns.Count; c++)
+                    row[c] = c < values.Length ? values[c].Trim() : "";
+                _previewTable.Rows.Add(row);
+            }
+
+            PreviewGrid.ItemsSource = _previewTable.DefaultView;
+            AutoDetectColumns(headers);
         }
 
         private void BuildColumnCombos(string[] headers)
@@ -228,19 +221,13 @@ namespace TradeIt.Portfolios
         {
             if (_previewTable == null)
             {
-                System.Windows.MessageBox.Show("ابتدا فایل را بخوانید.");
+                System.Windows.MessageBox.Show("ابتدا فایل‌های مسیر را بخوانید.");
                 return;
             }
             if (GetColumnIndex(OpenColumnCombo) < 0 || GetColumnIndex(HighColumnCombo) < 0 ||
                 GetColumnIndex(LowColumnCombo) < 0 || GetColumnIndex(CloseColumnCombo) < 0)
             {
                 System.Windows.MessageBox.Show("ستون‌های OHLC باید مشخص شوند.");
-                return;
-            }
-            bool symbolFromFile = SymbolFromFileContentRadio.IsChecked == true;
-            if (symbolFromFile && GetColumnIndex(SymbolColumnCombo) < 0)
-            {
-                System.Windows.MessageBox.Show("منبع نام نماد روی «داخل فایل» است؛ بنابراین ستون Symbol باید مشخص شود.");
                 return;
             }
             if (NoDateTimeCheckBox.IsChecked != true &&
@@ -262,10 +249,11 @@ namespace TradeIt.Portfolios
                     System.Windows.MessageBox.Show("نام سبد را وارد کنید.");
                     return;
                 }
-                string path = PathTextBox.Text.Trim();
-                if (string.IsNullOrWhiteSpace(path))
+
+                string folder = PathTextBox.Text.Trim();
+                if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
                 {
-                    System.Windows.MessageBox.Show("منبع داده را انتخاب کنید.");
+                    System.Windows.MessageBox.Show("ابتدا مسیر پوشه داده را انتخاب کنید.");
                     return;
                 }
 
@@ -276,14 +264,6 @@ namespace TradeIt.Portfolios
                 if (openColumn < 0 || highColumn < 0 || lowColumn < 0 || closeColumn < 0)
                 {
                     System.Windows.MessageBox.Show("ستون‌های OHLC باید مشخص شوند.");
-                    return;
-                }
-
-                bool symbolFromFile = SymbolFromFileContentRadio.IsChecked == true;
-                int symbolColumn = symbolFromFile ? GetColumnIndex(SymbolColumnCombo) : -1;
-                if (symbolFromFile && symbolColumn < 0)
-                {
-                    System.Windows.MessageBox.Show("ستون Symbol مشخص نشده است.");
                     return;
                 }
 
@@ -301,26 +281,44 @@ namespace TradeIt.Portfolios
                     }
                 }
 
-                string calendar = GetSelectedTag(CalendarComboBox, "Persian");
-                string dateFormat = GetSelectedTag(DateFormatComboBox, "yyyyMMdd");
-                string timeFormat = GetSelectedTag(TimeFormatComboBox, "HHmmss");
+                if (_symbolSelectionItems.Count == 0)
+                {
+                    System.Windows.MessageBox.Show("در مسیر انتخاب‌شده فایل داده‌ای برای انتخاب سهام وجود ندارد.");
+                    return;
+                }
+
+                var selected = _symbolSelectionItems
+                    .Where(x => x.IsSelected)
+                    .Select(x => new SymbolInfo
+                    {
+                        Symbol = x.Symbol,
+                        DisplayName = x.Symbol,
+                        FilePath = x.FilePath
+                    })
+                    .ToList();
+
+                if (selected.Count == 0)
+                {
+                    System.Windows.MessageBox.Show("حداقل یک سهم را انتخاب کنید.");
+                    return;
+                }
 
                 var portfolio = new Portfolio
                 {
                     Name = name,
                     DataSource = new DataSource
                     {
-                        SourceType = FolderRadio.IsChecked == true ? "Folder" : "File",
-                        Path = path,
+                        SourceType = "Folder",
+                        Path = folder,
                         Delimiter = GetSelectedDelimiter(),
                         HasHeader = HeaderCheckBox.IsChecked == true,
-                        SymbolSource = symbolFromFile ? "FileContent" : "FileName",
+                        SymbolSource = "FileName",
                         DataType = "TseDaily",
                         HasDateTime = hasDateTime,
-                        Calendar = calendar,
-                        DateFormat = dateFormat,
-                        TimeFormat = timeFormat,
-                        SymbolColumn = symbolColumn,
+                        Calendar = GetSelectedTag(CalendarComboBox, "Persian"),
+                        DateFormat = GetSelectedTag(DateFormatComboBox, "yyyyMMdd"),
+                        TimeFormat = GetSelectedTag(TimeFormatComboBox, "HHmmss"),
+                        SymbolColumn = -1,
                         DateColumn = dateColumn,
                         TimeColumn = timeColumn,
                         OpenColumn = openColumn,
@@ -335,11 +333,10 @@ namespace TradeIt.Portfolios
                         EnglishTickerColumn = GetColumnIndex(EnglishTickerColumnCombo),
                         ShareCountColumn = GetColumnIndex(ShareCountColumnCombo),
                         MarketValueColumn = GetColumnIndex(MarketValueColumnCombo)
-                    }
+                    },
+                    UseExplicitSymbolList = true,
+                    Symbols = selected
                 };
-
-                if (!TryApplySymbolSelection(portfolio))
-                    return;
 
                 ResultPortfolio = portfolio;
                 DialogResult = true;
