@@ -10,7 +10,11 @@ namespace TradeIt.Models
 
         public string EnglishTicker { get; set; } = "";
 
+        // Original date text exactly as it appeared in the source file.
         public string JalaliDate { get; set; } = "";
+
+        // Source calendar: Persian or Gregorian. Empty means no date is available.
+        public string Calendar { get; set; } = "";
 
         public string Time { get; set; } = "";
 
