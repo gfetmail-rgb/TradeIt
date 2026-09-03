@@ -5,6 +5,7 @@ using WpfButtonBase = System.Windows.Controls.Primitives.ButtonBase;
 using WpfComboBox = System.Windows.Controls.ComboBox;
 using WpfComboBoxItem = System.Windows.Controls.ComboBoxItem;
 using WpfSelectionChangedEventArgs = System.Windows.Controls.SelectionChangedEventArgs;
+using WpfSelectionChangedEventHandler = System.Windows.Controls.SelectionChangedEventHandler;
 
 namespace TradeIt.Charts
 {
@@ -17,7 +18,7 @@ namespace TradeIt.Charts
         {
             EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.LoadedEvent, new RoutedEventHandler(DisplayStatePersistence_Loaded));
             EventManager.RegisterClassHandler(typeof(ChartTabView), WpfButtonBase.ClickEvent, new RoutedEventHandler(DisplayStatePersistence_Click), true);
-            EventManager.RegisterClassHandler(typeof(ChartTabView), WpfComboBox.SelectionChangedEvent, new SelectionChangedEventHandler(DisplayStatePersistence_SelectionChanged), true);
+            EventManager.RegisterClassHandler(typeof(ChartTabView), WpfComboBox.SelectionChangedEvent, new WpfSelectionChangedEventHandler(DisplayStatePersistence_SelectionChanged), true);
             return true;
         }
 
@@ -61,8 +62,6 @@ namespace TradeIt.Charts
             if (e.OriginalSource is WpfButton button &&
                 (button.Name == nameof(CrosshairButton) || button.Name == nameof(GridButton)))
             {
-                // Class handlers run before instance handlers, so defer the save
-                // until the current click has completed and the new state exists.
                 chart.Dispatcher.BeginInvoke(new Action(chart.SaveCurrentDisplayState), System.Windows.Threading.DispatcherPriority.DataBind);
             }
         }
@@ -74,8 +73,6 @@ namespace TradeIt.Charts
             if (!ReferenceEquals(e.OriginalSource, chart.ChartTypeComboBox))
                 return;
 
-            // The XAML SelectionChanged handler updates _chartType after the class
-            // handler. Defer persistence until that handler has finished.
             chart.Dispatcher.BeginInvoke(new Action(chart.SaveCurrentDisplayState), System.Windows.Threading.DispatcherPriority.DataBind);
         }
 
