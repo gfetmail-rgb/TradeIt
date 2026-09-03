@@ -25,6 +25,7 @@ namespace TradeIt.Charts
         public double CrosshairLineWidth { get; set; } = 1;
         public string CrosshairPattern { get; set; } = "Dotted";
         public string ChartType { get; set; } = "Candlestick";
+        public bool ShowTimeGaps { get; set; } = true;
         public bool HasUserSavedSettings { get; set; } = false;
 
         public ChartSettings Clone()
@@ -54,6 +55,7 @@ namespace TradeIt.Charts
                 CrosshairLineWidth = CrosshairLineWidth,
                 CrosshairPattern = CrosshairPattern,
                 ChartType = ChartType,
+                ShowTimeGaps = ShowTimeGaps,
                 HasUserSavedSettings = HasUserSavedSettings
             };
         }
