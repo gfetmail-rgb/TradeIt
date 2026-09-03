@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Threading;
 using TradeIt.Models;
+using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
 
 namespace TradeIt.Charts
 {
@@ -11,6 +13,7 @@ namespace TradeIt.Charts
         private const double ContinuousChartBaseDate = 2000.0;
         private bool _continuousTimeAxisApplied;
         private bool _timeGapsRefreshPending;
+        private bool _timeGapsEventsAttached;
 
         private static readonly bool _timeGapsRegistered = RegisterTimeGapsHandling();
 
@@ -28,7 +31,22 @@ namespace TradeIt.Charts
             if (sender is not ChartTabView chart)
                 return;
 
+            if (!chart._timeGapsEventsAttached)
+            {
+                chart._timeGapsEventsAttached = true;
+                ChartSettingsManager.SettingsChanged += chart.TimeGaps_SettingsChanged;
+                chart.Chart.PreviewMouseMove += chart.TimeGaps_ChartMouseMove;
+            }
+
             chart.QueueTimeGapsApplication();
+        }
+
+        private void TimeGaps_SettingsChanged(object? sender, EventArgs e)
+        {
+            if (!IsLoaded)
+                return;
+
+            QueueTimeGapsApplication();
         }
 
         private void QueueTimeGapsApplication()
@@ -56,13 +74,15 @@ namespace TradeIt.Charts
                     return;
 
                 _continuousTimeAxisApplied = false;
+                _hasInitialView = false;
                 DrawChart();
                 ConfigureFinalDateAxis();
                 Chart.Refresh();
                 return;
             }
 
-            ApplyContinuousTimeAxis();
+            if (!_continuousTimeAxisApplied)
+                ApplyContinuousTimeAxis();
         }
 
         private void ApplyContinuousTimeAxis()
