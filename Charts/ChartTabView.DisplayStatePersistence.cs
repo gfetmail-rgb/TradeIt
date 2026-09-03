@@ -1,6 +1,6 @@
 using System;
 using System.Windows;
-using System.Windows.Controls.Primitives;
+using WpfButtonBase = System.Windows.Controls.Primitives.ButtonBase;
 
 namespace TradeIt.Charts
 {
@@ -12,7 +12,7 @@ namespace TradeIt.Charts
         private static bool RegisterDisplayStatePersistence()
         {
             EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.LoadedEvent, new RoutedEventHandler(DisplayStatePersistence_Loaded));
-            EventManager.RegisterClassHandler(typeof(ChartTabView), ButtonBase.ClickEvent, new RoutedEventHandler(DisplayStatePersistence_Click));
+            EventManager.RegisterClassHandler(typeof(ChartTabView), WpfButtonBase.ClickEvent, new RoutedEventHandler(DisplayStatePersistence_Click));
             return true;
         }
 
