@@ -59,6 +59,12 @@ namespace TradeIt.Charts
                 GridButton.Content = _gridVisible ? "GRID" : "GRID خاموش";
                 CrosshairButton.Content = _crosshairVisible ? "Crosshair روشن" : "Crosshair خاموش";
                 Chart.Refresh();
+
+                // ShowTimeGaps is a chart-layout setting, not merely an axis
+                // formatting setting. Apply it after rebuilding the chart so
+                // the continuous mode can replace the date-based X coordinates.
+                if (_bars.Count > 0 && IsLoaded)
+                    QueueTimeGapsApplication();
             }
 
             if (Dispatcher.CheckAccess())
