@@ -107,6 +107,7 @@
                                     <DataGridTextColumn Header="نماد" Binding="{Binding Symbol}" SortMemberPath="Symbol" Width="*" IsReadOnly="True"/>
                                 </DataGrid.Columns>
                             </DataGrid>
+                            <TextBlock x:Name="SelectedSymbolsCountTextBlock" Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="8,0,0,0" IsHitTestVisible="False" Text="انتخاب شده: 0 از 0"/>
                         </Grid>
                     </GroupBox>
                 </Grid>
