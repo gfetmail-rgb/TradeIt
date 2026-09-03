@@ -66,17 +66,16 @@ namespace TradeIt.Data
                 PersianTicker = GetSymbol(f, ds, filePath),
                 EnglishTicker = OptionalString(f, ds.EnglishTickerColumn),
                 Open = open, High = high, Low = low, Close = close,
-                // ستون‌های زیر در DataSource اختیاری هستند. اگر mapping آن‌ها -1 باشد، مقدار صفر استفاده می‌شود.
                 Volume = OptionalDouble(f, ds.VolumeColumn, "حجم"),
                 TSEClose = OptionalDouble(f, ds.TSECloseColumn, "پایانی بورس"),
                 Previous = OptionalDouble(f, ds.PreviousColumn, "قیمت پایانی دیروز"),
                 Value = OptionalDouble(f, ds.ValueColumn, "ارزش معاملات"),
                 TradeCount = OptionalInt(f, ds.TradeCountColumn, "تعداد معاملات"),
                 ShareCount = OptionalDouble(f, ds.ShareCountColumn, "تعداد سهام"),
-                MarketValue = OptionalDouble(f, ds.MarketValueColumn, "ارزش بازار")
+                MarketValue = OptionalDouble(f, ds.MarketValueColumn, "ارزش بازار"),
+                Calendar = ds.HasDateTime ? (ds.Calendar?.Trim() ?? "") : ""
             };
 
-            // اگر ستون «پایانی بورس» mapping نشده باشد، همان قیمت پایانی را به‌عنوان مقدار TSEClose نگه می‌داریم.
             if (ds.TSECloseColumn < 0) bar.TSEClose = close;
 
             if (ds.HasDateTime)
@@ -97,10 +96,7 @@ namespace TradeIt.Data
             throw new FormatException("منبع نام نماد در تنظیمات داده معتبر نیست.");
         }
 
-        private static string OptionalString(string[] f, int index)
-        {
-            return index >= 0 && index < f.Length ? f[index].Trim() : "";
-        }
+        private static string OptionalString(string[] f, int index) => index >= 0 && index < f.Length ? f[index].Trim() : "";
 
         private static string RequiredString(string[] f, int index, string name)
         {
@@ -115,7 +111,7 @@ namespace TradeIt.Data
         private static double RequiredDouble(string[] f, int index, string name)
         {
             if (index < 0 || index >= f.Length)
-                throw new FormatException($"ستون عددی ضروری «{name}» (شماره {index + 1}) وجود ندارد. تعداد ستون‌های ردیف: {f.Length}.");
+                throw new FormatException($"ستون عددی ضروری «{name}» (شماره ستون: {index + 1}) وجود ندارد. تعداد ستون‌های ردیف: {f.Length}.");
             return ParseDouble(f[index], index, name, true);
         }
 
@@ -150,10 +146,7 @@ namespace TradeIt.Data
             return result;
         }
 
-        private static string[] Split(string line, string delimiter)
-        {
-            return line.Split(new[] { delimiter ?? "," }, StringSplitOptions.None);
-        }
+        private static string[] Split(string line, string delimiter) => line.Split(new[] { delimiter ?? "," }, StringSplitOptions.None);
 
         private static DateTime? ParseTimestamp(string date, string time, DataSource ds)
         {
