@@ -1,4 +1,8 @@
 using System.Linq;
+using TradeIt.Models;
+using WpfMessageBox = System.Windows.MessageBox;
+using WpfMessageBoxButton = System.Windows.MessageBoxButton;
+using WpfMessageBoxImage = System.Windows.MessageBoxImage;
 
 namespace TradeIt
 {
