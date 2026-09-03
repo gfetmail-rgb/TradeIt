@@ -1,5 +1,7 @@
 using System;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 
 namespace TradeIt.Charts
 {
@@ -11,6 +13,8 @@ namespace TradeIt.Charts
         private static bool RegisterDisplayStatePersistence()
         {
             EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.LoadedEvent, new RoutedEventHandler(DisplayStatePersistence_Loaded));
+            EventManager.RegisterClassHandler(typeof(ChartTabView), ButtonBase.ClickEvent, new RoutedEventHandler(DisplayStatePersistence_Click), true);
+            EventManager.RegisterClassHandler(typeof(ChartTabView), ComboBox.SelectionChangedEvent, new SelectionChangedEventHandler(DisplayStatePersistence_SelectionChanged), true);
             return true;
         }
 
@@ -32,7 +36,7 @@ namespace TradeIt.Charts
             string persistedChartType = string.IsNullOrWhiteSpace(settings.ChartType) ? "Candlestick" : settings.ChartType;
             for (int i = 0; i < ChartTypeComboBox.Items.Count; i++)
             {
-                if (ChartTypeComboBox.Items[i] is System.Windows.Controls.ComboBoxItem item &&
+                if (ChartTypeComboBox.Items[i] is ComboBoxItem item &&
                     string.Equals(item.Tag?.ToString(), persistedChartType, StringComparison.OrdinalIgnoreCase))
                 {
                     ChartTypeComboBox.SelectedIndex = i;
@@ -46,6 +50,32 @@ namespace TradeIt.Charts
             GridButton.Content = _gridVisible ? "GRID" : "GRID خاموش";
         }
 
+        private static void DisplayStatePersistence_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not ChartTabView chart || !chart._displayStatePersistenceInitialized)
+                return;
+
+            if (e.OriginalSource is Button button &&
+                (button.Name == nameof(CrosshairButton) || button.Name == nameof(GridButton)))
+            {
+                // Class handlers run before instance handlers, so defer the save
+                // until the current click has completed and the new state exists.
+                chart.Dispatcher.BeginInvoke(new Action(chart.SaveCurrentDisplayState), System.Windows.Threading.DispatcherPriority.DataBind);
+            }
+        }
+
+        private static void DisplayStatePersistence_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is not ChartTabView chart || !chart._displayStatePersistenceInitialized)
+                return;
+            if (!ReferenceEquals(e.OriginalSource, chart.ChartTypeComboBox))
+                return;
+
+            // The XAML SelectionChanged handler updates _chartType after the class
+            // handler. Defer persistence until that handler has finished.
+            chart.Dispatcher.BeginInvoke(new Action(chart.SaveCurrentDisplayState), System.Windows.Threading.DispatcherPriority.DataBind);
+        }
+
         private void SaveCurrentDisplayState()
         {
             try
@@ -53,7 +83,7 @@ namespace TradeIt.Charts
                 ChartSettings settings = ChartSettingsManager.Current;
                 settings.GridVisible = _gridVisible;
                 settings.CrosshairVisible = _crosshairVisible;
-                settings.ChartType = ChartTypeComboBox.SelectedItem is System.Windows.Controls.ComboBoxItem item
+                settings.ChartType = ChartTypeComboBox.SelectedItem is ComboBoxItem item
                     ? item.Tag?.ToString() ?? _chartType.ToString()
                     : _chartType.ToString();
                 ChartSettingsManager.Save(settings);
