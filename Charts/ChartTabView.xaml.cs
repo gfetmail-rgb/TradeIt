@@ -117,11 +117,7 @@ namespace TradeIt.Charts
             if (width <= 0 || height <= 0 || mousePosition.X < 0 || mousePosition.Y < 0 || mousePosition.X > width || mousePosition.Y > height) return false;
             double scale = chart.DisplayScale;
             if (scale <= 0) scale = 1.0;
-            try
-            {
-                coordinates = chart.Plot.GetCoordinates(new ScottPlot.Pixel(mousePosition.X * scale, mousePosition.Y * scale));
-                return true;
-            }
+            try { coordinates = chart.Plot.GetCoordinates(new ScottPlot.Pixel(mousePosition.X * scale, mousePosition.Y * scale)); return true; }
             catch { return false; }
         }
 
@@ -130,22 +126,19 @@ namespace TradeIt.Charts
             if (_crosshair == null) return;
             if (!_chartVisible || !_crosshairVisible || !TryGetChartCoordinates(Chart, mousePosition, out ScottPlot.Coordinates coordinates))
             {
-                _crosshair.IsVisible = false;
-                Chart.Refresh();
-                return;
+                _crosshair.IsVisible = false; Chart.Refresh(); return;
             }
             int barIndex = FindNearestBarIndex(coordinates.X);
             if (barIndex >= 0)
             {
                 DateTime barTime = GetBarDateTime(_bars[barIndex], barIndex);
-                double x = barTime.ToOADate();
-                _crosshair.Position = new ScottPlot.Coordinates(x, coordinates.Y);
-                _crosshair.VerticalLine.Text = GetCrosshairXLabel(barIndex);
+                _crosshair.Position = new ScottPlot.Coordinates(barTime.ToOADate(), coordinates.Y);
+                UpdateCrosshairAxisLabel(barIndex);
             }
             else
             {
                 _crosshair.Position = coordinates;
-                _crosshair.VerticalLine.Text = DateTime.FromOADate(coordinates.X).ToString("yyyy/MM/dd");
+                try { _crosshair.VerticalLine.Text = DateTime.FromOADate(coordinates.X).ToString("yyyy/MM/dd"); } catch { _crosshair.VerticalLine.Text = string.Empty; }
             }
             _crosshair.HorizontalLine.Text = coordinates.Y.ToString("N2");
             _crosshair.IsVisible = true;
@@ -157,24 +150,13 @@ namespace TradeIt.Charts
         private int FindNearestBarIndex(double x)
         {
             if (_bars.Count == 0) return -1;
-            int best = -1;
-            double bestDistance = double.MaxValue;
+            int best = -1; double bestDistance = double.MaxValue;
             for (int i = 0; i < _bars.Count; i++)
             {
-                double bx = GetBarDateTime(_bars[i], i).ToOADate();
-                double distance = Math.Abs(bx - x);
+                double bx = GetBarDateTime(_bars[i], i).ToOADate(); double distance = Math.Abs(bx - x);
                 if (distance < bestDistance) { bestDistance = distance; best = i; }
             }
             return best;
-        }
-
-        private string GetCrosshairXLabel(int barIndex)
-        {
-            if (barIndex < 0 || barIndex >= _bars.Count) return string.Empty;
-            MarketBar bar = _bars[barIndex];
-            if (bar.Timestamp.HasValue && bar.Timestamp.Value > DateTime.MinValue && bar.Timestamp.Value < DateTime.MaxValue)
-                return bar.Timestamp.Value.ToString("yyyy/MM/dd");
-            return $"کندل {barIndex + 1}";
         }
 
         private void UpdateMouseInformation(ScottPlot.Coordinates coordinates, int barIndex)
