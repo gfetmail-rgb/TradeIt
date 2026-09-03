@@ -21,10 +21,20 @@ namespace TradeIt.Charts
             VolumeChart.Plot.Axes.Top.IsVisible = false;
             VolumeChart.Plot.Axes.Bottom.IsVisible = false;
 
+            // The custom DataBorder is the only border around the data area.
+            // It uses the exact same style as the price chart.
             VolumeChart.Plot.Axes.Frame(false);
             VolumeChart.Plot.DataBorder = new ScottPlot.LineStyle
             {
-                Color = ScottPlot.Color.FromHtml("#000000"),
+                Color = ScottPlot.Color.FromHtml(_settings.AxisColor),
+                Width = 1,
+                Pattern = ScottPlot.LinePattern.Solid
+            };
+
+            // The outer figure frame is also shared with the price chart.
+            VolumeChart.Plot.FigureBorder = new ScottPlot.LineStyle
+            {
+                Color = ScottPlot.Color.FromHtml(_settings.AxisColor),
                 Width = 1,
                 Pattern = ScottPlot.LinePattern.Solid
             };
