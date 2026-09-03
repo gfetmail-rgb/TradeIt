@@ -164,13 +164,8 @@ namespace TradeIt.Charts
         {
             try
             {
-                string dateText = barIndex >= 0
-                    ? GetSourceDateLabel(barIndex)
-                    : string.Empty;
-
-                if (string.IsNullOrWhiteSpace(dateText))
-                    dateText = $"کندل {barIndex + 1}";
-
+                string dateText = barIndex >= 0 ? GetSourceDateLabel(barIndex) : string.Empty;
+                if (string.IsNullOrWhiteSpace(dateText)) dateText = $"کندل {barIndex + 1}";
                 string priceText = coordinates.Y.ToString("N2");
                 ChartInfoTextBlock.Text = $"{_symbol.Symbol} | زمان: {dateText} | قیمت: {priceText}";
             }
@@ -250,16 +245,59 @@ namespace TradeIt.Charts
         private void DrawChart()
         {
             if (_bars.Count == 0) { ClearMainChart(); _hasInitialView = false; ApplySettings(); Chart.Refresh(); return; }
-            bool preserveCurrentView = _hasInitialView && Chart.ActualWidth > 0 && Chart.ActualHeight > 0; ScottPlot.AxisLimits currentLimits = default;
+
+            bool preserveCurrentView = _hasInitialView && Chart.ActualWidth > 0 && Chart.ActualHeight > 0;
+            ScottPlot.AxisLimits currentLimits = default;
             if (preserveCurrentView) currentLimits = Chart.Plot.Axes.GetLimits();
+
             ClearMainChart();
             switch (_chartType) { case ChartDisplayType.Candlestick: DrawCandlestick(); break; case ChartDisplayType.Line: DrawLine(); break; case ChartDisplayType.Bar: DrawBar(); break; }
             ApplySettings();
-            if (!preserveCurrentView) { Chart.Plot.Axes.AutoScale(); SaveInitialView(); } else Chart.Plot.Axes.SetLimits(currentLimits.Left, currentLimits.Right, currentLimits.Bottom, currentLimits.Top);
+
+            if (!preserveCurrentView)
+            {
+                Chart.Plot.Axes.AutoScale();
+                ApplyInitial365ViewAfterAutoScale();
+            }
+            else
+            {
+                Chart.Plot.Axes.SetLimits(currentLimits.Left, currentLimits.Right, currentLimits.Bottom, currentLimits.Top);
+            }
+
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | {_bars.Count:N0} داده";
             if (_crosshair != null) _crosshair.IsVisible = _crosshairVisible && _chartVisible && (_crosshairMouseInside || !_hasInitialView);
             Chart.Refresh();
         }
+
+        private void ApplyInitial365ViewAfterAutoScale()
+        {
+            const int visibleCount = 365;
+            int firstIndex = Math.Max(0, _bars.Count - visibleCount);
+            int lastIndex = _bars.Count - 1;
+
+            double firstX = GetBarDateTime(_bars[firstIndex], firstIndex).ToOADate();
+            double lastX = GetBarDateTime(_bars[lastIndex], lastIndex).ToOADate();
+            if (!double.IsFinite(firstX) || !double.IsFinite(lastX) || lastX < firstX)
+            {
+                SaveInitialView();
+                return;
+            }
+
+            // Keep the Y range produced by AutoScale(), but restrict the initial
+            // X range to the latest 365 candles. The complete history remains in
+            // _bars and is still reachable by pan/zoom.
+            var autoLimits = Chart.Plot.Axes.GetLimits();
+            const double candleHalfWidthDays = 0.5;
+            Chart.Plot.Axes.SetLimits(
+                firstX - candleHalfWidthDays,
+                lastX + candleHalfWidthDays,
+                autoLimits.Bottom,
+                autoLimits.Top);
+
+            AutoFitVisiblePriceRange();
+            SaveInitialView();
+        }
+
         private void DrawCandlestick()
         {
             var candles = new List<ScottPlot.OHLC>(); for (int i = 0; i < _bars.Count; i++) { MarketBar bar = _bars[i]; DateTime time = GetBarDateTime(bar, i); candles.Add(new ScottPlot.OHLC(bar.Open, bar.High, bar.Low, bar.Close, time, TimeSpan.FromDays(1))); }
