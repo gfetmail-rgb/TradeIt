@@ -32,13 +32,13 @@ namespace TradeIt
             {
                 window.Dispatcher.BeginInvoke(
                     new Action(window.ApplyFullScreenChartLayout),
-                    DispatcherPriority.Render);
+                    DispatcherPriority.ApplicationIdle);
             }
             else if (ReferenceEquals(button, window.FullScreenExitButton))
             {
                 window.Dispatcher.BeginInvoke(
                     new Action(window.ApplyNormalChartLayout),
-                    DispatcherPriority.Render);
+                    DispatcherPriority.ApplicationIdle);
             }
         }
 
@@ -49,17 +49,24 @@ namespace TradeIt
 
             try
             {
+                // Make the WPF window itself borderless and truly screen-sized.
+                WindowStyle = WindowStyle.None;
+                ResizeMode = ResizeMode.NoResize;
+                WindowState = WindowState.Maximized;
+
                 TopToolbar.Visibility = Visibility.Collapsed;
                 StatusBar.Visibility = Visibility.Collapsed;
                 TopToolbarRow.Height = new GridLength(0);
                 StatusBarRow.Height = new GridLength(0);
                 MainContentRow.Height = new GridLength(1, GridUnitType.Star);
 
+                // MainContent occupies the whole client area.
                 Grid.SetRow(MainContent, 1);
                 Grid.SetColumn(MainContent, 0);
                 Grid.SetRowSpan(MainContent, 1);
                 Grid.SetColumnSpan(MainContent, 2);
 
+                // Hide the entire symbol-management side and its splitter.
                 SymbolsPanel.Visibility = Visibility.Collapsed;
                 SymbolsPanelColumn.Width = new GridLength(0);
 
@@ -75,15 +82,16 @@ namespace TradeIt
                     }
                 }
 
-                // ChartArea is the third column (index 2). It must remain there.
+                // ChartArea is the third internal column (index 2).
                 Grid.SetColumn(ChartArea, 2);
                 ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
                 ChartArea.Visibility = Visibility.Visible;
                 ChartTabs.Visibility = Visibility.Visible;
 
-                if (ChartTabs.SelectedContent is FrameworkElement selectedChart)
-                    selectedChart.Visibility = Visibility.Visible;
+                FullScreenExitButton.Visibility = Visibility.Visible;
+                Panel.SetZIndex(FullScreenExitButton, 10000);
 
+                UpdateLayout();
                 RootLayout.UpdateLayout();
                 MainContent.UpdateLayout();
                 ChartArea.UpdateLayout();
@@ -100,8 +108,18 @@ namespace TradeIt
         {
             try
             {
+                FullScreenExitButton.Visibility = Visibility.Collapsed;
+
+                // Restore the normal three-column chart layout explicitly.
+                Grid.SetRow(MainContent, 1);
+                Grid.SetColumn(MainContent, 0);
+                Grid.SetRowSpan(MainContent, 1);
+                Grid.SetColumnSpan(MainContent, 2);
+
+                SymbolsPanelColumn.Width = new GridLength(300);
                 if (MainContent.ColumnDefinitions.Count > 1)
                     MainContent.ColumnDefinitions[1].Width = new GridLength(5);
+                ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
 
                 foreach (UIElement child in MainContent.Children)
                 {
@@ -113,12 +131,21 @@ namespace TradeIt
                 }
 
                 Grid.SetColumn(ChartArea, 2);
-                SymbolsPanelColumn.Width = new GridLength(300);
-                ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
                 SymbolsPanel.Visibility = Visibility.Visible;
                 ChartArea.Visibility = Visibility.Visible;
                 ChartTabs.Visibility = Visibility.Visible;
 
+                WindowStyle = _previousWindowStyle;
+                ResizeMode = _previousResizeMode;
+                WindowState = _previousWindowState;
+
+                TopToolbar.Visibility = Visibility.Visible;
+                StatusBar.Visibility = Visibility.Visible;
+                TopToolbarRow.Height = _previousRootRow0Height;
+                MainContentRow.Height = _previousRootRow1Height;
+                StatusBarRow.Height = _previousRootRow2Height;
+
+                UpdateLayout();
                 RootLayout.UpdateLayout();
                 MainContent.UpdateLayout();
                 ChartArea.UpdateLayout();
