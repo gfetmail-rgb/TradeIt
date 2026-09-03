@@ -112,7 +112,9 @@ namespace TradeIt.Services
                     .GroupBy(x => x.PersianTicker, StringComparer.OrdinalIgnoreCase)
                     .Select(group =>
                     {
-                        MarketBar last = group.OrderByDescending(x => x.Timestamp ?? DateTime.MinValue).LastOrDefault() ?? group.Last();
+                        MarketBar last = group
+                            .OrderByDescending(x => x.Timestamp ?? DateTime.MinValue)
+                            .FirstOrDefault() ?? group.First();
                         return new SymbolInfo
                         {
                             Symbol = group.Key,
