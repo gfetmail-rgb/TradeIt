@@ -28,25 +28,25 @@ namespace TradeIt
             if (window == null)
                 return;
 
+            // Run after the normal click handler and after WPF has completed
+            // its layout pass. This prevents the original layout from putting
+            // the symbol panel back over the chart.
             if (ReferenceEquals(button, window.FullScreenButton))
             {
                 window.Dispatcher.BeginInvoke(
                     new Action(window.ApplyFullScreenChartLayout),
-                    DispatcherPriority.ApplicationIdle);
+                    DispatcherPriority.ContextIdle);
             }
             else if (ReferenceEquals(button, window.FullScreenExitButton))
             {
                 window.Dispatcher.BeginInvoke(
                     new Action(window.ApplyNormalChartLayout),
-                    DispatcherPriority.ApplicationIdle);
+                    DispatcherPriority.ContextIdle);
             }
         }
 
         private void ApplyFullScreenChartLayout()
         {
-            if (!_isFullScreen)
-                return;
-
             try
             {
                 WindowStyle = WindowStyle.None;
@@ -59,11 +59,13 @@ namespace TradeIt
                 StatusBarRow.Height = new GridLength(0);
                 MainContentRow.Height = new GridLength(1, GridUnitType.Star);
 
+                // MainContent already spans both root columns.
                 Grid.SetRow(MainContent, 1);
                 Grid.SetColumn(MainContent, 0);
                 Grid.SetRowSpan(MainContent, 1);
                 Grid.SetColumnSpan(MainContent, 2);
 
+                // Remove the complete left symbol area and splitter.
                 SymbolsPanel.Visibility = Visibility.Collapsed;
                 SymbolsPanelColumn.Width = new GridLength(0);
 
@@ -75,11 +77,15 @@ namespace TradeIt
                     if (child is System.Windows.Controls.GridSplitter splitter)
                     {
                         splitter.Visibility = Visibility.Collapsed;
+                        splitter.IsHitTestVisible = false;
                         splitter.Width = 0;
                     }
                 }
 
+                // The chart is column 2. With columns 0 and 1 collapsed,
+                // the star-sized chart column becomes the whole client area.
                 Grid.SetColumn(ChartArea, 2);
+                ChartPanelColumn.MinWidth = 0;
                 ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
                 ChartArea.Visibility = Visibility.Visible;
                 ChartTabs.Visibility = Visibility.Visible;
@@ -111,16 +117,25 @@ namespace TradeIt
                 Grid.SetRowSpan(MainContent, 1);
                 Grid.SetColumnSpan(MainContent, 2);
 
-                SymbolsPanelColumn.Width = new GridLength(300);
+                SymbolsPanelColumn.MinWidth = 220;
+                SymbolsPanelColumn.Width = _previousSymbolsColumnWidth.Value > 0
+                    ? _previousSymbolsColumnWidth
+                    : new GridLength(300);
+
                 if (MainContent.ColumnDefinitions.Count > 1)
                     MainContent.ColumnDefinitions[1].Width = new GridLength(5);
-                ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
+
+                ChartPanelColumn.MinWidth = 450;
+                ChartPanelColumn.Width = _previousChartColumnWidth.Value > 0
+                    ? _previousChartColumnWidth
+                    : new GridLength(1, GridUnitType.Star);
 
                 foreach (UIElement child in MainContent.Children)
                 {
                     if (child is System.Windows.Controls.GridSplitter splitter)
                     {
                         splitter.Visibility = Visibility.Visible;
+                        splitter.IsHitTestVisible = true;
                         splitter.Width = 5;
                     }
                 }
