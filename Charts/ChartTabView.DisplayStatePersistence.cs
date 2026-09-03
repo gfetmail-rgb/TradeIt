@@ -2,7 +2,6 @@ using System;
 using System.Windows;
 using WpfButton = System.Windows.Controls.Button;
 using WpfButtonBase = System.Windows.Controls.Primitives.ButtonBase;
-using WpfComboBox = System.Windows.Controls.ComboBox;
 using WpfComboBoxItem = System.Windows.Controls.ComboBoxItem;
 using WpfSelectionChangedEventArgs = System.Windows.Controls.SelectionChangedEventArgs;
 using WpfSelectionChangedEventHandler = System.Windows.Controls.SelectionChangedEventHandler;
@@ -18,7 +17,7 @@ namespace TradeIt.Charts
         {
             EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.LoadedEvent, new RoutedEventHandler(DisplayStatePersistence_Loaded));
             EventManager.RegisterClassHandler(typeof(ChartTabView), WpfButtonBase.ClickEvent, new RoutedEventHandler(DisplayStatePersistence_Click), true);
-            EventManager.RegisterClassHandler(typeof(ChartTabView), WpfComboBox.SelectionChangedEvent, new WpfSelectionChangedEventHandler(DisplayStatePersistence_SelectionChanged), true);
+            EventManager.RegisterClassHandler(typeof(ChartTabView), System.Windows.Controls.ComboBox.SelectionChangedEvent, new WpfSelectionChangedEventHandler(DisplayStatePersistence_SelectionChanged), true);
             return true;
         }
 
@@ -30,35 +29,26 @@ namespace TradeIt.Charts
 
         private void InitializeDisplayStatePersistence()
         {
-            if (_displayStatePersistenceInitialized) return;
+            if (_displayStatePersistenceInitialized)
+                return;
 
             ChartSettings settings = ChartSettingsManager.Current;
             _settings = settings;
             _gridVisible = settings.GridVisible;
             _crosshairVisible = settings.CrosshairVisible;
+            _chartType = ParseChartDisplayType(settings.ChartType);
 
-            string persistedChartType = string.IsNullOrWhiteSpace(settings.ChartType) ? "Candlestick" : settings.ChartType;
-            _chartType = persistedChartType.Trim().ToLowerInvariant() switch
-            {
-                "line" => ChartDisplayType.Line,
-                "bar" => ChartDisplayType.Bar,
-                _ => ChartDisplayType.Candlestick
-            };
+            int targetIndex = FindChartTypeIndex(settings.ChartType);
+            if (ChartTypeComboBox.SelectedIndex != targetIndex)
+                ChartTypeComboBox.SelectedIndex = targetIndex;
 
-            for (int i = 0; i < ChartTypeComboBox.Items.Count; i++)
-            {
-                if (ChartTypeComboBox.Items[i] is WpfComboBoxItem item &&
-                    string.Equals(item.Tag?.ToString(), persistedChartType, StringComparison.OrdinalIgnoreCase))
-                {
-                    ChartTypeComboBox.SelectedIndex = i;
-                    break;
-                }
-            }
-
+            // The guard is enabled only after all constructor-time control
+            // initialization is complete, so a new chart can never overwrite
+            // the persisted global state merely by setting its default selection.
             _displayStatePersistenceInitialized = true;
+
             ApplyStoredChartSettings();
-            CrosshairButton.Content = _crosshairVisible ? "Crosshair روشن" : "Crosshair خاموش";
-            GridButton.Content = _gridVisible ? "GRID" : "GRID خاموش";
+            UpdateDisplayStateButtons();
         }
 
         private static void DisplayStatePersistence_Click(object sender, RoutedEventArgs e)
@@ -67,9 +57,9 @@ namespace TradeIt.Charts
                 return;
 
             if (e.OriginalSource is WpfButton button &&
-                (button.Name == nameof(CrosshairButton) || button.Name == nameof(GridButton)))
+                (ReferenceEquals(button, chart.CrosshairButton) || ReferenceEquals(button, chart.GridButton)))
             {
-                chart.Dispatcher.BeginInvoke(new Action(chart.SaveCurrentDisplayState), System.Windows.Threading.DispatcherPriority.DataBind);
+                chart.SaveCurrentDisplayState();
             }
         }
 
@@ -79,8 +69,37 @@ namespace TradeIt.Charts
                 return;
             if (!ReferenceEquals(e.OriginalSource, chart.ChartTypeComboBox))
                 return;
+            if (chart.ChartTypeComboBox.SelectedItem is not WpfComboBoxItem item)
+                return;
 
-            chart.Dispatcher.BeginInvoke(new Action(chart.SaveCurrentDisplayState), System.Windows.Threading.DispatcherPriority.DataBind);
+            string type = item.Tag?.ToString() ?? "Candlestick";
+            chart._chartType = ParseChartDisplayType(type);
+            chart.SaveCurrentDisplayState();
+
+            if (chart._bars.Count > 0)
+                chart.DrawChart();
+            else
+                chart.ApplyChartVisualSettingsOnly();
+        }
+
+        private static ChartDisplayType ParseChartDisplayType(string? value) =>
+            value?.Trim().ToLowerInvariant() switch
+            {
+                "line" => ChartDisplayType.Line,
+                "bar" => ChartDisplayType.Bar,
+                _ => ChartDisplayType.Candlestick
+            };
+
+        private int FindChartTypeIndex(string? value)
+        {
+            string persisted = string.IsNullOrWhiteSpace(value) ? "Candlestick" : value.Trim();
+            for (int i = 0; i < ChartTypeComboBox.Items.Count; i++)
+            {
+                if (ChartTypeComboBox.Items[i] is WpfComboBoxItem item &&
+                    string.Equals(item.Tag?.ToString(), persisted, StringComparison.OrdinalIgnoreCase))
+                    return i;
+            }
+            return 0;
         }
 
         private void SaveCurrentDisplayState()
@@ -90,15 +109,24 @@ namespace TradeIt.Charts
                 ChartSettings settings = ChartSettingsManager.Current;
                 settings.GridVisible = _gridVisible;
                 settings.CrosshairVisible = _crosshairVisible;
-                settings.ChartType = ChartTypeComboBox.SelectedItem is WpfComboBoxItem item
-                    ? item.Tag?.ToString() ?? _chartType.ToString()
-                    : _chartType.ToString();
+                settings.ChartType = _chartType switch
+                {
+                    ChartDisplayType.Line => "Line",
+                    ChartDisplayType.Bar => "Bar",
+                    _ => "Candlestick"
+                };
                 ChartSettingsManager.Save(settings);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Chart display state save failed: {ex}");
             }
+        }
+
+        private void UpdateDisplayStateButtons()
+        {
+            CrosshairButton.Content = _crosshairVisible ? "Crosshair روشن" : "Crosshair خاموش";
+            GridButton.Content = _gridVisible ? "GRID" : "GRID خاموش";
         }
 
         private void ApplyGridDisplayState() => SetGridVisibility(Chart, _gridVisible);
