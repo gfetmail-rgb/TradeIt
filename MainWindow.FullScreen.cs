@@ -56,6 +56,21 @@ namespace TradeIt
                 };
                 host.Children.Add(fullScreenChart);
 
+                var exitButton = new Button
+                {
+                    Content = "↙ خروج از تمام صفحه",
+                    Width = 175,
+                    Height = 34,
+                    Padding = new Thickness(10, 0),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Margin = new Thickness(0, 8, 8, 0),
+                    Focusable = true
+                };
+                exitButton.Click += FullScreenWindowExitButton_Click;
+                host.Children.Add(exitButton);
+                Panel.SetZIndex(exitButton, 10000);
+
                 var window = new Window
                 {
                     Title = "TradeIt - نمودار",
@@ -88,6 +103,11 @@ namespace TradeIt
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
+        }
+
+        private void FullScreenWindowExitButton_Click(object sender, RoutedEventArgs e)
+        {
+            ExitChartFullScreen();
         }
 
         private void FullScreenWindow_KeyDown(object? sender, KeyEventArgs e)
