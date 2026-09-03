@@ -204,8 +204,16 @@ namespace TradeIt.Portfolios
                     },
                     UseExplicitSymbolList = true, Symbols = selected
                 };
+
+                // ذخیره در همان لحظه؛ فرم باز می‌ماند تا کاربر بتواند سبد دیگری بسازد.
+                new PortfolioManager().Save(portfolio);
                 ResultPortfolio = portfolio;
-                DialogResult = true;
+
+                if (Owner is TradeIt.MainWindow mainWindow)
+                    mainWindow.RefreshPortfoliosAfterEditorSave(portfolio.Name);
+
+                PortfolioNameTextBox.Clear();
+                PortfolioNameTextBox.Focus();
             }
             catch (Exception ex) { System.Windows.MessageBox.Show(ex.ToString(), "خطا", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
