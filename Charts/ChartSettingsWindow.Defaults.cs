@@ -1,14 +1,16 @@
 using System;
 using System.Globalization;
 using System.Windows;
-using System.Windows.Controls;
+using WpfButton = System.Windows.Controls.Button;
+using WpfComboBox = System.Windows.Controls.ComboBox;
+using WpfComboBoxItem = System.Windows.Controls.ComboBoxItem;
 
 namespace TradeIt.Charts
 {
     public partial class ChartSettingsWindow
     {
         private static readonly bool _defaultsHandlerRegistered = RegisterDefaultsHandler();
-        private Button? _defaultSettingsButton;
+        private WpfButton? _defaultSettingsButton;
 
         private static bool RegisterDefaultsHandler()
         {
@@ -27,9 +29,9 @@ namespace TradeIt.Charts
         {
             if (_defaultSettingsButton != null) return;
             if (Content is not Grid root || root.Children.Count < 2) return;
-            if (root.Children[1] is not StackPanel buttons) return;
+            if (root.Children[1] is not System.Windows.Controls.StackPanel buttons) return;
 
-            _defaultSettingsButton = new Button
+            _defaultSettingsButton = new WpfButton
             {
                 Content = "پیش‌فرض",
                 Width = 90,
@@ -69,9 +71,9 @@ namespace TradeIt.Charts
                 SelectDefaultCombo(_crosshairLineWidthComboBox, Settings.CrosshairLineWidth);
         }
 
-        private static void SelectDefaultCombo(ComboBox combo, double value)
+        private static void SelectDefaultCombo(WpfComboBox combo, double value)
         {
-            foreach (ComboBoxItem item in combo.Items)
+            foreach (WpfComboBoxItem item in combo.Items)
             {
                 if (double.TryParse(item.Tag?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) &&
                     Math.Abs(parsed - value) < 0.001)
@@ -83,9 +85,9 @@ namespace TradeIt.Charts
             if (combo.Items.Count > 0) combo.SelectedIndex = 0;
         }
 
-        private static void SelectDefaultTag(ComboBox combo, string value)
+        private static void SelectDefaultTag(WpfComboBox combo, string value)
         {
-            foreach (ComboBoxItem item in combo.Items)
+            foreach (WpfComboBoxItem item in combo.Items)
             {
                 if (string.Equals(item.Tag?.ToString(), value, StringComparison.OrdinalIgnoreCase))
                 {
