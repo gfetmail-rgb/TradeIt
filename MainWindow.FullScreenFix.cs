@@ -44,14 +44,14 @@ namespace TradeIt
                 StatusBarRow.Height = new GridLength(0);
                 MainContentRow.Height = new GridLength(1, GridUnitType.Star);
 
-                Grid.SetRow(MainContent, 1);
-                Grid.SetColumn(MainContent, 0);
-                Grid.SetRowSpan(MainContent, 1);
-                Grid.SetColumnSpan(MainContent, 2);
+                System.Windows.Controls.Grid.SetRow(MainContent, 1);
+                System.Windows.Controls.Grid.SetColumn(MainContent, 0);
+                System.Windows.Controls.Grid.SetRowSpan(MainContent, 1);
+                System.Windows.Controls.Grid.SetColumnSpan(MainContent, 2);
 
                 SymbolsPanel.Visibility = Visibility.Collapsed;
                 SymbolsPanelColumn.Width = new GridLength(0);
-                Grid.SetColumn(ChartArea, 0);
+                System.Windows.Controls.Grid.SetColumn(ChartArea, 0);
                 ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
 
                 if (ChartTabs.SelectedContent is FrameworkElement selectedChart)
