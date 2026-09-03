@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
@@ -40,8 +39,8 @@ namespace TradeIt.Charts
             {
                 ConfigureFinalDateAxis();
                 ForceInitial365CandleRange();
-                InitializeCrosshairAtInitialPosition();
                 _crosshairVisible = true;
+                InitializeCrosshairAtInitialPosition();
                 if (_crosshair != null)
                     _crosshair.IsVisible = true;
                 CrosshairButton.Content = "Crosshair روشن";
@@ -59,40 +58,31 @@ namespace TradeIt.Charts
 
         private void ConfigureFinalDateAxis()
         {
-            bool hasSourceDate = _bars.Any(b => !string.IsNullOrWhiteSpace(b.JalaliDate));
-
-            if (hasSourceDate)
-            {
-                ConfigureDisplayDateAxis(Chart);
-                return;
-            }
-
-            // Undated files must never expose the internal synthetic DateTime.
-            // The X coordinates may still use internal numeric positions, but
-            // every visible tick is explicitly labelled by candle number.
-            var axis = Chart.Plot.Axes.NumericTicksBottom();
             int count = _bars.Count;
             if (count == 0)
                 return;
 
+            // The axis is always numeric. Its labels are taken directly from
+            // the source file, so Persian dates remain Persian, Gregorian dates
+            // remain Gregorian, and files without dates show candle numbers.
+            var axis = Chart.Plot.Axes.NumericTicksBottom();
             int tickCount = Math.Min(9, count);
             var positions = new List<double>(tickCount);
             var labels = new List<string>(tickCount);
 
-            if (tickCount == 1)
+            for (int n = 0; n < tickCount; n++)
             {
-                positions.Add(GetBarDateTime(_bars[0], 0).ToOADate());
-                labels.Add("کندل 1");
-            }
-            else
-            {
-                for (int n = 0; n < tickCount; n++)
-                {
-                    int index = (int)Math.Round(n * (count - 1.0) / (tickCount - 1.0));
-                    double x = GetBarDateTime(_bars[index], index).ToOADate();
-                    positions.Add(x);
-                    labels.Add($"کندل {index + 1}");
-                }
+                int index = tickCount == 1
+                    ? 0
+                    : (int)Math.Round(n * (count - 1.0) / (tickCount - 1.0));
+
+                double x = GetBarDateTime(_bars[index], index).ToOADate();
+                positions.Add(x);
+
+                string label = GetSourceDateLabel(index);
+                if (string.IsNullOrWhiteSpace(label))
+                    label = $"کندل {index + 1}";
+                labels.Add(label);
             }
 
             axis.TickGenerator = new ScottPlot.TickGenerators.NumericManual(
@@ -114,7 +104,7 @@ namespace TradeIt.Charts
             if (!double.IsFinite(firstX) || !double.IsFinite(lastX) || lastX <= firstX)
                 return;
 
-            double halfCandle = 0.5;
+            const double halfCandle = 0.5;
             var current = Chart.Plot.Axes.GetLimits();
 
             Chart.Plot.Axes.SetLimits(
@@ -123,7 +113,6 @@ namespace TradeIt.Charts
                 current.Bottom,
                 current.Top);
 
-            // Recalculate vertical range strictly from the same 365 bars.
             double minPrice = double.MaxValue;
             double maxPrice = double.MinValue;
             for (int i = firstIndex; i <= lastIndex; i++)
@@ -163,8 +152,6 @@ namespace TradeIt.Charts
             }
             catch
             {
-                // The normal crosshair handler remains authoritative if this
-                // informational overlay cannot be updated.
             }
         }
 
