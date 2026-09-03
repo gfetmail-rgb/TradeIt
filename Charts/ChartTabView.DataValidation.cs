@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Windows;
 using TradeIt.Models;
 
@@ -45,9 +44,7 @@ namespace TradeIt.Charts
             _chartDataInvalid = true;
 
             Chart.Plot.Clear();
-            VolumeChart.Plot.Clear();
             Chart.Visibility = Visibility.Collapsed;
-            VolumeContainer.Visibility = Visibility.Collapsed;
 
             ChartInfoTextBlock.Text = "";
             BottomInfoTextBlock.Text =
