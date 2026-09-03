@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace TradeIt.Charts
 {
@@ -7,11 +8,13 @@ namespace TradeIt.Charts
     {
         private static readonly bool _displayStatePersistenceRegistered = RegisterDisplayStatePersistence();
         private bool _displayStatePersistenceInitialized;
+        private bool _displayStatePersistenceHandlersAttached;
 
         private static bool RegisterDisplayStatePersistence()
         {
-            // Only initialization belongs to the class handler. User actions
-            // are persisted by the instance handlers after their state changes.
+            // Initialization is handled at the class level. User-action
+            // persistence is attached to each control after initialization so
+            // it runs AFTER the XAML instance handlers have changed the state.
             EventManager.RegisterClassHandler(
                 typeof(ChartTabView),
                 FrameworkElement.LoadedEvent,
@@ -41,11 +44,42 @@ namespace TradeIt.Charts
                 ChartTypeComboBox.SelectedIndex = targetIndex;
 
             // Enable persistence only after the persisted state has been loaded.
-            // This prevents constructor-time defaults from overwriting it.
+            // Constructor/XAML default values can therefore never overwrite it.
             _displayStatePersistenceInitialized = true;
 
             ApplyStoredChartSettings();
             UpdateDisplayStateButtons();
+            AttachDisplayStatePersistenceHandlers();
+        }
+
+        private void AttachDisplayStatePersistenceHandlers()
+        {
+            if (_displayStatePersistenceHandlersAttached)
+                return;
+
+            // These handlers are attached after the XAML handlers. WPF invokes
+            // them after the existing instance handlers, so they save the NEW
+            // value rather than the value from immediately before the click.
+            GridButton.Click += DisplayStateGridButton_ClickAfterStateChange;
+            CrosshairButton.Click += DisplayStateCrosshairButton_ClickAfterStateChange;
+            ChartTypeComboBox.SelectionChanged += DisplayStateChartType_SelectionChangedAfterStateChange;
+            _displayStatePersistenceHandlersAttached = true;
+        }
+
+        private void DisplayStateGridButton_ClickAfterStateChange(object sender, RoutedEventArgs e)
+        {
+            SaveCurrentDisplayState();
+        }
+
+        private void DisplayStateCrosshairButton_ClickAfterStateChange(object sender, RoutedEventArgs e)
+        {
+            SaveCurrentDisplayState();
+        }
+
+        private void DisplayStateChartType_SelectionChangedAfterStateChange(object sender, SelectionChangedEventArgs e)
+        {
+            if (ReferenceEquals(e.OriginalSource, ChartTypeComboBox))
+                SaveCurrentDisplayState();
         }
 
         private static ChartDisplayType ParseChartDisplayType(string? value) =>
@@ -61,7 +95,7 @@ namespace TradeIt.Charts
             string persisted = string.IsNullOrWhiteSpace(value) ? "Candlestick" : value.Trim();
             for (int i = 0; i < ChartTypeComboBox.Items.Count; i++)
             {
-                if (ChartTypeComboBox.Items[i] is System.Windows.Controls.ComboBoxItem item &&
+                if (ChartTypeComboBox.Items[i] is ComboBoxItem item &&
                     string.Equals(item.Tag?.ToString(), persisted, StringComparison.OrdinalIgnoreCase))
                     return i;
             }
