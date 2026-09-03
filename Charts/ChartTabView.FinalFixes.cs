@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
-using System.Windows.Input;
 using System.Windows.Threading;
 using TradeIt.Models;
 
@@ -62,9 +61,9 @@ namespace TradeIt.Charts
             if (count == 0)
                 return;
 
-            // The axis is always numeric. Its labels are taken directly from
-            // the source file, so Persian dates remain Persian, Gregorian dates
-            // remain Gregorian, and files without dates show candle numbers.
+            // The axis is numeric, but its labels always come from the source.
+            // A file without dates therefore shows candle numbers instead of
+            // exposing the internal synthetic DateTime used by the plot.
             var axis = Chart.Plot.Axes.NumericTicksBottom();
             int tickCount = Math.Min(9, count);
             var positions = new List<double>(tickCount);
@@ -76,13 +75,12 @@ namespace TradeIt.Charts
                     ? 0
                     : (int)Math.Round(n * (count - 1.0) / (tickCount - 1.0));
 
-                double x = GetBarDateTime(_bars[index], index).ToOADate();
-                positions.Add(x);
+                positions.Add(GetBarDateTime(_bars[index], index).ToOADate());
 
                 string label = GetSourceDateLabel(index);
-                if (string.IsNullOrWhiteSpace(label))
-                    label = $"کندل {index + 1}";
-                labels.Add(label);
+                labels.Add(string.IsNullOrWhiteSpace(label)
+                    ? $"کندل {index + 1}"
+                    : label);
             }
 
             axis.TickGenerator = new ScottPlot.TickGenerators.NumericManual(
@@ -139,7 +137,7 @@ namespace TradeIt.Charts
             SaveInitialView();
         }
 
-        private void FinalChartFixes_MouseMove(object sender, MouseEventArgs e)
+        private void FinalChartFixes_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             try
             {
