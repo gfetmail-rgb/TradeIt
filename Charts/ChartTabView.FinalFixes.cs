@@ -10,6 +10,7 @@ namespace TradeIt.Charts
     {
         private static readonly bool _finalChartFixesRegistered = RegisterFinalChartFixes();
         private bool _finalChartFixesInitialized;
+        private static readonly DateTime UndatedChartBaseDate = new DateTime(2000, 1, 1);
 
         private static bool RegisterFinalChartFixes()
         {
@@ -35,9 +36,8 @@ namespace TradeIt.Charts
         {
             try
             {
-                // This is the final post-layout pass. It deliberately owns the
-                // initial range, date labels, crosshair and OHLCV header so that
-                // earlier chart initialization cannot overwrite them.
+                NormalizeUndatedTimestamps();
+
                 ConfigureFinalDateAxis();
                 ForceInitial365CandleRange();
 
@@ -59,15 +59,43 @@ namespace TradeIt.Charts
             }
         }
 
+        private void NormalizeUndatedTimestamps()
+        {
+            if (_bars.Count == 0)
+                return;
+
+            for (int i = 0; i < _bars.Count; i++)
+            {
+                MarketBar bar = _bars[i];
+                bool hasSourceDate =
+                    !string.IsNullOrWhiteSpace(bar.Calendar) &&
+                    !string.IsNullOrWhiteSpace(bar.JalaliDate);
+
+                if (!hasSourceDate)
+                {
+                    DateTime synthetic = UndatedChartBaseDate.AddDays(i);
+                    if (!bar.Timestamp.HasValue || bar.Timestamp.Value != synthetic)
+                        bar.Timestamp = synthetic;
+                }
+            }
+        }
+
+        private bool HasSourceDate(int index)
+        {
+            if (index < 0 || index >= _bars.Count)
+                return false;
+
+            MarketBar bar = _bars[index];
+            return !string.IsNullOrWhiteSpace(bar.Calendar) &&
+                   !string.IsNullOrWhiteSpace(bar.JalaliDate);
+        }
+
         private void ConfigureFinalDateAxis()
         {
             int count = _bars.Count;
             if (count == 0)
                 return;
 
-            // X coordinates are internal plot coordinates. The visible labels
-            // must always come from the source file. Therefore an undated file
-            // can never expose the synthetic DateTime used internally.
             var axis = Chart.Plot.Axes.NumericTicksBottom();
             int tickCount = Math.Min(9, count);
             var positions = new List<double>(tickCount);
@@ -81,7 +109,10 @@ namespace TradeIt.Charts
 
                 positions.Add(GetBarDateTime(_bars[index], index).ToOADate());
 
-                string label = GetSourceDateLabel(index);
+                string label = HasSourceDate(index)
+                    ? GetSourceDateLabel(index)
+                    : $"کندل {index + 1}";
+
                 labels.Add(string.IsNullOrWhiteSpace(label)
                     ? $"کندل {index + 1}"
                     : label);
@@ -96,7 +127,6 @@ namespace TradeIt.Charts
             if (_bars.Count == 0)
                 return;
 
-            // Initial view = last 365 bars. If fewer than 365 exist, show all.
             const int visibleCount = 365;
             int firstIndex = Math.Max(0, _bars.Count - visibleCount);
             int lastIndex = _bars.Count - 1;
@@ -107,18 +137,10 @@ namespace TradeIt.Charts
             if (!double.IsFinite(firstX) || !double.IsFinite(lastX))
                 return;
 
-            // Do not require lastX > firstX. A one-bar data set is valid.
-            double xPadding = firstX == lastX ? 0.5 : 0.5;
-            var current = Chart.Plot.Axes.GetLimits();
-
-            Chart.Plot.Axes.SetLimits(
-                firstX - xPadding,
-                lastX + xPadding,
-                current.Bottom,
-                current.Top);
-
+            const double xPadding = 0.5;
             double minPrice = double.MaxValue;
             double maxPrice = double.MinValue;
+
             for (int i = firstIndex; i <= lastIndex; i++)
             {
                 minPrice = Math.Min(minPrice, _bars[i].Low);
@@ -137,6 +159,15 @@ namespace TradeIt.Charts
                     lastX + xPadding,
                     minPrice - padding,
                     maxPrice + padding);
+            }
+            else
+            {
+                var current = Chart.Plot.Axes.GetLimits();
+                Chart.Plot.Axes.SetLimits(
+                    firstX - xPadding,
+                    lastX + xPadding,
+                    current.Bottom,
+                    current.Top);
             }
 
             _initialCandleRangeApplied = true;
@@ -172,7 +203,10 @@ namespace TradeIt.Charts
                 return;
 
             MarketBar bar = _bars[index];
-            string date = GetSourceDateLabel(index);
+            string date = HasSourceDate(index)
+                ? GetSourceDateLabel(index)
+                : $"کندل {index + 1}";
+
             if (string.IsNullOrWhiteSpace(date))
                 date = $"کندل {index + 1}";
 
