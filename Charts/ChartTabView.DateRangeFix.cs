@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Threading;
+using TradeIt.Models;
 
 namespace TradeIt.Charts
 {
@@ -32,7 +33,7 @@ namespace TradeIt.Charts
         {
             try
             {
-                bool changed = NormalizeTimestampsFromJalaliDates();
+                bool changed = NormalizeTimestampsFromSourceDates();
 
                 if (changed)
                 {
@@ -42,6 +43,7 @@ namespace TradeIt.Charts
 
                 _initialCandleRangeApplied = false;
                 ApplyInitialCandleRange();
+                InitializeCrosshairAtInitialPosition();
 
                 ConfigureDisplayDateAxis(Chart);
                 Chart.Refresh();
@@ -52,13 +54,17 @@ namespace TradeIt.Charts
             }
         }
 
-        private bool NormalizeTimestampsFromJalaliDates()
+        private bool NormalizeTimestampsFromSourceDates()
         {
             bool changed = false;
             var calendar = new PersianCalendar();
 
-            foreach (var bar in _bars)
+            foreach (MarketBar bar in _bars)
             {
+                string sourceCalendar = bar.Calendar?.Trim() ?? "";
+                if (!string.Equals(sourceCalendar, "Persian", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
                 string date = NormalizeDigits(bar.JalaliDate).Trim();
                 if (string.IsNullOrWhiteSpace(date))
                     continue;
@@ -88,7 +94,7 @@ namespace TradeIt.Charts
                 }
                 catch
                 {
-                    // Invalid Jalali date is left untouched; data validation remains responsible for it.
+                    // Invalid source date remains invalid; data validation handles it.
                 }
             }
 
