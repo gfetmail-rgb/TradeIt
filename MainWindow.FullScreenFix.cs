@@ -49,7 +49,6 @@ namespace TradeIt
 
             try
             {
-                // Make the WPF window itself borderless and truly screen-sized.
                 WindowStyle = WindowStyle.None;
                 ResizeMode = ResizeMode.NoResize;
                 WindowState = WindowState.Maximized;
@@ -60,13 +59,11 @@ namespace TradeIt
                 StatusBarRow.Height = new GridLength(0);
                 MainContentRow.Height = new GridLength(1, GridUnitType.Star);
 
-                // MainContent occupies the whole client area.
                 Grid.SetRow(MainContent, 1);
                 Grid.SetColumn(MainContent, 0);
                 Grid.SetRowSpan(MainContent, 1);
                 Grid.SetColumnSpan(MainContent, 2);
 
-                // Hide the entire symbol-management side and its splitter.
                 SymbolsPanel.Visibility = Visibility.Collapsed;
                 SymbolsPanelColumn.Width = new GridLength(0);
 
@@ -75,21 +72,20 @@ namespace TradeIt
 
                 foreach (UIElement child in MainContent.Children)
                 {
-                    if (child is GridSplitter splitter)
+                    if (child is System.Windows.Controls.GridSplitter splitter)
                     {
                         splitter.Visibility = Visibility.Collapsed;
                         splitter.Width = 0;
                     }
                 }
 
-                // ChartArea is the third internal column (index 2).
                 Grid.SetColumn(ChartArea, 2);
                 ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
                 ChartArea.Visibility = Visibility.Visible;
                 ChartTabs.Visibility = Visibility.Visible;
 
                 FullScreenExitButton.Visibility = Visibility.Visible;
-                Panel.SetZIndex(FullScreenExitButton, 10000);
+                System.Windows.Controls.Panel.SetZIndex(FullScreenExitButton, 10000);
 
                 UpdateLayout();
                 RootLayout.UpdateLayout();
@@ -110,7 +106,6 @@ namespace TradeIt
             {
                 FullScreenExitButton.Visibility = Visibility.Collapsed;
 
-                // Restore the normal three-column chart layout explicitly.
                 Grid.SetRow(MainContent, 1);
                 Grid.SetColumn(MainContent, 0);
                 Grid.SetRowSpan(MainContent, 1);
@@ -123,7 +118,7 @@ namespace TradeIt
 
                 foreach (UIElement child in MainContent.Children)
                 {
-                    if (child is GridSplitter splitter)
+                    if (child is System.Windows.Controls.GridSplitter splitter)
                     {
                         splitter.Visibility = Visibility.Visible;
                         splitter.Width = 5;
