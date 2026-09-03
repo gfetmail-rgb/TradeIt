@@ -28,9 +28,23 @@ namespace TradeIt.Charts
                 _settings = ChartSettingsManager.Current;
                 _gridVisible = _settings.GridVisible;
                 _crosshairVisible = _settings.CrosshairVisible;
+                _chartType = _settings.ChartType?.Trim().ToLowerInvariant() switch
+                {
+                    "line" => ChartDisplayType.Line,
+                    "bar" => ChartDisplayType.Bar,
+                    _ => ChartDisplayType.Candlestick
+                };
 
-                // Rebuild the current series from the new settings. DrawChart()
-                // applies the colors and widths at creation time and preserves
+                int desiredIndex = _chartType switch
+                {
+                    ChartDisplayType.Line => 1,
+                    ChartDisplayType.Bar => 2,
+                    _ => 0
+                };
+                if (ChartTypeComboBox.SelectedIndex != desiredIndex)
+                    ChartTypeComboBox.SelectedIndex = desiredIndex;
+
+                // Rebuild the current series from the new settings and preserve
                 // the user's current zoom/pan limits.
                 if (_bars.Count > 0)
                     DrawChart();
