@@ -4,6 +4,8 @@ using System.Windows;
 using WpfButton = System.Windows.Controls.Button;
 using WpfComboBox = System.Windows.Controls.ComboBox;
 using WpfComboBoxItem = System.Windows.Controls.ComboBoxItem;
+using WpfGrid = System.Windows.Controls.Grid;
+using WpfStackPanel = System.Windows.Controls.StackPanel;
 
 namespace TradeIt.Charts
 {
@@ -28,8 +30,8 @@ namespace TradeIt.Charts
         private void AddDefaultSettingsButton()
         {
             if (_defaultSettingsButton != null) return;
-            if (Content is not Grid root || root.Children.Count < 2) return;
-            if (root.Children[1] is not System.Windows.Controls.StackPanel buttons) return;
+            if (Content is not WpfGrid root || root.Children.Count < 2) return;
+            if (root.Children[1] is not WpfStackPanel buttons) return;
 
             _defaultSettingsButton = new WpfButton
             {
