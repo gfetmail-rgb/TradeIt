@@ -91,8 +91,8 @@ namespace TradeIt.Portfolios
                 if (Directory.Exists(path))
                 {
                     string[] files = Directory.GetFiles(path, "*.*", SearchOption.TopDirectoryOnly)
-                        .Where(x => string.Equals(Path.GetExtension(x), ".csv", StringComparison.OrdinalIgnoreCase)
-                                 || string.Equals(Path.GetExtension(x), ".txt", StringComparison.OrdinalIgnoreCase))
+                        .Where(x => string.Equals(Path.GetExtension(x), ".csv", System.StringComparison.OrdinalIgnoreCase)
+                                 || string.Equals(Path.GetExtension(x), ".txt", System.StringComparison.OrdinalIgnoreCase))
                         .ToArray();
                     if (files.Length == 0)
                     {
@@ -156,13 +156,12 @@ namespace TradeIt.Portfolios
                     _previewTable.Rows.Add(row);
                 }
 
-                PreviewGrid.ItemsSource = _previewTable.DefaultView;
                 AutoDetectColumns(headers);
 
                 if (FileRadio.IsChecked == true)
                     PopulateSymbolSelectionList();
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 System.Windows.MessageBox.Show(ex.ToString(), "خطا", MessageBoxButton.OK, MessageBoxImage.Error);
             }
