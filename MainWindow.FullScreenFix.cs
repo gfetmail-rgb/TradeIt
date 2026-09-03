@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Threading;
 
 namespace TradeIt
@@ -28,7 +29,7 @@ namespace TradeIt
 
             window.Dispatcher.BeginInvoke(
                 new Action(window.ApplyFullScreenChartLayout),
-                DispatcherPriority.Loaded);
+                DispatcherPriority.Render);
         }
 
         private void ApplyFullScreenChartLayout()
@@ -44,28 +45,43 @@ namespace TradeIt
                 StatusBarRow.Height = new GridLength(0);
                 MainContentRow.Height = new GridLength(1, GridUnitType.Star);
 
-                System.Windows.Controls.Grid.SetRow(MainContent, 1);
-                System.Windows.Controls.Grid.SetColumn(MainContent, 0);
-                System.Windows.Controls.Grid.SetRowSpan(MainContent, 1);
-                System.Windows.Controls.Grid.SetColumnSpan(MainContent, 2);
+                Grid.SetRow(MainContent, 1);
+                Grid.SetColumn(MainContent, 0);
+                Grid.SetRowSpan(MainContent, 1);
+                Grid.SetColumnSpan(MainContent, 2);
 
                 SymbolsPanel.Visibility = Visibility.Collapsed;
                 SymbolsPanelColumn.Width = new GridLength(0);
-                System.Windows.Controls.Grid.SetColumn(ChartArea, 0);
-                ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
 
-                if (ChartTabs.SelectedContent is FrameworkElement selectedChart)
+                // MainContent column 1 is the splitter. Collapse both the
+                // column and splitter so the chart gets the complete width.
+                if (MainContent.ColumnDefinitions.Count > 1)
+                    MainContent.ColumnDefinitions[1].Width = new GridLength(0);
+
+                foreach (UIElement child in MainContent.Children)
                 {
-                    selectedChart.Visibility = Visibility.Visible;
-                    selectedChart.UpdateLayout();
+                    if (child is GridSplitter splitter)
+                    {
+                        splitter.Visibility = Visibility.Collapsed;
+                        splitter.Width = 0;
+                    }
                 }
 
+                // ChartArea belongs to column 2. Keep it there; moving it to
+                // column 0 would place it underneath the hidden symbol panel.
+                Grid.SetColumn(ChartArea, 2);
+                ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
                 ChartArea.Visibility = Visibility.Visible;
                 ChartTabs.Visibility = Visibility.Visible;
+
+                if (ChartTabs.SelectedContent is FrameworkElement selectedChart)
+                    selectedChart.Visibility = Visibility.Visible;
+
+                RootLayout.UpdateLayout();
+                MainContent.UpdateLayout();
                 ChartArea.UpdateLayout();
                 ChartTabs.UpdateLayout();
-                RootLayout.UpdateLayout();
-                InvalidateVisualTree(this);
+                InvalidateVisualTree(ChartArea);
             }
             catch (Exception ex)
             {
