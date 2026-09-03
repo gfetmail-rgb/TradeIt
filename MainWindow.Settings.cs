@@ -12,8 +12,9 @@ namespace TradeIt
                 Owner = this
             };
 
-            if (window.ShowDialog() == true)
-                ChartSettingsManager.SetDefaults(window.Settings);
+            // ChartSettingsWindow persists the settings itself and notifies all
+            // open charts through ChartSettingsManager.SettingsChanged.
+            window.ShowDialog();
         }
     }
 }
