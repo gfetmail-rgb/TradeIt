@@ -365,16 +365,31 @@ namespace TradeIt.Charts
 
         private void DrawLine()
         {
-            var xs = new DateTime[_bars.Count];
-            var ys = new double[_bars.Count];
+            // Use explicit OLE Automation date doubles instead of the DateTime overload.
+            // This avoids the renderer interpreting DateTime values unexpectedly and, more
+            // importantly, guarantees that every plotted X coordinate is a finite numeric value.
+            var points = new List<(double X, double Y)>();
             for (int i = 0; i < _bars.Count; i++)
             {
-                xs[i] = GetBarDateTime(_bars[i], i);
-                ys[i] = _bars[i].Close;
+                double x = GetBarDateTime(_bars[i], i).ToOADate();
+                double y = _bars[i].Close;
+                if (double.IsNaN(x) || double.IsInfinity(x) || double.IsNaN(y) || double.IsInfinity(y))
+                    continue;
+                points.Add((x, y));
             }
+
+            if (points.Count == 0) return;
+
+            // The line chart is chronological. Sorting here also protects the Scatter
+            // renderer from malformed/non-monotonic source timestamps.
+            points.Sort((a, b) => a.X.CompareTo(b.X));
+
+            var xs = points.Select(p => p.X).ToArray();
+            var ys = points.Select(p => p.Y).ToArray();
+
             var line = Chart.Plot.Add.Scatter(xs, ys);
             line.MarkerSize = 0;
-            line.LineWidth = (float)_settings.LineWidth;
+            line.LineWidth = (float)Math.Max(0.01, _settings.LineWidth);
             line.Color = ScottPlot.Color.FromHtml(_settings.LineColor);
             Chart.Plot.Axes.DateTimeTicksBottom();
         }
@@ -518,27 +533,5 @@ namespace TradeIt.Charts
 
         private void ZoomInButton_Click(object sender, RoutedEventArgs e) => ZoomXAxis(0.80);
         private void ZoomOutButton_Click(object sender, RoutedEventArgs e) => ZoomXAxis(1.25);
-
-        private void ResetZoomButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (!_hasInitialView) return;
-            Chart.Plot.Axes.SetLimits(_initialXMin, _initialXMax, _initialYMin, _initialYMax);
-            Chart.Refresh();
-        }
-
-        private void FullViewButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_bars.Count == 0) return;
-            Chart.Plot.Axes.AutoScale();
-            SaveInitialView();
-            Chart.Refresh();
-        }
-    }
-
-    public enum ChartDisplayType
-    {
-        Candlestick,
-        Line,
-        Bar
     }
 }
