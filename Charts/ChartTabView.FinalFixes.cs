@@ -10,7 +10,6 @@ namespace TradeIt.Charts
     {
         private static readonly bool _finalChartFixesRegistered = RegisterFinalChartFixes();
         private bool _finalChartFixesInitialized;
-        private static readonly DateTime UndatedChartBaseDate = new DateTime(2000, 1, 1);
 
         private static bool RegisterFinalChartFixes()
         {
@@ -36,16 +35,19 @@ namespace TradeIt.Charts
         {
             try
             {
-                NormalizeUndatedTimestamps();
-
+                // Do not mutate source/undated timestamps here. GetBarDateTime()
+                // supplies stable synthetic X coordinates without corrupting the
+                // original MarketBar data.
                 ConfigureFinalDateAxis();
                 ForceInitial365CandleRange();
 
-                _crosshairVisible = true;
-                InitializeCrosshairAtInitialPosition();
-                if (_crosshair != null)
-                    _crosshair.IsVisible = true;
-                CrosshairButton.Content = "Crosshair روشن";
+                // Respect the persisted state instead of forcing Crosshair ON.
+                _settings = ChartSettingsManager.Current;
+                _gridVisible = _settings.GridVisible;
+                _crosshairVisible = _settings.CrosshairVisible;
+                ApplyGridDisplayState();
+                ApplyCrosshairDisplayState();
+                UpdateDisplayStateButtons();
 
                 UpdateInitialOHLCVInfo();
                 Chart.Refresh();
@@ -56,27 +58,6 @@ namespace TradeIt.Charts
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Final chart fixes failed: {ex}");
-            }
-        }
-
-        private void NormalizeUndatedTimestamps()
-        {
-            if (_bars.Count == 0)
-                return;
-
-            for (int i = 0; i < _bars.Count; i++)
-            {
-                MarketBar bar = _bars[i];
-                bool hasSourceDate =
-                    !string.IsNullOrWhiteSpace(bar.Calendar) &&
-                    !string.IsNullOrWhiteSpace(bar.JalaliDate);
-
-                if (!hasSourceDate)
-                {
-                    DateTime synthetic = UndatedChartBaseDate.AddDays(i);
-                    if (!bar.Timestamp.HasValue || bar.Timestamp.Value != synthetic)
-                        bar.Timestamp = synthetic;
-                }
             }
         }
 
