@@ -21,45 +21,46 @@ namespace TradeIt.Charts
 
         private static void InitialCandleRange_Loaded(object sender, RoutedEventArgs e)
         {
-            if (sender is not ChartTabView chart || chart._initialCandleRangeApplied)
+            if (sender is not ChartTabView chart)
                 return;
 
+            // Run after the other chart Loaded fixes. This is the final owner of
+            // the initial X range, so another Loaded handler cannot overwrite the
+            // requested 365-candle view afterward.
             chart.Dispatcher.BeginInvoke(
                 new Action(chart.ApplyInitialCandleRange),
-                DispatcherPriority.ContextIdle);
+                DispatcherPriority.ApplicationIdle);
         }
 
         private void ApplyInitialCandleRange()
         {
-            if (_initialCandleRangeApplied || _bars.Count == 0)
+            if (_bars.Count == 0)
                 return;
 
-            _initialCandleRangeApplied = true;
+            int visibleCount = Math.Min(InitialVisibleCandleCount, _bars.Count);
+            int firstVisibleIndex = _bars.Count - visibleCount;
+            int lastVisibleIndex = _bars.Count - 1;
 
-            // If there are 365 or fewer records, keep the complete dataset visible.
-            if (_bars.Count <= InitialVisibleCandleCount)
-                return;
-
-            int firstVisibleIndex = _bars.Count - InitialVisibleCandleCount;
             double firstX = GetBarDateTime(_bars[firstVisibleIndex], firstVisibleIndex).ToOADate();
-            double lastX = GetBarDateTime(_bars[^1], _bars.Count - 1).ToOADate();
+            double lastX = GetBarDateTime(_bars[lastVisibleIndex], lastVisibleIndex).ToOADate();
 
-            if (!double.IsFinite(firstX) || !double.IsFinite(lastX) || lastX <= firstX)
+            if (!double.IsFinite(firstX) || !double.IsFinite(lastX) || lastX < firstX)
                 return;
 
-            // Add half a candle of horizontal padding so the first and last
-            // candles are not clipped at the edges of the plot area.
             const double CandleHalfWidthDays = 0.5;
             var limits = Chart.Plot.Axes.GetLimits();
+
             Chart.Plot.Axes.SetLimits(
                 firstX - CandleHalfWidthDays,
                 lastX + CandleHalfWidthDays,
                 limits.Bottom,
                 limits.Top);
 
-            // Recalculate the price range from only the 365 candles now visible.
+            // Recalculate the price range from only the candles that are now
+            // visible, then make this exact range the Reset Zoom range.
             AutoFitVisiblePriceRange();
             SaveInitialView();
+            _initialCandleRangeApplied = true;
             Chart.Refresh();
         }
     }
