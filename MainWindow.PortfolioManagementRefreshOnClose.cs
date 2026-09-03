@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Controls;
 using TradeIt.Portfolios;
 
 namespace TradeIt
@@ -13,14 +14,14 @@ namespace TradeIt
         {
             EventManager.RegisterClassHandler(
                 typeof(PortfolioManagementWindow),
-                Window.ClosedEvent,
-                new EventHandler(PortfolioManagementWindow_Closed),
+                FrameworkElement.UnloadedEvent,
+                new RoutedEventHandler(PortfolioManagementWindow_Unloaded),
                 true);
 
             return true;
         }
 
-        private static void PortfolioManagementWindow_Closed(object? sender, EventArgs e)
+        private static void PortfolioManagementWindow_Unloaded(object sender, RoutedEventArgs e)
         {
             if (sender is not PortfolioManagementWindow window ||
                 window.Owner is not MainWindow mainWindow)
@@ -28,9 +29,8 @@ namespace TradeIt
                 return;
             }
 
-            // The management window may have deleted portfolios or symbols even
-            // when the dialog result is not true. Always execute the same refresh
-            // logic used by the top Refresh button after the window closes.
+            // Execute the exact same refresh logic as the top Refresh button
+            // whenever Portfolio Management is closed.
             mainWindow.RefreshPortfolioButton_Click(
                 mainWindow,
                 new RoutedEventArgs());
