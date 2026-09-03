@@ -1,7 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Data;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -24,8 +23,7 @@ namespace TradeIt.Portfolios
             _symbolSelectionItems.Clear();
             _symbolSelectionConfirmed = false;
 
-            string[] symbols = GetSymbolsFromCurrentSource();
-            foreach (string symbol in symbols)
+            foreach (string symbol in GetSymbolsFromCurrentSource())
             {
                 _symbolSelectionItems.Add(new SymbolSelectionItem
                 {
@@ -39,28 +37,56 @@ namespace TradeIt.Portfolios
 
         private string[] GetSymbolsFromCurrentSource()
         {
-            if (SymbolFromFileContentRadio.IsChecked == true && _previewTable != null)
+            string pathText = PathTextBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(pathText))
+                return Array.Empty<string>();
+
+            if (SymbolFromFileContentRadio.IsChecked == true)
             {
                 int symbolColumn = GetColumnIndex(SymbolColumnCombo);
-                if (symbolColumn >= 0 && symbolColumn < _previewTable.Columns.Count)
+                if (symbolColumn < 0)
+                    return Array.Empty<string>();
+
+                var symbols = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                string delimiter = GetSelectedDelimiter();
+                bool hasHeader = HeaderCheckBox.IsChecked == true;
+
+                foreach (string file in pathText.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim())
+                    .Where(File.Exists)
+                    .Distinct(StringComparer.OrdinalIgnoreCase))
                 {
-                    return _previewTable.Rows.Cast<DataRow>()
-                        .Select(row => row[symbolColumn]?.ToString()?.Trim() ?? "")
-                        .Where(x => !string.IsNullOrWhiteSpace(x))
-                        .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .OrderBy(x => x, StringComparer.CurrentCultureIgnoreCase)
-                        .ToArray();
+                    string[] lines = File.ReadAllLines(file);
+                    int start = hasHeader ? 1 : 0;
+
+                    for (int i = start; i < lines.Length; i++)
+                    {
+                        if (string.IsNullOrWhiteSpace(lines[i])) continue;
+                        string[] values = SplitLine(lines[i], delimiter);
+                        if (symbolColumn >= values.Length) continue;
+
+                        string symbol = values[symbolColumn].Trim();
+                        if (!string.IsNullOrWhiteSpace(symbol))
+                            symbols.Add(symbol);
+                    }
                 }
+
+                return symbols
+                    .OrderBy(x => x, StringComparer.CurrentCultureIgnoreCase)
+                    .ToArray();
             }
 
-            string path = PathTextBox.Text.Trim();
-            if (File.Exists(path))
-            {
-                string name = Path.GetFileNameWithoutExtension(path);
-                return string.IsNullOrWhiteSpace(name) ? Array.Empty<string>() : new[] { name };
-            }
+            var fileNames = pathText.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Where(File.Exists)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(Path.GetFileNameWithoutExtension)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x, StringComparer.CurrentCultureIgnoreCase)
+                .ToArray();
 
-            return Array.Empty<string>();
+            return fileNames;
         }
 
         private void SelectAllSymbolsButton_Click(object sender, RoutedEventArgs e)
