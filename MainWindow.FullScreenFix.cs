@@ -1,31 +1,28 @@
 using System;
 using System.Windows;
+using System.Windows.Controls;
+using TradeIt.Charts;
 
 namespace TradeIt
 {
     public partial class MainWindow
     {
         private static readonly bool _fullScreenFixRegistered = RegisterFullScreenFix();
+        private Window? _chartFullScreenWindow;
+        private TabItem? _chartFullScreenTab;
+        private object? _chartFullScreenOriginalContent;
 
         private static bool RegisterFullScreenFix()
         {
-            EventManager.RegisterClassHandler(
-                typeof(MainWindow),
-                System.Windows.Controls.Button.ClickEvent,
-                new RoutedEventHandler(FullScreenFix_ButtonClick),
-                true);
+            EventManager.RegisterClassHandler(typeof(MainWindow), Button.ClickEvent, new RoutedEventHandler(FullScreenFix_ButtonClick), true);
             return true;
         }
 
         private static void FullScreenFix_ButtonClick(object sender, RoutedEventArgs e)
         {
-            if (e.OriginalSource is not System.Windows.Controls.Button button)
-                return;
-
+            if (e.OriginalSource is not Button button) return;
             MainWindow? window = Window.GetWindow(button) as MainWindow;
-            if (window == null)
-                return;
-
+            if (window == null) return;
             if (ReferenceEquals(button, window.FullScreenButton))
             {
                 e.Handled = true;
@@ -40,127 +37,109 @@ namespace TradeIt
 
         private void EnterChartFullScreen()
         {
-            if (_isFullScreen)
-                return;
+            if (_chartFullScreenWindow != null) return;
+            if (ChartTabs.SelectedItem is not TabItem tab || tab.Content is not ChartTabView chart) return;
 
             try
             {
-                _previousWindowState = WindowState;
-                _previousWindowStyle = WindowStyle;
-                _previousResizeMode = ResizeMode;
-                _previousRootRow0Height = TopToolbarRow.Height;
-                _previousRootRow1Height = MainContentRow.Height;
-                _previousRootRow2Height = StatusBarRow.Height;
-                _previousSymbolsColumnWidth = SymbolsPanelColumn.Width;
-                _previousChartColumnWidth = ChartPanelColumn.Width;
+                _chartFullScreenTab = tab;
+                _chartFullScreenOriginalContent = tab.Content;
+                tab.Content = null;
 
-                _isFullScreen = true;
+                var host = new Grid();
+                host.Children.Add(chart);
 
-                WindowStyle = WindowStyle.None;
-                ResizeMode = ResizeMode.NoResize;
-                WindowState = WindowState.Maximized;
-
-                TopToolbar.Visibility = Visibility.Collapsed;
-                StatusBar.Visibility = Visibility.Collapsed;
-                TopToolbarRow.Height = new GridLength(0);
-                MainContentRow.Height = new GridLength(1, GridUnitType.Star);
-                StatusBarRow.Height = new GridLength(0);
-
-                SymbolsPanel.Visibility = Visibility.Collapsed;
-                SymbolsPanelColumn.MinWidth = 0;
-                SymbolsPanelColumn.Width = new GridLength(0);
-
-                if (MainContent.ColumnDefinitions.Count > 1)
-                    MainContent.ColumnDefinitions[1].Width = new GridLength(0);
-
-                foreach (UIElement child in MainContent.Children)
+                var exitButton = new Button
                 {
-                    if (child is System.Windows.Controls.GridSplitter splitter)
-                    {
-                        splitter.Visibility = Visibility.Collapsed;
-                        splitter.IsHitTestVisible = false;
-                        splitter.Width = 0;
-                    }
-                }
+                    Content = "↙ خروج از تمام صفحه",
+                    Width = 175,
+                    Height = 34,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Margin = new Thickness(0, 10, 10, 0),
+                    Padding = new Thickness(10, 0)
+                };
+                exitButton.Click += (_, _) => ExitChartFullScreen();
+                Panel.SetZIndex(exitButton, 10000);
+                host.Children.Add(exitButton);
 
-                ChartPanelColumn.MinWidth = 0;
-                ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
-                ChartArea.Visibility = Visibility.Visible;
-                ChartTabs.Visibility = Visibility.Visible;
+                var fullScreenWindow = new Window
+                {
+                    Title = $"TradeIt — {tab.Header}",
+                    Owner = this,
+                    WindowStyle = WindowStyle.None,
+                    ResizeMode = ResizeMode.NoResize,
+                    WindowState = WindowState.Maximized,
+                    ShowInTaskbar = false,
+                    Background = System.Windows.Media.Brushes.Black,
+                    Content = host
+                };
 
-                FullScreenExitButton.Visibility = Visibility.Visible;
-                System.Windows.Controls.Panel.SetZIndex(FullScreenExitButton, 10000);
-
-                UpdateLayout();
-                RootLayout.UpdateLayout();
-                MainContent.UpdateLayout();
-                ChartArea.UpdateLayout();
-                ChartTabs.UpdateLayout();
+                fullScreenWindow.KeyDown += ChartFullScreenWindow_KeyDown;
+                fullScreenWindow.Closed += ChartFullScreenWindow_Closed;
+                _chartFullScreenWindow = fullScreenWindow;
+                _isFullScreen = true;
+                Visibility = Visibility.Hidden;
+                fullScreenWindow.Show();
+                fullScreenWindow.Activate();
+                fullScreenWindow.Focus();
             }
             catch (Exception ex)
             {
+                if (_chartFullScreenTab != null) _chartFullScreenTab.Content = _chartFullScreenOriginalContent;
+                _chartFullScreenTab = null;
+                _chartFullScreenOriginalContent = null;
+                _chartFullScreenWindow = null;
                 _isFullScreen = false;
-                System.Diagnostics.Debug.WriteLine($"Fullscreen chart layout failed: {ex}");
+                Visibility = Visibility.Visible;
+                System.Diagnostics.Debug.WriteLine($"Fullscreen chart failed: {ex}");
             }
+        }
+
+        private void ChartFullScreenWindow_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                e.Handled = true;
+                ExitChartFullScreen();
+            }
+        }
+
+        private void ChartFullScreenWindow_Closed(object? sender, EventArgs e)
+        {
+            if (_isFullScreen) RestoreChartFromFullScreen();
         }
 
         private void ExitChartFullScreen()
         {
-            if (!_isFullScreen)
-                return;
-
+            if (_chartFullScreenWindow == null) return;
             try
             {
-                FullScreenExitButton.Visibility = Visibility.Collapsed;
-
-                SymbolsPanelColumn.MinWidth = 220;
-                SymbolsPanelColumn.Width = _previousSymbolsColumnWidth.Value > 0
-                    ? _previousSymbolsColumnWidth
-                    : new GridLength(300);
-
-                if (MainContent.ColumnDefinitions.Count > 1)
-                    MainContent.ColumnDefinitions[1].Width = new GridLength(5);
-
-                ChartPanelColumn.MinWidth = 450;
-                ChartPanelColumn.Width = _previousChartColumnWidth.Value > 0
-                    ? _previousChartColumnWidth
-                    : new GridLength(1, GridUnitType.Star);
-
-                foreach (UIElement child in MainContent.Children)
-                {
-                    if (child is System.Windows.Controls.GridSplitter splitter)
-                    {
-                        splitter.Visibility = Visibility.Visible;
-                        splitter.IsHitTestVisible = true;
-                        splitter.Width = 5;
-                    }
-                }
-
-                SymbolsPanel.Visibility = Visibility.Visible;
-                ChartArea.Visibility = Visibility.Visible;
-                ChartTabs.Visibility = Visibility.Visible;
-
-                TopToolbar.Visibility = Visibility.Visible;
-                StatusBar.Visibility = Visibility.Visible;
-                TopToolbarRow.Height = _previousRootRow0Height;
-                MainContentRow.Height = _previousRootRow1Height;
-                StatusBarRow.Height = _previousRootRow2Height;
-
-                WindowStyle = _previousWindowStyle;
-                ResizeMode = _previousResizeMode;
-                WindowState = _previousWindowState;
-                _isFullScreen = false;
-
-                UpdateLayout();
-                RootLayout.UpdateLayout();
-                MainContent.UpdateLayout();
-                ChartArea.UpdateLayout();
-                ChartTabs.UpdateLayout();
+                _chartFullScreenWindow.Closed -= ChartFullScreenWindow_Closed;
+                _chartFullScreenWindow.KeyDown -= ChartFullScreenWindow_KeyDown;
+                _chartFullScreenWindow.Close();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Normal chart layout restore failed: {ex}");
+                System.Diagnostics.Debug.WriteLine($"Fullscreen window close failed: {ex}");
+                RestoreChartFromFullScreen();
             }
+        }
+
+        private void ExitFullScreen()
+        {
+            ExitChartFullScreen();
+        }
+
+        private void RestoreChartFromFullScreen()
+        {
+            if (_chartFullScreenTab != null) _chartFullScreenTab.Content = _chartFullScreenOriginalContent;
+            _chartFullScreenTab = null;
+            _chartFullScreenOriginalContent = null;
+            _chartFullScreenWindow = null;
+            _isFullScreen = false;
+            Visibility = Visibility.Visible;
+            Activate();
         }
     }
 }
