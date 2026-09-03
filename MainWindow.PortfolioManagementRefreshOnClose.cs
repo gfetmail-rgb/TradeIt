@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using TradeIt.Portfolios;
 
@@ -13,13 +14,13 @@ namespace TradeIt
             EventManager.RegisterClassHandler(
                 typeof(PortfolioManagementWindow),
                 Window.ClosedEvent,
-                new RoutedEventHandler(PortfolioManagementWindow_Closed),
+                new EventHandler(PortfolioManagementWindow_Closed),
                 true);
 
             return true;
         }
 
-        private static void PortfolioManagementWindow_Closed(object sender, RoutedEventArgs e)
+        private static void PortfolioManagementWindow_Closed(object? sender, EventArgs e)
         {
             if (sender is not PortfolioManagementWindow window ||
                 window.Owner is not MainWindow mainWindow)
