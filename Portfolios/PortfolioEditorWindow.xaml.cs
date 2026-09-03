@@ -20,6 +20,7 @@ namespace TradeIt.Portfolios
         public PortfolioEditorWindow()
         {
             InitializeComponent();
+            InitializeSymbolSelection();
             UpdateDateTimeControls();
         }
 
@@ -27,6 +28,12 @@ namespace TradeIt.Portfolios
         {
             if (BrowseButton == null) return;
             BrowseButton.Content = FolderRadio.IsChecked == true ? "انتخاب پوشه..." : "انتخاب فایل...";
+            if (FileRadio.IsChecked != true)
+            {
+                _symbolSelectionConfirmed = false;
+                _symbolSelectionItems.Clear();
+                UpdateSelectedSymbolsCount();
+            }
         }
 
         private void NoDateTimeCheckBox_Changed(object sender, RoutedEventArgs e)
@@ -59,7 +66,13 @@ namespace TradeIt.Portfolios
                     Title = "انتخاب فایل داده",
                     Filter = "Data Files (*.txt;*.csv)|*.txt;*.csv|All Files (*.*)|*.*"
                 };
-                if (dialog.ShowDialog() == true) PathTextBox.Text = dialog.FileName;
+                if (dialog.ShowDialog() == true)
+                {
+                    PathTextBox.Text = dialog.FileName;
+                    _symbolSelectionConfirmed = false;
+                    _symbolSelectionItems.Clear();
+                    UpdateSelectedSymbolsCount();
+                }
             }
         }
 
@@ -145,6 +158,9 @@ namespace TradeIt.Portfolios
 
                 PreviewGrid.ItemsSource = _previewTable.DefaultView;
                 AutoDetectColumns(headers);
+
+                if (FileRadio.IsChecked == true)
+                    PopulateSymbolSelectionList();
             }
             catch (Exception ex)
             {
@@ -322,6 +338,9 @@ namespace TradeIt.Portfolios
                         MarketValueColumn = GetColumnIndex(MarketValueColumnCombo)
                     }
                 };
+
+                if (!TryApplySymbolSelection(portfolio))
+                    return;
 
                 ResultPortfolio = portfolio;
                 DialogResult = true;
