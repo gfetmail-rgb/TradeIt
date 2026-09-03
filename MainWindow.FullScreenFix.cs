@@ -24,12 +24,18 @@ namespace TradeIt
             if (sender is not MainWindow window || e.OriginalSource is not System.Windows.Controls.Button button)
                 return;
 
-            if (!ReferenceEquals(button, window.FullScreenButton))
-                return;
-
-            window.Dispatcher.BeginInvoke(
-                new Action(window.ApplyFullScreenChartLayout),
-                DispatcherPriority.Render);
+            if (ReferenceEquals(button, window.FullScreenButton))
+            {
+                window.Dispatcher.BeginInvoke(
+                    new Action(window.ApplyFullScreenChartLayout),
+                    DispatcherPriority.Render);
+            }
+            else if (ReferenceEquals(button, window.FullScreenExitButton))
+            {
+                window.Dispatcher.BeginInvoke(
+                    new Action(window.ApplyNormalChartLayout),
+                    DispatcherPriority.Render);
+            }
         }
 
         private void ApplyFullScreenChartLayout()
@@ -53,8 +59,6 @@ namespace TradeIt
                 SymbolsPanel.Visibility = Visibility.Collapsed;
                 SymbolsPanelColumn.Width = new GridLength(0);
 
-                // MainContent column 1 is the splitter. Collapse both the
-                // column and splitter so the chart gets the complete width.
                 if (MainContent.ColumnDefinitions.Count > 1)
                     MainContent.ColumnDefinitions[1].Width = new GridLength(0);
 
@@ -67,8 +71,7 @@ namespace TradeIt
                     }
                 }
 
-                // ChartArea belongs to column 2. Keep it there; moving it to
-                // column 0 would place it underneath the hidden symbol panel.
+                // ChartArea is the third column (index 2). It must remain there.
                 Grid.SetColumn(ChartArea, 2);
                 ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
                 ChartArea.Visibility = Visibility.Visible;
@@ -86,6 +89,41 @@ namespace TradeIt
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Fullscreen chart layout fix failed: {ex}");
+            }
+        }
+
+        private void ApplyNormalChartLayout()
+        {
+            try
+            {
+                if (MainContent.ColumnDefinitions.Count > 1)
+                    MainContent.ColumnDefinitions[1].Width = new GridLength(5);
+
+                foreach (UIElement child in MainContent.Children)
+                {
+                    if (child is GridSplitter splitter)
+                    {
+                        splitter.Visibility = Visibility.Visible;
+                        splitter.Width = 5;
+                    }
+                }
+
+                Grid.SetColumn(ChartArea, 2);
+                SymbolsPanelColumn.Width = new GridLength(300);
+                ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
+                SymbolsPanel.Visibility = Visibility.Visible;
+                ChartArea.Visibility = Visibility.Visible;
+                ChartTabs.Visibility = Visibility.Visible;
+
+                RootLayout.UpdateLayout();
+                MainContent.UpdateLayout();
+                ChartArea.UpdateLayout();
+                ChartTabs.UpdateLayout();
+                InvalidateVisualTree(ChartArea);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Normal chart layout restore failed: {ex}");
             }
         }
 
