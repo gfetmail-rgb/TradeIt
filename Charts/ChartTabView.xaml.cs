@@ -372,22 +372,59 @@ namespace TradeIt.Charts
 
         private void DrawLine()
         {
+            // Build the line strictly from real, finite OHLC close points.
+            // Keep X values strictly increasing so ScottPlot has no ambiguous
+            // duplicate endpoint from which a horizontal tail can be rendered.
             var points = new List<(double X, double Y)>();
             for (int i = 0; i < _bars.Count; i++)
             {
-                double x = GetBarDateTime(_bars[i], i).ToOADate();
-                double y = _bars[i].Close;
-                if (double.IsNaN(x) || double.IsInfinity(x) || double.IsNaN(y) || double.IsInfinity(y)) continue;
+                MarketBar bar = _bars[i];
+                if (!bar.Timestamp.HasValue || bar.Timestamp.Value <= DateTime.MinValue || bar.Timestamp.Value >= DateTime.MaxValue)
+                    continue;
+
+                double x = bar.Timestamp.Value.ToOADate();
+                double y = bar.Close;
+                if (!double.IsFinite(x) || !double.IsFinite(y)) continue;
                 points.Add((x, y));
             }
+
             if (points.Count == 0) return;
+
             points.Sort((a, b) => a.X.CompareTo(b.X));
-            var xs = points.Select(p => p.X).ToArray();
-            var ys = points.Select(p => p.Y).ToArray();
-            var line = Chart.Plot.Add.Scatter(xs, ys);
+
+            var cleanPoints = new List<(double X, double Y)>(points.Count);
+            foreach (var point in points)
+            {
+                if (cleanPoints.Count == 0)
+                {
+                    cleanPoints.Add(point);
+                    continue;
+                }
+
+                // If two records have the same timestamp, retain the last
+                // real close for that timestamp instead of creating a zero-width
+                // segment at the chart endpoint.
+                if (point.X == cleanPoints[^1].X)
+                    cleanPoints[^1] = point;
+                else
+                    cleanPoints.Add(point);
+            }
+
+            if (cleanPoints.Count == 0) return;
+
+            double[] xs = cleanPoints.Select(p => p.X).ToArray();
+            double[] ys = cleanPoints.Select(p => p.Y).ToArray();
+
+            var line = Chart.Plot.Add.ScatterLine(xs, ys);
             line.MarkerSize = 0;
             line.LineWidth = (float)Math.Max(0.01, _settings.LineWidth);
-            line.Color = ScottPlot.Color.FromHtml(_settings.LineColor);
+            line.LineColor = ScottPlot.Color.FromHtml(_settings.LineColor);
+            line.ConnectStyle = ScottPlot.ConnectStyle.Straight;
+            line.Smooth = false;
+            line.PathStrategy = new ScottPlot.PathStrategies.Straight();
+            line.MinRenderIndex = 0;
+            line.MaxRenderIndex = xs.Length - 1;
+
             Chart.Plot.Axes.DateTimeTicksBottom();
         }
 
