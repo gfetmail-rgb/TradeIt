@@ -1,5 +1,4 @@
 using System;
-using System.Data;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -13,7 +12,7 @@ namespace TradeIt.Portfolios
 {
     public partial class PortfolioEditorWindow : Window
     {
-        private DataTable? _previewTable;
+        private bool _mappingLoaded;
 
         public Portfolio? ResultPortfolio { get; private set; }
 
@@ -83,18 +82,19 @@ namespace TradeIt.Portfolios
 
                 if (files.Length == 0)
                 {
+                    _mappingLoaded = false;
                     _symbolSelectionItems.Clear();
                     UpdateSelectedSymbolsCount();
-                    PreviewGrid.ItemsSource = null;
                     System.Windows.MessageBox.Show("در این پوشه فایل CSV یا TXT پیدا نشد.");
                     return;
                 }
 
-                LoadPreviewFile(files[0]);
+                LoadMappingFromFile(files[0]);
                 PopulateSymbolSelectionList(files);
             }
             catch (Exception ex)
             {
+                _mappingLoaded = false;
                 System.Windows.MessageBox.Show(ex.ToString(), "خطا", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -106,58 +106,32 @@ namespace TradeIt.Portfolios
                 || string.Equals(extension, ".txt", StringComparison.OrdinalIgnoreCase);
         }
 
-        private void LoadPreviewFile(string filePath)
+        private void LoadMappingFromFile(string filePath)
         {
             string delimiter = GetSelectedDelimiter();
-            string[] lines = File.ReadLines(filePath).Take(100).ToArray();
+            string[] lines = File.ReadLines(filePath).Take(2).ToArray();
             if (lines.Length == 0)
             {
+                _mappingLoaded = false;
                 System.Windows.MessageBox.Show("فایل نمونه خالی است.");
                 return;
             }
 
             bool hasHeader = HeaderCheckBox.IsChecked == true;
             string[] headers;
-            int startRow;
             if (hasHeader)
             {
                 headers = SplitLine(lines[0], delimiter);
-                startRow = 1;
             }
             else
             {
                 string[] firstRow = SplitLine(lines[0], delimiter);
                 headers = Enumerable.Range(1, firstRow.Length).Select(x => $"Column {x}").ToArray();
-                startRow = 0;
             }
 
             BuildColumnCombos(headers);
-            _previewTable = new DataTable();
-            foreach (string header in headers)
-            {
-                string safeHeader = string.IsNullOrWhiteSpace(header) ? "Column" : header.Trim();
-                string original = safeHeader;
-                int counter = 2;
-                while (_previewTable.Columns.Contains(safeHeader))
-                {
-                    safeHeader = $"{original}_{counter}";
-                    counter++;
-                }
-                _previewTable.Columns.Add(safeHeader);
-            }
-
-            for (int i = startRow; i < lines.Length; i++)
-            {
-                if (string.IsNullOrWhiteSpace(lines[i])) continue;
-                string[] values = SplitLine(lines[i], delimiter);
-                DataRow row = _previewTable.NewRow();
-                for (int c = 0; c < _previewTable.Columns.Count; c++)
-                    row[c] = c < values.Length ? values[c].Trim() : "";
-                _previewTable.Rows.Add(row);
-            }
-
-            PreviewGrid.ItemsSource = _previewTable.DefaultView;
             AutoDetectColumns(headers);
+            _mappingLoaded = headers.Length > 0;
         }
 
         private void BuildColumnCombos(string[] headers)
@@ -219,9 +193,9 @@ namespace TradeIt.Portfolios
 
         private void TestButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_previewTable == null)
+            if (!_mappingLoaded)
             {
-                System.Windows.MessageBox.Show("ابتدا فایل‌های مسیر را بخوانید.");
+                System.Windows.MessageBox.Show("ابتدا مسیر داده را انتخاب کنید.");
                 return;
             }
             if (GetColumnIndex(OpenColumnCombo) < 0 || GetColumnIndex(HighColumnCombo) < 0 ||
@@ -254,6 +228,12 @@ namespace TradeIt.Portfolios
                 if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
                 {
                     System.Windows.MessageBox.Show("ابتدا مسیر پوشه داده را انتخاب کنید.");
+                    return;
+                }
+
+                if (!_mappingLoaded)
+                {
+                    System.Windows.MessageBox.Show("ابتدا مسیر داده را انتخاب کنید تا فایل‌های آن خوانده شوند.");
                     return;
                 }
 
