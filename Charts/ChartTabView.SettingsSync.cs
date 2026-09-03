@@ -14,10 +14,8 @@ namespace TradeIt.Charts
         private void ChartSettingsManager_SettingsChanged(object? sender, EventArgs e)
         {
             if (!IsLoaded) return;
-            if (Dispatcher.CheckAccess())
-                ApplyStoredChartSettings();
-            else
-                Dispatcher.InvokeAsync(ApplyStoredChartSettings);
+            if (Dispatcher.CheckAccess()) ApplyStoredChartSettings();
+            else Dispatcher.InvokeAsync(ApplyStoredChartSettings);
         }
 
         private void ApplyStoredChartSettings()
@@ -27,19 +25,14 @@ namespace TradeIt.Charts
                 _settings = ChartSettingsManager.Current;
                 _gridVisible = _settings.GridVisible;
                 ApplyGridStyle(Chart);
-                ApplyGridStyle(VolumeChart);
                 ApplyCrosshairStyle();
 
                 Chart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(_settings.FigureBackground);
                 Chart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(_settings.DataBackground);
                 Chart.Plot.Axes.Color(ScottPlot.Color.FromHtml(_settings.AxisColor));
-                VolumeChart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(_settings.FigureBackground);
-                VolumeChart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(_settings.DataBackground);
-                VolumeChart.Plot.Axes.Color(ScottPlot.Color.FromHtml(_settings.AxisColor));
 
                 ApplySeriesThickness();
                 Chart.Refresh();
-                VolumeChart.Refresh();
             }
             catch { }
         }
