@@ -10,9 +10,16 @@ namespace TradeIt.Charts
             if (_bars == null || _bars.Count == 0 || barIndex < 0 || barIndex >= _bars.Count || _crosshair == null)
                 return;
 
-            DateTime barTime = GetBarDateTime(_bars[barIndex], barIndex);
+            // When time gaps are hidden, the chart uses a synthetic continuous X
+            // coordinate (one unit per candle). Do not replace it with the real
+            // OADate here, otherwise the vertical crosshair jumps outside the
+            // plotted range and becomes invisible.
+            double x = _continuousTimeAxisApplied
+                ? ContinuousX(barIndex)
+                : GetBarDateTime(_bars[barIndex], barIndex).ToOADate();
+
             _crosshair.Position = new ScottPlot.Coordinates(
-                barTime.ToOADate(),
+                x,
                 _crosshair.Position.Y);
             _crosshair.VerticalLine.Text = GetCrosshairXLabel(barIndex);
         }
@@ -53,10 +60,12 @@ namespace TradeIt.Charts
                 return;
 
             int index = _bars.Count - 1;
-            DateTime time = GetBarDateTime(_bars[index], index);
+            double x = _continuousTimeAxisApplied
+                ? ContinuousX(index)
+                : GetBarDateTime(_bars[index], index).ToOADate();
             double y = _bars[index].Close;
 
-            _crosshair.Position = new ScottPlot.Coordinates(time.ToOADate(), y);
+            _crosshair.Position = new ScottPlot.Coordinates(x, y);
             _crosshair.HorizontalLine.Text = y.ToString("N2");
             _crosshair.VerticalLine.Text = GetCrosshairXLabel(index);
             _crosshairVisible = true;
