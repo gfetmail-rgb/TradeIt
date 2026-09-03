@@ -12,9 +12,6 @@ namespace TradeIt.Charts
 
         private static bool RegisterDisplayStatePersistence()
         {
-            // Initialization is handled at the class level. User-action
-            // persistence is attached to each control after initialization so
-            // it runs AFTER the XAML instance handlers have changed the state.
             EventManager.RegisterClassHandler(
                 typeof(ChartTabView),
                 FrameworkElement.LoadedEvent,
@@ -33,18 +30,16 @@ namespace TradeIt.Charts
             if (_displayStatePersistenceInitialized)
                 return;
 
-            ChartSettings settings = ChartSettingsManager.Current;
-            _settings = settings;
-            _gridVisible = settings.GridVisible;
-            _crosshairVisible = settings.CrosshairVisible;
-            _chartType = ParseChartDisplayType(settings.ChartType);
+            // Every newly opened chart always starts with the requested defaults:
+            // Candlestick, GRID hidden, Crosshair hidden.
+            _settings = ChartSettingsManager.Current;
+            _gridVisible = false;
+            _crosshairVisible = false;
+            _chartType = ChartDisplayType.Candlestick;
 
-            int targetIndex = FindChartTypeIndex(settings.ChartType);
-            if (ChartTypeComboBox.SelectedIndex != targetIndex)
-                ChartTypeComboBox.SelectedIndex = targetIndex;
+            if (ChartTypeComboBox.SelectedIndex != 0)
+                ChartTypeComboBox.SelectedIndex = 0;
 
-            // Enable persistence only after the persisted state has been loaded.
-            // Constructor/XAML default values can therefore never overwrite it.
             _displayStatePersistenceInitialized = true;
 
             ApplyStoredChartSettings();
@@ -57,9 +52,6 @@ namespace TradeIt.Charts
             if (_displayStatePersistenceHandlersAttached)
                 return;
 
-            // These handlers are attached after the XAML handlers. WPF invokes
-            // them after the existing instance handlers, so they save the NEW
-            // value rather than the value from immediately before the click.
             GridButton.Click += DisplayStateGridButton_ClickAfterStateChange;
             CrosshairButton.Click += DisplayStateCrosshairButton_ClickAfterStateChange;
             ChartTypeComboBox.SelectionChanged += DisplayStateChartType_SelectionChangedAfterStateChange;
@@ -80,26 +72,6 @@ namespace TradeIt.Charts
         {
             if (ReferenceEquals(e.OriginalSource, ChartTypeComboBox))
                 SaveCurrentDisplayState();
-        }
-
-        private static ChartDisplayType ParseChartDisplayType(string? value) =>
-            value?.Trim().ToLowerInvariant() switch
-            {
-                "line" => ChartDisplayType.Line,
-                "bar" => ChartDisplayType.Bar,
-                _ => ChartDisplayType.Candlestick
-            };
-
-        private int FindChartTypeIndex(string? value)
-        {
-            string persisted = string.IsNullOrWhiteSpace(value) ? "Candlestick" : value.Trim();
-            for (int i = 0; i < ChartTypeComboBox.Items.Count; i++)
-            {
-                if (ChartTypeComboBox.Items[i] is ComboBoxItem item &&
-                    string.Equals(item.Tag?.ToString(), persisted, StringComparison.OrdinalIgnoreCase))
-                    return i;
-            }
-            return 0;
         }
 
         private void SaveCurrentDisplayState()
