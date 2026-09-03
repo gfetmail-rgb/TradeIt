@@ -35,16 +35,25 @@ namespace TradeIt.Charts
             {
                 _settings = ChartSettingsManager.Current;
 
-                // New charts always start with these display defaults.
-                _chartType = ChartDisplayType.Candlestick;
-                _gridVisible = false;
-                _crosshairVisible = false;
+                // Always use the persisted display state. Do not reset a newly
+                // opened chart to hard-coded defaults.
+                _chartType = _settings.ChartType?.Trim().ToLowerInvariant() switch
+                {
+                    "line" => ChartDisplayType.Line,
+                    "bar" => ChartDisplayType.Bar,
+                    _ => ChartDisplayType.Candlestick
+                };
+                _gridVisible = _settings.GridVisible;
+                _crosshairVisible = _settings.CrosshairVisible;
 
-                if (ChartTypeComboBox.SelectedIndex != 0)
-                    ChartTypeComboBox.SelectedIndex = 0;
-
-                if (_crosshair != null)
-                    _crosshair.IsVisible = false;
+                int desiredIndex = _chartType switch
+                {
+                    ChartDisplayType.Line => 1,
+                    ChartDisplayType.Bar => 2,
+                    _ => 0
+                };
+                if (ChartTypeComboBox.SelectedIndex != desiredIndex)
+                    ChartTypeComboBox.SelectedIndex = desiredIndex;
 
                 ApplyDisplayCrosshairSettings();
                 ApplyDisplayCrosshairLayout();
@@ -53,10 +62,15 @@ namespace TradeIt.Charts
                 ApplyDisplaySeriesWidths();
                 ConfigureDisplayDateAxis(Chart);
                 ApplyUnifiedPlotBorders();
+                ApplyGridDisplayState();
+                ApplyCrosshairDisplayState();
                 UpdateDisplayStateButtons();
                 Chart.Refresh();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Display fixes failed: {ex}");
+            }
         }
 
         private void ApplyDisplayCrosshairSettings()
@@ -90,7 +104,7 @@ namespace TradeIt.Charts
 
         private void ApplyDisplayGridSettings(ScottPlot.WPF.WpfPlot plot)
         {
-            plot.Plot.Grid.IsVisible = false;
+            plot.Plot.Grid.IsVisible = _settings.GridVisible;
             plot.Plot.Grid.LineColor = ScottPlot.Color.FromHtml(_settings.GridColor);
             plot.Plot.Grid.LinePattern = ParseDisplayPattern(_settings.GridPattern);
             plot.Plot.Grid.MajorLineWidth = (float)Math.Max(0.01, _settings.GridLineWidth);
@@ -127,14 +141,18 @@ namespace TradeIt.Charts
 
         private void ConfigureDisplayDateAxis(ScottPlot.WPF.WpfPlot plot)
         {
-            bool hasRealTimestamp = _bars.Any(b => b.Timestamp.HasValue && b.Timestamp.Value > DateTime.MinValue && b.Timestamp.Value < DateTime.MaxValue);
+            bool hasSourceDate = _bars.Any(b =>
+                !string.IsNullOrWhiteSpace(b.Calendar) &&
+                !string.IsNullOrWhiteSpace(b.JalaliDate));
             try
             {
-                if (hasRealTimestamp)
+                if (hasSourceDate)
                 {
                     var axis = plot.Plot.Axes.DateTimeTicksBottom();
                     if (axis.TickGenerator is ScottPlot.TickGenerators.DateTimeAutomatic auto)
-                        auto.LabelFormatter = dt => dt.TimeOfDay == TimeSpan.Zero ? dt.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture) : dt.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
+                        auto.LabelFormatter = dt => dt.TimeOfDay == TimeSpan.Zero
+                            ? dt.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture)
+                            : dt.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
                 }
                 else
                 {
@@ -158,7 +176,10 @@ namespace TradeIt.Charts
                     axis.TickGenerator = new ScottPlot.TickGenerators.NumericManual(positions.ToArray(), labels.ToArray());
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Display date axis failed: {ex}");
+            }
         }
     }
 }
