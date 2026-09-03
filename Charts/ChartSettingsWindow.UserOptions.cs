@@ -7,6 +7,9 @@ using WpfComboBox = System.Windows.Controls.ComboBox;
 using WpfComboBoxItem = System.Windows.Controls.ComboBoxItem;
 using WpfGroupBox = System.Windows.Controls.GroupBox;
 using WpfBorder = System.Windows.Controls.Border;
+using WpfBrushes = System.Windows.Media.Brushes;
+using WpfHorizontalAlignment = System.Windows.HorizontalAlignment;
+using WpfVerticalAlignment = System.Windows.VerticalAlignment;
 
 namespace TradeIt.Charts
 {
@@ -77,20 +80,20 @@ namespace TradeIt.Charts
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(55) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-            grid.Children.Add(new TextBlock { Text = "رنگ Crosshair:", VerticalAlignment = VerticalAlignment.Center });
-            _crosshairColorPreview = new WpfBorder { Width = 32, Height = 25, BorderBrush = Brushes.Gray, BorderThickness = new Thickness(1), HorizontalAlignment = HorizontalAlignment.Center };
+            grid.Children.Add(new TextBlock { Text = "رنگ Crosshair:", VerticalAlignment = WpfVerticalAlignment.Center });
+            _crosshairColorPreview = new WpfBorder { Width = 32, Height = 25, BorderBrush = WpfBrushes.Gray, BorderThickness = new Thickness(1), HorizontalAlignment = WpfHorizontalAlignment.Center };
             Grid.SetColumn(_crosshairColorPreview, 1); grid.Children.Add(_crosshairColorPreview);
-            var colorButton = new WpfButton { Content = "انتخاب رنگ", Width = 100, Height = 28, HorizontalAlignment = HorizontalAlignment.Left };
+            var colorButton = new WpfButton { Content = "انتخاب رنگ", Width = 100, Height = 28, HorizontalAlignment = WpfHorizontalAlignment.Left };
             colorButton.Click += CrosshairColorButton_Click; Grid.SetColumn(colorButton, 2); grid.Children.Add(colorButton);
-            var patternLabel = new TextBlock { Text = "استایل خط:", VerticalAlignment = VerticalAlignment.Center }; Grid.SetRow(patternLabel, 1); grid.Children.Add(patternLabel);
-            _crosshairPatternComboBox = new WpfComboBox { Width = 120, Height = 28, HorizontalAlignment = HorizontalAlignment.Left };
+            var patternLabel = new TextBlock { Text = "استایل خط:", VerticalAlignment = WpfVerticalAlignment.Center }; Grid.SetRow(patternLabel, 1); grid.Children.Add(patternLabel);
+            _crosshairPatternComboBox = new WpfComboBox { Width = 120, Height = 28, HorizontalAlignment = WpfHorizontalAlignment.Left };
             _crosshairPatternComboBox.Items.Add(new WpfComboBoxItem { Content = "یکنواخت", Tag = "Solid" });
             _crosshairPatternComboBox.Items.Add(new WpfComboBoxItem { Content = "نقطه‌چین", Tag = "Dotted" });
             _crosshairPatternComboBox.Items.Add(new WpfComboBoxItem { Content = "خط‌چین", Tag = "Dashed" });
             _crosshairPatternComboBox.Items.Add(new WpfComboBoxItem { Content = "خط‌چین متراکم", Tag = "DenselyDashed" });
             Grid.SetRow(_crosshairPatternComboBox, 1); Grid.SetColumn(_crosshairPatternComboBox, 2); grid.Children.Add(_crosshairPatternComboBox);
-            var widthLabel = new TextBlock { Text = "ضخامت خط:", VerticalAlignment = VerticalAlignment.Center }; Grid.SetRow(widthLabel, 2); grid.Children.Add(widthLabel);
-            _crosshairLineWidthComboBox = new WpfComboBox { Width = 120, Height = 28, HorizontalAlignment = HorizontalAlignment.Left };
+            var widthLabel = new TextBlock { Text = "ضخامت خط:", VerticalAlignment = WpfVerticalAlignment.Center }; Grid.SetRow(widthLabel, 2); grid.Children.Add(widthLabel);
+            _crosshairLineWidthComboBox = new WpfComboBox { Width = 120, Height = 28, HorizontalAlignment = WpfHorizontalAlignment.Left };
             foreach (double width in new[] { .5, 1.0, 1.5, 2.0, 3.0 }) _crosshairLineWidthComboBox.Items.Add(new WpfComboBoxItem { Content = width.ToString("0.##"), Tag = width.ToString(System.Globalization.CultureInfo.InvariantCulture) });
             Grid.SetRow(_crosshairLineWidthComboBox, 2); Grid.SetColumn(_crosshairLineWidthComboBox, 2); grid.Children.Add(_crosshairLineWidthComboBox);
             group.Content = grid; stack.Children.Insert(Math.Max(0, stack.Children.Count - 1), group);
