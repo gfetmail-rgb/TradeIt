@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Controls;
 using WpfComboBoxItem = System.Windows.Controls.ComboBoxItem;
 
 namespace TradeIt.Charts
@@ -15,6 +16,19 @@ namespace TradeIt.Charts
                 FrameworkElement.LoadedEvent,
                 new RoutedEventHandler(AuthoritativeDisplayState_Loaded),
                 true);
+
+            EventManager.RegisterClassHandler(
+                typeof(ChartTabView),
+                Button.ClickEvent,
+                new RoutedEventHandler(AuthoritativeDisplayState_ButtonClick),
+                true);
+
+            EventManager.RegisterClassHandler(
+                typeof(ChartTabView),
+                ComboBox.SelectionChangedEvent,
+                new SelectionChangedEventHandler(AuthoritativeDisplayState_SelectionChanged),
+                true);
+
             return true;
         }
 
@@ -26,6 +40,39 @@ namespace TradeIt.Charts
             chart.Dispatcher.BeginInvoke(
                 new Action(chart.ApplyAuthoritativeDisplayState),
                 System.Windows.Threading.DispatcherPriority.ContextIdle);
+        }
+
+        private static void AuthoritativeDisplayState_ButtonClick(object sender, RoutedEventArgs e)
+        {
+            if (sender is not ChartTabView chart)
+                return;
+
+            if (e.OriginalSource is Button button &&
+                (ReferenceEquals(button, chart.GridButton) ||
+                 ReferenceEquals(button, chart.CrosshairButton)))
+            {
+                chart.SaveAuthoritativeDisplayState();
+            }
+        }
+
+        private static void AuthoritativeDisplayState_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is not ChartTabView chart ||
+                !ReferenceEquals(e.OriginalSource, chart.ChartTypeComboBox))
+                return;
+
+            if (chart.ChartTypeComboBox.SelectedItem is WpfComboBoxItem item)
+            {
+                string type = item.Tag?.ToString() ?? string.Empty;
+                chart._chartType = type.ToLowerInvariant() switch
+                {
+                    "line" => ChartDisplayType.Line,
+                    "bar" => ChartDisplayType.Bar,
+                    _ => ChartDisplayType.Candlestick
+                };
+            }
+
+            chart.SaveAuthoritativeDisplayState();
         }
 
         private void ApplyAuthoritativeDisplayState()
@@ -83,8 +130,6 @@ namespace TradeIt.Charts
             {
                 if (plottable is ScottPlot.Plottables.Scatter scatter)
                 {
-                    // A line chart must connect only the supplied close-price
-                    // samples. Never smooth or extrapolate beyond the final sample.
                     scatter.ConnectStyle = ScottPlot.ConnectStyle.Straight;
                     scatter.Smooth = false;
                     scatter.PathStrategy = new ScottPlot.PathStrategies.Straight();
