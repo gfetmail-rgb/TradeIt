@@ -76,7 +76,7 @@
                                 <TextBlock Text="Time:" Grid.Row="2"/><ComboBox x:Name="TimeColumnCombo" Grid.Row="2" Grid.Column="1" Margin="5"/>
                                 <TextBlock Text="Open:" Grid.Row="3"/><ComboBox x:Name="OpenColumnCombo" Grid.Row="3" Grid.Column="1" Margin="5"/>
                                 <TextBlock Text="High:" Grid.Row="4"/><ComboBox x:Name="HighColumnCombo" Grid.Row="4" Grid.Column="1" Margin="5"/>
-                                <TextBlock Text="Low:" Grid.Row="5" Grid.Column="0"/><ComboBox x:Name="LowColumnCombo" Grid.Row="5" Grid.Column="1" Margin="5"/>
+                                <TextBlock Text="Low:" Grid.Row="5"/><ComboBox x:Name="LowColumnCombo" Grid.Row="5" Grid.Column="1" Margin="5"/>
                                 <TextBlock Text="Close:" Grid.Row="6"/><ComboBox x:Name="CloseColumnCombo" Grid.Row="6" Grid.Column="1" Margin="5"/>
                                 <TextBlock Text="Volume:" Grid.Row="7"/><ComboBox x:Name="VolumeColumnCombo" Grid.Row="7" Grid.Column="1" Margin="5"/>
                                 <TextBlock Text="پایانی امروز:" Grid.Row="8"/><ComboBox x:Name="TSECloseColumnCombo" Grid.Row="8" Grid.Column="1" Margin="5"/>
@@ -92,11 +92,15 @@
                     <GroupBox Grid.Column="1" Header="انتخاب سهام">
                         <Grid Margin="10">
                             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-                                <Button x:Name="SelectAllSymbolsButton" Content="انتخاب همه" Width="100" Height="30" Margin="0,0,8,0" Click="SelectAllSymbolsButton_Click"/>
-                                <Button x:Name="DeselectAllSymbolsButton" Content="عدم انتخاب همه" Width="110" Height="30" Click="DeselectAllSymbolsButton_Click"/>
-                                <TextBlock x:Name="SelectedSymbolsCountTextBlock" Margin="15,0,0,0" VerticalAlignment="Center"/>
-                            </StackPanel>
+                            <Grid Grid.Row="0" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBox x:Name="SymbolFilterTextBox" Height="30" VerticalContentAlignment="Center" Padding="8,0" ToolTip="برای فیلتر نماد تایپ کنید" TextChanged="SymbolFilterTextBox_TextChanged"/>
+                                <TextBlock Grid.Column="0" Text="جستجوی نماد..." IsHitTestVisible="False" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,0">
+                                    <Button x:Name="SelectAllSymbolsButton" Content="انتخاب همه" Width="100" Height="30" Margin="0,0,8,0" Click="SelectAllSymbolsButton_Click"/>
+                                    <Button x:Name="DeselectAllSymbolsButton" Content="عدم انتخاب همه" Width="110" Height="30" Click="DeselectAllSymbolsButton_Click"/>
+                                </StackPanel>
+                            </Grid>
                             <DataGrid x:Name="SymbolSelectionGrid" Grid.Row="1" AutoGenerateColumns="False" CanUserSortColumns="True" IsReadOnly="False" CanUserAddRows="False" HeadersVisibility="Column" EnableRowVirtualization="True" EnableColumnVirtualization="True">
                                 <DataGrid.Columns>
                                     <DataGridCheckBoxColumn Header="انتخاب" Binding="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
