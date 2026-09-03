@@ -79,7 +79,7 @@ namespace TradeIt.Charts
         {
             plot.Plot.Grid.IsVisible = _settings.GridVisible;
             plot.Plot.Grid.LineColor = ScottPlot.Color.FromHtml(_settings.GridColor);
-            plot.Plot.Grid.LinePattern = ParseLinePattern(_settings.GridPattern);
+            plot.Plot.Grid.LinePattern = ParseSettingsLinePattern(_settings.GridPattern);
             plot.Plot.Grid.MajorLineWidth = (float)Math.Max(0.01, _settings.GridLineWidth);
             plot.Plot.Grid.MinorLineWidth = (float)Math.Max(0.01, _settings.GridLineWidth);
         }
@@ -90,10 +90,10 @@ namespace TradeIt.Charts
 
             _crosshair.LineColor = ScottPlot.Color.FromHtml(_settings.CrosshairColor);
             _crosshair.LineWidth = (float)Math.Max(0.01, _settings.CrosshairLineWidth);
-            _crosshair.LinePattern = ParseLinePattern(_settings.CrosshairPattern);
+            _crosshair.LinePattern = ParseSettingsLinePattern(_settings.CrosshairPattern);
         }
 
-        private static ScottPlot.LinePattern ParseLinePattern(string? value) =>
+        private static ScottPlot.LinePattern ParseSettingsLinePattern(string? value) =>
             value?.Trim().ToLowerInvariant() switch
             {
                 "dotted" => ScottPlot.LinePattern.Dotted,
