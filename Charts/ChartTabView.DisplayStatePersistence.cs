@@ -38,6 +38,13 @@ namespace TradeIt.Charts
             _crosshairVisible = settings.CrosshairVisible;
 
             string persistedChartType = string.IsNullOrWhiteSpace(settings.ChartType) ? "Candlestick" : settings.ChartType;
+            _chartType = persistedChartType.Trim().ToLowerInvariant() switch
+            {
+                "line" => ChartDisplayType.Line,
+                "bar" => ChartDisplayType.Bar,
+                _ => ChartDisplayType.Candlestick
+            };
+
             for (int i = 0; i < ChartTypeComboBox.Items.Count; i++)
             {
                 if (ChartTypeComboBox.Items[i] is WpfComboBoxItem item &&
