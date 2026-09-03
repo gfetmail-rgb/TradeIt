@@ -137,6 +137,12 @@ namespace TradeIt.Charts
             SaveInitialView();
             _initialCandleRangeApplied = true;
             _continuousTimeAxisApplied = true;
+
+            // The continuous redraw removes all plottables except the crosshair,
+            // and ClearMainChart() hides the crosshair. Restore it only after the
+            // continuous coordinate system is fully active so both its X position
+            // and the bottom-axis labels use the same coordinate system.
+            RestoreCrosshairAndDateAxis();
             Chart.Refresh();
         }
 
@@ -243,6 +249,7 @@ namespace TradeIt.Charts
             UpdateCrosshairAxisLabel(index);
             UpdateOHLCVInfo(index);
             Chart.Refresh();
+            e.Handled = true;
         }
 
         private void TimeGaps_ChartMouseMove(object sender, WpfMouseEventArgs e)
