@@ -21,7 +21,11 @@ namespace TradeIt
 
         private static void FullScreenFix_ButtonClick(object sender, RoutedEventArgs e)
         {
-            if (sender is not MainWindow window || e.OriginalSource is not System.Windows.Controls.Button button)
+            if (e.OriginalSource is not System.Windows.Controls.Button button)
+                return;
+
+            MainWindow? window = Window.GetWindow(button) as MainWindow;
+            if (window == null)
                 return;
 
             if (ReferenceEquals(button, window.FullScreenButton))
