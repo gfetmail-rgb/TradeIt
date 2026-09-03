@@ -30,11 +30,12 @@ namespace TradeIt.Charts
             if (_displayStatePersistenceInitialized)
                 return;
 
-            // Every newly opened chart always starts with the requested defaults:
-            // Candlestick, GRID hidden, Crosshair hidden.
+            // A newly opened chart always starts with the requested defaults.
+            // The crosshair is explicitly forced ON here so a previous chart's
+            // saved state cannot hide it during initialization.
             _settings = ChartSettingsManager.Current;
             _gridVisible = false;
-            _crosshairVisible = false;
+            _crosshairVisible = true;
             _chartType = ChartDisplayType.Candlestick;
 
             if (ChartTypeComboBox.SelectedIndex != 0)
@@ -43,6 +44,11 @@ namespace TradeIt.Charts
             _displayStatePersistenceInitialized = true;
 
             ApplyStoredChartSettings();
+
+            // ApplyStoredChartSettings() reads the persisted setting. For a new
+            // chart that must not override the required initial crosshair state.
+            _crosshairVisible = true;
+            InitializeCrosshairAtInitialPosition();
             UpdateDisplayStateButtons();
             AttachDisplayStatePersistenceHandlers();
         }
@@ -109,7 +115,7 @@ namespace TradeIt.Charts
         private void ApplyCrosshairDisplayState()
         {
             if (_crosshair != null)
-                _crosshair.IsVisible = _crosshairVisible && _chartVisible && _crosshairMouseInside;
+                _crosshair.IsVisible = _crosshairVisible && _chartVisible && (_crosshairMouseInside || !_hasInitialView);
         }
     }
 }
