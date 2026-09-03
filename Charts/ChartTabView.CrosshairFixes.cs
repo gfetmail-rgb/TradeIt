@@ -23,16 +23,19 @@ namespace TradeIt.Charts
                 return string.Empty;
 
             MarketBar bar = _bars[barIndex];
-            string sourceDate = NormalizeSourceDate(bar.JalaliDate);
+            string sourceDate = bar.JalaliDate?.Trim() ?? string.Empty;
 
-            // Never manufacture a date for a source which has no date.
+            // The chart must never invent a date. If the source has no date,
+            // identify the bar by its candle number instead.
             if (string.IsNullOrWhiteSpace(sourceDate))
                 return $"کندل {barIndex + 1}";
 
-            string time = NormalizeSourceDate(bar.Time);
+            string time = bar.Time?.Trim() ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(time))
                 return $"{sourceDate} {time}";
 
+            // Preserve the source date text exactly (including its calendar
+            // and digit style) rather than converting it to another format.
             return sourceDate;
         }
 
@@ -42,18 +45,6 @@ namespace TradeIt.Charts
                 return string.Empty;
 
             return GetCrosshairXLabel(barIndex);
-        }
-
-        private static string NormalizeSourceDate(string? value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-                return string.Empty;
-
-            return value.Trim()
-                .Replace('۰', '0').Replace('۱', '1').Replace('۲', '2').Replace('۳', '3').Replace('۴', '4')
-                .Replace('۵', '5').Replace('۶', '6').Replace('۷', '7').Replace('۸', '8').Replace('۹', '9')
-                .Replace('٠', '0').Replace('١', '1').Replace('٢', '2').Replace('٣', '3').Replace('٤', '4')
-                .Replace('٥', '5').Replace('٦', '6').Replace('٧', '7').Replace('٨', '8').Replace('٩', '9');
         }
 
         private void InitializeCrosshairAtInitialPosition()
@@ -75,7 +66,7 @@ namespace TradeIt.Charts
 
         private void ConfigureBottomAxisForCrosshair()
         {
-            // DrawChart() owns the axis type and TickGenerator.
+            // DrawChart() and the final chart-fix pass own the bottom-axis tick generator.
         }
     }
 }
