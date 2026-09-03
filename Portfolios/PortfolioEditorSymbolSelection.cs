@@ -1,13 +1,11 @@
-using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Windows;
 
 namespace TradeIt.Portfolios
 {
-    public partial class PortfolioEditorWindow
+    public partial class PortfolioEditorWindow : Window
     {
         private readonly ObservableCollection<SymbolSelectionItem> _symbolSelectionItems = new();
 
@@ -63,27 +61,11 @@ namespace TradeIt.Portfolios
             SelectedSymbolsCountTextBlock.Text = $"انتخاب شده: {selected} از {_symbolSelectionItems.Count}";
         }
 
-        private sealed class SymbolSelectionItem : INotifyPropertyChanged
+        private sealed class SymbolSelectionItem
         {
-            private bool _isSelected;
-
             public string Symbol { get; set; } = "";
-
             public string FilePath { get; set; } = "";
-
-            public bool IsSelected
-            {
-                get => _isSelected;
-                set
-                {
-                    if (_isSelected == value) return;
-                    _isSelected = value;
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
-                    Application.Current?.Dispatcher.BeginInvoke(new Action(UpdateSelectedSymbolsCount));
-                }
-            }
-
-            public event PropertyChangedEventHandler? PropertyChanged;
+            public bool IsSelected { get; set; }
         }
     }
 }
