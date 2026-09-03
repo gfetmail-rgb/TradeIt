@@ -141,11 +141,24 @@ namespace TradeIt.Charts
 
         private void ConfigureDisplayDateAxis(ScottPlot.WPF.WpfPlot plot)
         {
-            bool hasSourceDate = _bars.Any(b =>
-                !string.IsNullOrWhiteSpace(b.Calendar) &&
-                !string.IsNullOrWhiteSpace(b.JalaliDate));
             try
             {
+                // When time gaps are hidden the chart uses a sequential numeric
+                // X-axis. Never let the display-fixes pass replace it with a
+                // DateTime axis based on GetBarDateTime(), because that method
+                // intentionally supplies a fallback/fake date when source dates
+                // are unavailable. The axis labels must remain candle numbers (or
+                // the source date labels supplied by ConfigureContinuousDateAxis).
+                if (!ChartSettingsManager.Current.ShowTimeGaps && _bars.Count > 0)
+                {
+                    ConfigureContinuousDateAxis();
+                    return;
+                }
+
+                bool hasSourceDate = _bars.Any(b =>
+                    !string.IsNullOrWhiteSpace(b.Calendar) &&
+                    !string.IsNullOrWhiteSpace(b.JalaliDate));
+
                 if (hasSourceDate)
                 {
                     var axis = plot.Plot.Axes.DateTimeTicksBottom();
@@ -164,13 +177,13 @@ namespace TradeIt.Charts
                     var labels = new System.Collections.Generic.List<string>();
                     for (int i = 0; i < count; i += step)
                     {
-                        positions.Add(GetBarDateTime(_bars[i], i).ToOADate());
+                        positions.Add(i);
                         labels.Add($"کندل {i + 1}");
                     }
-                    double lastPosition = GetBarDateTime(_bars[count - 1], count - 1).ToOADate();
-                    if (positions.Count == 0 || Math.Abs(positions[^1] - lastPosition) > 1e-12)
+                    int lastIndex = count - 1;
+                    if (positions.Count == 0 || Math.Abs(positions[^1] - lastIndex) > 1e-12)
                     {
-                        positions.Add(lastPosition);
+                        positions.Add(lastIndex);
                         labels.Add($"کندل {count}");
                     }
                     axis.TickGenerator = new ScottPlot.TickGenerators.NumericManual(positions.ToArray(), labels.ToArray());
