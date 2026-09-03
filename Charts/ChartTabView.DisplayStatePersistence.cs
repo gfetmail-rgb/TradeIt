@@ -4,6 +4,7 @@ using WpfButton = System.Windows.Controls.Button;
 using WpfButtonBase = System.Windows.Controls.Primitives.ButtonBase;
 using WpfComboBox = System.Windows.Controls.ComboBox;
 using WpfComboBoxItem = System.Windows.Controls.ComboBoxItem;
+using WpfSelectionChangedEventArgs = System.Windows.Controls.SelectionChangedEventArgs;
 
 namespace TradeIt.Charts
 {
@@ -66,7 +67,7 @@ namespace TradeIt.Charts
             }
         }
 
-        private static void DisplayStatePersistence_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private static void DisplayStatePersistence_SelectionChanged(object sender, WpfSelectionChangedEventArgs e)
         {
             if (sender is not ChartTabView chart || !chart._displayStatePersistenceInitialized)
                 return;
