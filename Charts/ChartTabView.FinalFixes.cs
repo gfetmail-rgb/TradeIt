@@ -35,13 +35,21 @@ namespace TradeIt.Charts
         {
             try
             {
-                // Do not mutate source/undated timestamps here. GetBarDateTime()
-                // supplies stable synthetic X coordinates without corrupting the
-                // original MarketBar data.
-                ConfigureFinalDateAxis();
-                ForceInitial365CandleRange();
+                // TimeGaps=false uses a completely different X coordinate system.
+                // Do not let this late final-fix pass overwrite its continuous axis
+                // with real OADate coordinates/range.
+                bool showTimeGaps = ChartSettingsManager.Current.ShowTimeGaps;
+                if (showTimeGaps)
+                {
+                    _continuousTimeAxisApplied = false;
+                    ConfigureFinalDateAxis();
+                    ForceInitial365CandleRange();
+                }
+                else
+                {
+                    ApplyContinuousTimeAxis();
+                }
 
-                // Respect the persisted state instead of forcing Crosshair ON.
                 _settings = ChartSettingsManager.Current;
                 _gridVisible = _settings.GridVisible;
                 _crosshairVisible = _settings.CrosshairVisible;
@@ -159,13 +167,18 @@ namespace TradeIt.Charts
         {
             try
             {
-                if (_bars.Count == 0 ||
-                    !TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates))
+                if (_bars.Count == 0)
                     return;
 
-                int index = FindNearestBarIndex(coordinates.X);
-                if (index >= 0)
-                    UpdateOHLCVInfo(index);
+                if (!_continuousTimeAxisApplied)
+                {
+                    if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates))
+                        return;
+
+                    int index = FindNearestBarIndex(coordinates.X);
+                    if (index >= 0)
+                        UpdateOHLCVInfo(index);
+                }
             }
             catch
             {
