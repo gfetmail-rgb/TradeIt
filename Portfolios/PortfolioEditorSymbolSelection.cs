@@ -29,11 +29,12 @@ namespace TradeIt.Portfolios
                 if (string.IsNullOrWhiteSpace(symbol))
                     continue;
 
+                // هیچ نمادی به‌صورت پیش‌فرض انتخاب نشود؛ انتخاب سبد باید صریحاً توسط کاربر انجام شود.
                 _symbolSelectionItems.Add(new SymbolSelectionItem
                 {
                     Symbol = symbol,
                     FilePath = file,
-                    IsSelected = true
+                    IsSelected = false
                 });
             }
 
