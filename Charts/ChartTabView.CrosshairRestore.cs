@@ -24,9 +24,6 @@ namespace TradeIt.Charts
             if (sender is not ChartTabView chart)
                 return;
 
-            // Run after the existing chart/date/time-gap initialization passes.
-            // This is deliberately a final reconciliation pass: continuous X
-            // coordinates must never be mixed with real DateTime X coordinates.
             chart.Dispatcher.BeginInvoke(
                 new Action(chart.RestoreCrosshairAndDateAxis),
                 DispatcherPriority.SystemIdle);
@@ -78,7 +75,7 @@ namespace TradeIt.Charts
             }
         }
 
-        private void CrosshairRestore_MouseMove(object sender, MouseEventArgs e)
+        private void CrosshairRestore_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             if (!_continuousTimeAxisApplied || _crosshair == null ||
                 !_crosshairVisible || !_chartVisible)
