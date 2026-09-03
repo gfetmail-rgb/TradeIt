@@ -11,6 +11,7 @@ namespace TradeIt.Charts
     public partial class ChartTabView
     {
         private static readonly bool _finalFixesRegistered = RegisterFinalFixes();
+        private bool _finalMouseLeaveHooksInstalled;
 
         private static bool RegisterFinalFixes()
         {
@@ -26,6 +27,13 @@ namespace TradeIt.Charts
         {
             if (sender is not ChartTabView chart)
                 return;
+
+            if (!chart._finalMouseLeaveHooksInstalled)
+            {
+                chart.Chart.MouseLeave += chart.FinalFixes_ChartMouseLeave;
+                chart.VolumeChart.MouseLeave += chart.FinalFixes_ChartMouseLeave;
+                chart._finalMouseLeaveHooksInstalled = true;
+            }
 
             chart.Dispatcher.BeginInvoke(
                 DispatcherPriority.Loaded,
