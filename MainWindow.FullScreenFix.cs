@@ -1,6 +1,5 @@
 using System;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Threading;
 
 namespace TradeIt
@@ -13,7 +12,7 @@ namespace TradeIt
         {
             EventManager.RegisterClassHandler(
                 typeof(MainWindow),
-                Button.ClickEvent,
+                System.Windows.Controls.Button.ClickEvent,
                 new RoutedEventHandler(FullScreenFix_ButtonClick),
                 true);
             return true;
@@ -21,7 +20,7 @@ namespace TradeIt
 
         private static void FullScreenFix_ButtonClick(object sender, RoutedEventArgs e)
         {
-            if (sender is not MainWindow window || e.OriginalSource is not Button button)
+            if (sender is not MainWindow window || e.OriginalSource is not System.Windows.Controls.Button button)
                 return;
 
             if (!ReferenceEquals(button, window.FullScreenButton))
@@ -39,8 +38,6 @@ namespace TradeIt
 
             try
             {
-                // Fullscreen is a chart-only presentation. Collapse the outer
-                // toolbar/status rows and give the chart area the whole window.
                 TopToolbar.Visibility = Visibility.Collapsed;
                 StatusBar.Visibility = Visibility.Collapsed;
                 TopToolbarRow.Height = new GridLength(0);
