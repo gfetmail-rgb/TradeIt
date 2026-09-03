@@ -28,27 +28,41 @@ namespace TradeIt
             if (window == null)
                 return;
 
-            // Run after the normal click handler and after WPF has completed
-            // its layout pass. This prevents the original layout from putting
-            // the symbol panel back over the chart.
             if (ReferenceEquals(button, window.FullScreenButton))
             {
-                window.Dispatcher.BeginInvoke(
-                    new Action(window.ApplyFullScreenChartLayout),
-                    DispatcherPriority.ContextIdle);
+                // This handler is the single owner of fullscreen entry.
+                // Stop the original instance handler from applying a second,
+                // conflicting layout pass.
+                e.Handled = true;
+                window.EnterChartFullScreen();
             }
             else if (ReferenceEquals(button, window.FullScreenExitButton))
             {
-                window.Dispatcher.BeginInvoke(
-                    new Action(window.ApplyNormalChartLayout),
-                    DispatcherPriority.ContextIdle);
+                e.Handled = true;
+                window.ExitChartFullScreen();
             }
         }
 
-        private void ApplyFullScreenChartLayout()
+        private void EnterChartFullScreen()
         {
+            if (_isFullScreen)
+                return;
+
             try
             {
+                _previousWindowState = WindowState;
+                _previousWindowStyle = WindowStyle;
+                _previousResizeMode = ResizeMode;
+
+                _previousRootRow0Height = TopToolbarRow.Height;
+                _previousRootRow1Height = MainContentRow.Height;
+                _previousRootRow2Height = StatusBarRow.Height;
+
+                _previousSymbolsColumnWidth = SymbolsPanelColumn.Width;
+                _previousChartColumnWidth = ChartPanelColumn.Width;
+
+                _isFullScreen = true;
+
                 WindowStyle = WindowStyle.None;
                 ResizeMode = ResizeMode.NoResize;
                 WindowState = WindowState.Maximized;
@@ -56,17 +70,18 @@ namespace TradeIt
                 TopToolbar.Visibility = Visibility.Collapsed;
                 StatusBar.Visibility = Visibility.Collapsed;
                 TopToolbarRow.Height = new GridLength(0);
-                StatusBarRow.Height = new GridLength(0);
                 MainContentRow.Height = new GridLength(1, GridUnitType.Star);
+                StatusBarRow.Height = new GridLength(0);
 
-                // MainContent already spans both root columns.
+                // MainContent already occupies the complete root width.
                 Grid.SetRow(MainContent, 1);
                 Grid.SetColumn(MainContent, 0);
                 Grid.SetRowSpan(MainContent, 1);
                 Grid.SetColumnSpan(MainContent, 2);
 
-                // Remove the complete left symbol area and splitter.
+                // Collapse the symbol panel and splitter completely.
                 SymbolsPanel.Visibility = Visibility.Collapsed;
+                SymbolsPanelColumn.MinWidth = 0;
                 SymbolsPanelColumn.Width = new GridLength(0);
 
                 if (MainContent.ColumnDefinitions.Count > 1)
@@ -82,8 +97,8 @@ namespace TradeIt
                     }
                 }
 
-                // The chart is column 2. With columns 0 and 1 collapsed,
-                // the star-sized chart column becomes the whole client area.
+                // ChartArea remains in column 2. Since columns 0 and 1 are
+                // zero-width, the star column becomes the entire client area.
                 Grid.SetColumn(ChartArea, 2);
                 ChartPanelColumn.MinWidth = 0;
                 ChartPanelColumn.Width = new GridLength(1, GridUnitType.Star);
@@ -102,20 +117,19 @@ namespace TradeIt
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Fullscreen chart layout fix failed: {ex}");
+                _isFullScreen = false;
+                System.Diagnostics.Debug.WriteLine($"Fullscreen chart layout failed: {ex}");
             }
         }
 
-        private void ApplyNormalChartLayout()
+        private void ExitChartFullScreen()
         {
+            if (!_isFullScreen)
+                return;
+
             try
             {
                 FullScreenExitButton.Visibility = Visibility.Collapsed;
-
-                Grid.SetRow(MainContent, 1);
-                Grid.SetColumn(MainContent, 0);
-                Grid.SetRowSpan(MainContent, 1);
-                Grid.SetColumnSpan(MainContent, 2);
 
                 SymbolsPanelColumn.MinWidth = 220;
                 SymbolsPanelColumn.Width = _previousSymbolsColumnWidth.Value > 0
@@ -126,7 +140,7 @@ namespace TradeIt
                     MainContent.ColumnDefinitions[1].Width = new GridLength(5);
 
                 ChartPanelColumn.MinWidth = 450;
-                ChartPanelColumn.Width = _previousChartColumnWidth.Value > 0
+                ChartPanelColumn.Width = _previousChartColumnWidth.Value.Value > 0
                     ? _previousChartColumnWidth
                     : new GridLength(1, GridUnitType.Star);
 
@@ -145,15 +159,17 @@ namespace TradeIt
                 ChartArea.Visibility = Visibility.Visible;
                 ChartTabs.Visibility = Visibility.Visible;
 
-                WindowStyle = _previousWindowStyle;
-                ResizeMode = _previousResizeMode;
-                WindowState = _previousWindowState;
-
                 TopToolbar.Visibility = Visibility.Visible;
                 StatusBar.Visibility = Visibility.Visible;
                 TopToolbarRow.Height = _previousRootRow0Height;
                 MainContentRow.Height = _previousRootRow1Height;
                 StatusBarRow.Height = _previousRootRow2Height;
+
+                WindowStyle = _previousWindowStyle;
+                ResizeMode = _previousResizeMode;
+                WindowState = _previousWindowState;
+
+                _isFullScreen = false;
 
                 UpdateLayout();
                 RootLayout.UpdateLayout();
