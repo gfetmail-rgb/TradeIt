@@ -57,6 +57,12 @@ namespace TradeIt.Charts
             _symbol = symbol;
             _bars = bars ?? new List<MarketBar>();
             _settings = ChartSettingsManager.Current;
+
+            // Every chart instance listens directly to the global settings event.
+            // This guarantees that an already-open chart is refreshed immediately
+            // when the user saves settings from the settings window.
+            SubscribeToSettingsChanges();
+
             ChartTypeComboBox.SelectedIndex = 0;
             ConfigureInteraction();
             Chart.PreviewMouseWheel += Chart_PreviewMouseWheel;
@@ -316,6 +322,7 @@ namespace TradeIt.Charts
             {
                 ClearMainChart();
                 _hasInitialView = false;
+                ApplySettings();
                 Chart.Refresh();
                 return;
             }
@@ -365,28 +372,18 @@ namespace TradeIt.Charts
 
         private void DrawLine()
         {
-            // Use explicit OLE Automation date doubles instead of the DateTime overload.
-            // This avoids the renderer interpreting DateTime values unexpectedly and, more
-            // importantly, guarantees that every plotted X coordinate is a finite numeric value.
             var points = new List<(double X, double Y)>();
             for (int i = 0; i < _bars.Count; i++)
             {
                 double x = GetBarDateTime(_bars[i], i).ToOADate();
                 double y = _bars[i].Close;
-                if (double.IsNaN(x) || double.IsInfinity(x) || double.IsNaN(y) || double.IsInfinity(y))
-                    continue;
+                if (double.IsNaN(x) || double.IsInfinity(x) || double.IsNaN(y) || double.IsInfinity(y)) continue;
                 points.Add((x, y));
             }
-
             if (points.Count == 0) return;
-
-            // The line chart is chronological. Sorting here also protects the Scatter
-            // renderer from malformed/non-monotonic source timestamps.
             points.Sort((a, b) => a.X.CompareTo(b.X));
-
             var xs = points.Select(p => p.X).ToArray();
             var ys = points.Select(p => p.Y).ToArray();
-
             var line = Chart.Plot.Add.Scatter(xs, ys);
             line.MarkerSize = 0;
             line.LineWidth = (float)Math.Max(0.01, _settings.LineWidth);
@@ -421,10 +418,46 @@ namespace TradeIt.Charts
         {
             Chart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(_settings.FigureBackground);
             Chart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(_settings.DataBackground);
-            Chart.Plot.Grid.MajorLineColor = ScottPlot.Color.FromHtml(_settings.GridColor);
+            Chart.Plot.Grid.LineColor = ScottPlot.Color.FromHtml(_settings.GridColor);
+            Chart.Plot.Grid.LinePattern = ParseLinePattern(_settings.GridPattern);
+            Chart.Plot.Grid.MajorLineWidth = (float)Math.Max(0.01, _settings.GridLineWidth);
+            Chart.Plot.Grid.MinorLineWidth = (float)Math.Max(0.01, _settings.GridLineWidth);
             Chart.Plot.Axes.Color(ScottPlot.Color.FromHtml(_settings.AxisColor));
             SetGridVisibility(Chart, _gridVisible);
+
+            foreach (var plottable in Chart.Plot.GetPlottables())
+            {
+                if (plottable is ScottPlot.Plottables.CandlestickPlot candles)
+                {
+                    candles.RisingLineStyle.Width = (float)Math.Max(0.01, _settings.CandleLineWidth);
+                    candles.FallingLineStyle.Width = (float)Math.Max(0.01, _settings.CandleLineWidth);
+                }
+                else if (plottable is ScottPlot.Plottables.OhlcPlot ohlc)
+                {
+                    ohlc.RisingStyle.Width = (float)Math.Max(0.01, _settings.BarLineWidth);
+                    ohlc.FallingStyle.Width = (float)Math.Max(0.01, _settings.BarLineWidth);
+                }
+                else if (plottable is ScottPlot.Plottables.Scatter scatter)
+                {
+                    scatter.LineWidth = (float)Math.Max(0.01, _settings.LineWidth);
+                }
+            }
+
+            if (_crosshair != null)
+            {
+                _crosshair.LineColor = ScottPlot.Color.FromHtml(_settings.CrosshairColor);
+                _crosshair.LineWidth = (float)Math.Max(0.01, _settings.CrosshairLineWidth);
+                _crosshair.LinePattern = ParseLinePattern(_settings.CrosshairPattern);
+            }
         }
+
+        private static ScottPlot.LinePattern ParseLinePattern(string? value) => value?.Trim().ToLowerInvariant() switch
+        {
+            "dotted" => ScottPlot.LinePattern.Dotted,
+            "dashed" => ScottPlot.LinePattern.Dashed,
+            "denselydashed" => ScottPlot.LinePattern.DenselyDashed,
+            _ => ScottPlot.LinePattern.Solid
+        };
 
         private void SaveInitialView()
         {
@@ -503,11 +536,10 @@ namespace TradeIt.Charts
 
         private void OpenSettings()
         {
-            var window = new ChartSettingsWindow(_settings) { Owner = Window.GetWindow(this) };
+            var window = new ChartSettingsWindow(ChartSettingsManager.Current) { Owner = Window.GetWindow(this) };
             if (window.ShowDialog() == true)
             {
-                _settings = ChartSettingsManager.Clone(window.Settings);
-                ChartSettingsManager.SetDefaults(_settings);
+                _settings = ChartSettingsManager.Current;
                 DrawChart();
             }
         }
@@ -521,8 +553,8 @@ namespace TradeIt.Charts
                 plottable.IsVisible = _chartVisible;
             }
             if (_crosshair != null) _crosshair.IsVisible = _chartVisible && _crosshairVisible && _crosshairMouseInside;
-            Chart.Refresh();
             HideChartButton.Content = _chartVisible ? "پنهان کردن نمودار" : "نمایش نمودار";
+            Chart.Refresh();
         }
 
         private void HideToolsButton_Click(object sender, RoutedEventArgs e)
