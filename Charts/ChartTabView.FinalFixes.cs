@@ -44,6 +44,8 @@ namespace TradeIt.Charts
         {
             try
             {
+                bool timestampChanged = false;
+
                 // Timestamps which are outside the normal Gregorian market-data
                 // range are not usable chart dates. Treat them as missing data.
                 foreach (MarketBar bar in _bars)
@@ -53,8 +55,15 @@ namespace TradeIt.Charts
                          bar.Timestamp.Value.Year > 2100))
                     {
                         bar.Timestamp = null;
+                        timestampChanged = true;
                     }
                 }
+
+                // The original draw may already have converted an invalid date
+                // into an X coordinate. Redraw after normalization so the data
+                // itself is also moved to the correct synthetic candle axis.
+                if (timestampChanged)
+                    DrawChart();
 
                 bool hasRealTimestamp = _bars.Any(HasUsableTimestamp);
 
