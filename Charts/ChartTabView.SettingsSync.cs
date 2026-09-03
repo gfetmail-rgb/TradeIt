@@ -24,14 +24,19 @@ namespace TradeIt.Charts
             {
                 _settings = ChartSettingsManager.Current;
                 _gridVisible = _settings.GridVisible;
+                _crosshairVisible = _settings.CrosshairVisible;
                 ApplyGridStyle(Chart);
                 ApplyCrosshairStyle();
+                ApplyGridDisplayState();
+                ApplyCrosshairDisplayState();
 
                 Chart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(_settings.FigureBackground);
                 Chart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(_settings.DataBackground);
                 Chart.Plot.Axes.Color(ScottPlot.Color.FromHtml(_settings.AxisColor));
 
                 ApplySeriesThickness();
+                GridButton.Content = _gridVisible ? "GRID" : "GRID خاموش";
+                CrosshairButton.Content = _crosshairVisible ? "Crosshair روشن" : "Crosshair خاموش";
                 Chart.Refresh();
             }
             catch { }
