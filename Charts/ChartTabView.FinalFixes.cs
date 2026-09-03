@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
 using TradeIt.Models;
@@ -29,20 +28,25 @@ namespace TradeIt.Charts
             chart._finalChartFixesInitialized = true;
             chart.Dispatcher.BeginInvoke(
                 new Action(chart.ApplyFinalChartFixes),
-                DispatcherPriority.ApplicationIdle);
+                DispatcherPriority.ContextIdle);
         }
 
         private void ApplyFinalChartFixes()
         {
             try
             {
+                // This is the final post-layout pass. It deliberately owns the
+                // initial range, date labels, crosshair and OHLCV header so that
+                // earlier chart initialization cannot overwrite them.
                 ConfigureFinalDateAxis();
                 ForceInitial365CandleRange();
+
                 _crosshairVisible = true;
                 InitializeCrosshairAtInitialPosition();
                 if (_crosshair != null)
                     _crosshair.IsVisible = true;
                 CrosshairButton.Content = "Crosshair روشن";
+
                 UpdateInitialOHLCVInfo();
                 Chart.Refresh();
 
@@ -61,9 +65,9 @@ namespace TradeIt.Charts
             if (count == 0)
                 return;
 
-            // The axis is numeric, but its labels always come from the source.
-            // A file without dates therefore shows candle numbers instead of
-            // exposing the internal synthetic DateTime used by the plot.
+            // X coordinates are internal plot coordinates. The visible labels
+            // must always come from the source file. Therefore an undated file
+            // can never expose the synthetic DateTime used internally.
             var axis = Chart.Plot.Axes.NumericTicksBottom();
             int tickCount = Math.Min(9, count);
             var positions = new List<double>(tickCount);
@@ -92,6 +96,7 @@ namespace TradeIt.Charts
             if (_bars.Count == 0)
                 return;
 
+            // Initial view = last 365 bars. If fewer than 365 exist, show all.
             const int visibleCount = 365;
             int firstIndex = Math.Max(0, _bars.Count - visibleCount);
             int lastIndex = _bars.Count - 1;
@@ -99,15 +104,16 @@ namespace TradeIt.Charts
             double firstX = GetBarDateTime(_bars[firstIndex], firstIndex).ToOADate();
             double lastX = GetBarDateTime(_bars[lastIndex], lastIndex).ToOADate();
 
-            if (!double.IsFinite(firstX) || !double.IsFinite(lastX) || lastX <= firstX)
+            if (!double.IsFinite(firstX) || !double.IsFinite(lastX))
                 return;
 
-            const double halfCandle = 0.5;
+            // Do not require lastX > firstX. A one-bar data set is valid.
+            double xPadding = firstX == lastX ? 0.5 : 0.5;
             var current = Chart.Plot.Axes.GetLimits();
 
             Chart.Plot.Axes.SetLimits(
-                firstX - halfCandle,
-                lastX + halfCandle,
+                firstX - xPadding,
+                lastX + xPadding,
                 current.Bottom,
                 current.Top);
 
@@ -127,8 +133,8 @@ namespace TradeIt.Charts
                     : Math.Max(Math.Abs(maxPrice) * 0.01, 1);
 
                 Chart.Plot.Axes.SetLimits(
-                    firstX - halfCandle,
-                    lastX + halfCandle,
+                    firstX - xPadding,
+                    lastX + xPadding,
                     minPrice - padding,
                     maxPrice + padding);
             }
@@ -141,7 +147,8 @@ namespace TradeIt.Charts
         {
             try
             {
-                if (_bars.Count == 0 || !TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates))
+                if (_bars.Count == 0 ||
+                    !TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates))
                     return;
 
                 int index = FindNearestBarIndex(coordinates.X);
