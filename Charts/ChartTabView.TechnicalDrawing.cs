@@ -45,13 +45,12 @@ namespace TradeIt.Charts
                 return;
 
             chart._technicalDrawingEventsAttached = true;
-            chart.DrawingSelectButton.Click += chart.DrawingSelectButton_Click;
-            chart.DrawingTrendLineButton.Click += chart.DrawingTrendLineButton_Click;
             chart.Chart.PreviewMouseLeftButtonDown += chart.TechnicalDrawing_MouseDown;
             chart.Chart.PreviewMouseMove += chart.TechnicalDrawing_MouseMove;
             chart.Chart.PreviewMouseLeftButtonUp += chart.TechnicalDrawing_MouseUp;
             chart.KeyDown += chart.TechnicalDrawing_KeyDown;
-            chart.IsKeyboardFocusWithinChanged += chart.TechnicalDrawing_FocusChanged;
+            chart.ChartTypeComboBox.SelectionChanged += chart.TechnicalDrawing_ChartTypeChanged;
+            ChartSettingsManager.SettingsChanged += chart.TechnicalDrawing_SettingsChanged;
             chart.UpdateTechnicalDrawingButtons();
         }
 
@@ -63,6 +62,7 @@ namespace TradeIt.Charts
         private void DrawingTrendLineButton_Click(object sender, RoutedEventArgs e)
         {
             SetTechnicalDrawingTool(TechnicalDrawingTool.TrendLine);
+            Chart.Focus();
         }
 
         private void SetTechnicalDrawingTool(TechnicalDrawingTool tool)
@@ -105,8 +105,8 @@ namespace TradeIt.Charts
                 return;
             }
 
-            if (Math.Abs(point.X - _trendLineStart.Value.X) < double.Epsilon &&
-                Math.Abs(point.Y - _trendLineStart.Value.Y) < double.Epsilon)
+            if (Math.Abs(point.X - _trendLineStart.Value.X) < 1e-12 &&
+                Math.Abs(point.Y - _trendLineStart.Value.Y) < 1e-12)
                 return;
 
             var drawing = new TrendLineDrawing
@@ -137,8 +137,6 @@ namespace TradeIt.Charts
             if (index < 0)
                 return;
 
-            // The preview line is intentionally not added yet. The second click
-            // commits the drawing, avoiding temporary plottables in the main plot.
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند: نقطه دوم را انتخاب کنید | قیمت: {coordinates.Y:N2}";
         }
 
@@ -162,10 +160,30 @@ namespace TradeIt.Charts
             }
         }
 
-        private void TechnicalDrawing_FocusChanged(object sender, DependencyPropertyChangedEventArgs e)
+        private void TechnicalDrawing_ChartTypeChanged(object? sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
-            if (IsKeyboardFocusWithin)
+            QueueTechnicalDrawingRender();
+        }
+
+        private void TechnicalDrawing_SettingsChanged(object? sender, EventArgs e)
+        {
+            QueueTechnicalDrawingRender();
+        }
+
+        private void QueueTechnicalDrawingRender()
+        {
+            if (!IsLoaded || _trendLines.Count == 0)
                 return;
+
+            Dispatcher.BeginInvoke(
+                new Action(() =>
+                {
+                    if (!IsLoaded || _trendLines.Count == 0)
+                        return;
+                    RenderTechnicalDrawings();
+                    Chart.Refresh();
+                }),
+                DispatcherPriority.ApplicationIdle);
         }
 
         private int FindNearestDrawingBarIndex(double x)
