@@ -35,6 +35,11 @@ namespace TradeIt.Services
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 result = GetSymbolsFromFile(dataPath, portfolio.DataSource, cancellationToken);
+                if (portfolio.UseExplicitSymbolList && portfolio.Symbols != null && portfolio.Symbols.Count > 0)
+                {
+                    var allowed = new HashSet<string>(portfolio.Symbols.Select(x => x.Symbol), StringComparer.OrdinalIgnoreCase);
+                    result = result.Where(x => allowed.Contains(x.Symbol)).ToList();
+                }
             }
             else return new List<SymbolInfo>();
 
@@ -91,8 +96,44 @@ namespace TradeIt.Services
         private List<SymbolInfo> GetSymbolsFromFile(string filePath, DataSource dataSource, CancellationToken cancellationToken)
         {
             if (!File.Exists(filePath)) return new List<SymbolInfo>();
-            try { cancellationToken.ThrowIfCancellationRequested(); SymbolInfo? info = CreateSymbolInfoFromFile(filePath, dataSource, cancellationToken); if (info == null) return new List<SymbolInfo>(); info.RowNumber = 1; return new List<SymbolInfo> { info }; }
-            catch (OperationCanceledException) { throw; } catch { return new List<SymbolInfo>(); }
+            cancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                if (!string.Equals(dataSource.SymbolSource, "FileContent", StringComparison.OrdinalIgnoreCase))
+                {
+                    SymbolInfo? info = CreateSymbolInfoFromFile(filePath, dataSource, cancellationToken);
+                    return info == null ? new List<SymbolInfo>() : new List<SymbolInfo> { info };
+                }
+
+                List<MarketBar> bars = new TseDailyParser().Parse(filePath, dataSource);
+                return bars
+                    .Where(x => !string.IsNullOrWhiteSpace(x.PersianTicker))
+                    .GroupBy(x => x.PersianTicker, StringComparer.OrdinalIgnoreCase)
+                    .Select(group =>
+                    {
+                        MarketBar last = group.OrderByDescending(x => x.Timestamp ?? DateTime.MinValue).LastOrDefault() ?? group.Last();
+                        return new SymbolInfo
+                        {
+                            Symbol = group.Key,
+                            DisplayName = group.Key,
+                            FilePath = filePath,
+                            LastTradeDate = last.Timestamp,
+                            LastTradeDateText = last.JalaliDate ?? "",
+                            LastVolume = last.Volume,
+                            LastOpen = last.Open,
+                            LastHigh = last.High,
+                            LastLow = last.Low,
+                            LastClose = last.Close,
+                            LastFinalFee = last.TSEClose,
+                            IsSelected = false
+                        };
+                    })
+                    .OrderBy(x => x.Symbol, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+            catch (OperationCanceledException) { throw; }
+            catch { return new List<SymbolInfo>(); }
         }
 
         private void EnrichSymbolInfoFromSummary(SymbolInfo symbolInfo, string filePath, DataSource dataSource, CancellationToken cancellationToken)
@@ -118,7 +159,18 @@ namespace TradeIt.Services
             if (symbolInfo == null) throw new ArgumentNullException(nameof(symbolInfo));
             if (portfolio == null) throw new ArgumentNullException(nameof(portfolio));
             if (portfolio.DataSource == null) return new List<MarketBar>();
-            return ParseFile(symbolInfo.FilePath, portfolio.DataSource);
+
+            List<MarketBar> bars = ParseFile(symbolInfo.FilePath, portfolio.DataSource);
+            if (portfolio.DataSource.SourceType == "File" &&
+                string.Equals(portfolio.DataSource.SymbolSource, "FileContent", StringComparison.OrdinalIgnoreCase))
+            {
+                bars = bars
+                    .Where(x => string.Equals(x.PersianTicker, symbolInfo.Symbol, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                for (int i = 0; i < bars.Count; i++)
+                    bars[i].Index = i;
+            }
+            return bars;
         }
 
         private List<MarketBar> ParseFile(string filePath, DataSource dataSource) => !File.Exists(filePath) ? new List<MarketBar>() : new TseDailyParser().Parse(filePath, dataSource);
