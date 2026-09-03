@@ -24,11 +24,17 @@ namespace TradeIt.Charts
             if (sender is not ChartTabView chart)
                 return;
 
-            // Run after the other chart Loaded fixes. This is the final owner of
-            // the initial X range, so another Loaded handler cannot overwrite the
-            // requested 365-candle view afterward.
+            // The chart has several other Loaded handlers which may rebuild the
+            // plottable or restore settings. Queue two ApplicationIdle passes so
+            // this is the final range operation after those handlers complete.
             chart.Dispatcher.BeginInvoke(
-                new Action(chart.ApplyInitialCandleRange),
+                new Action(() =>
+                {
+                    chart.ApplyInitialCandleRange();
+                    chart.Dispatcher.BeginInvoke(
+                        new Action(chart.ApplyInitialCandleRange),
+                        DispatcherPriority.ApplicationIdle);
+                }),
                 DispatcherPriority.ApplicationIdle);
         }
 
@@ -56,8 +62,8 @@ namespace TradeIt.Charts
                 limits.Bottom,
                 limits.Top);
 
-            // Recalculate the price range from only the candles that are now
-            // visible, then make this exact range the Reset Zoom range.
+            // Recalculate price limits only from the candles inside the new X
+            // range, then store this exact range for Reset Zoom.
             AutoFitVisiblePriceRange();
             SaveInitialView();
             _initialCandleRangeApplied = true;
