@@ -23,11 +23,11 @@ namespace TradeIt
             if (ChartTabs.SelectedItem is not TabItem tab ||
                 tab.Content is not ChartTabView sourceChart)
             {
-                WpfMessageBox.Show(
+                System.Windows.MessageBox.Show(
                     "ابتدا یک چارت را باز و انتخاب کنید.",
                     "تمام صفحه",
-                    WpfMessageBoxButton.OK,
-                    WpfMessageBoxImage.Information);
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
                 return;
             }
 
@@ -82,11 +82,11 @@ namespace TradeIt
                 _chartFullScreenView = null;
                 _isFullScreen = false;
 
-                WpfMessageBox.Show(
+                System.Windows.MessageBox.Show(
                     $"خطا در باز کردن نمودار تمام صفحه:\n{ex.Message}",
                     "تمام صفحه",
-                    WpfMessageBoxButton.OK,
-                    WpfMessageBoxImage.Error);
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
 
