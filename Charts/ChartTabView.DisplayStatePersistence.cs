@@ -1,7 +1,9 @@
 using System;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
+using WpfButton = System.Windows.Controls.Button;
+using WpfButtonBase = System.Windows.Controls.Primitives.ButtonBase;
+using WpfComboBox = System.Windows.Controls.ComboBox;
+using WpfComboBoxItem = System.Windows.Controls.ComboBoxItem;
 
 namespace TradeIt.Charts
 {
@@ -13,8 +15,8 @@ namespace TradeIt.Charts
         private static bool RegisterDisplayStatePersistence()
         {
             EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.LoadedEvent, new RoutedEventHandler(DisplayStatePersistence_Loaded));
-            EventManager.RegisterClassHandler(typeof(ChartTabView), ButtonBase.ClickEvent, new RoutedEventHandler(DisplayStatePersistence_Click), true);
-            EventManager.RegisterClassHandler(typeof(ChartTabView), ComboBox.SelectionChangedEvent, new SelectionChangedEventHandler(DisplayStatePersistence_SelectionChanged), true);
+            EventManager.RegisterClassHandler(typeof(ChartTabView), WpfButtonBase.ClickEvent, new RoutedEventHandler(DisplayStatePersistence_Click), true);
+            EventManager.RegisterClassHandler(typeof(ChartTabView), WpfComboBox.SelectionChangedEvent, new SelectionChangedEventHandler(DisplayStatePersistence_SelectionChanged), true);
             return true;
         }
 
@@ -36,7 +38,7 @@ namespace TradeIt.Charts
             string persistedChartType = string.IsNullOrWhiteSpace(settings.ChartType) ? "Candlestick" : settings.ChartType;
             for (int i = 0; i < ChartTypeComboBox.Items.Count; i++)
             {
-                if (ChartTypeComboBox.Items[i] is ComboBoxItem item &&
+                if (ChartTypeComboBox.Items[i] is WpfComboBoxItem item &&
                     string.Equals(item.Tag?.ToString(), persistedChartType, StringComparison.OrdinalIgnoreCase))
                 {
                     ChartTypeComboBox.SelectedIndex = i;
@@ -55,7 +57,7 @@ namespace TradeIt.Charts
             if (sender is not ChartTabView chart || !chart._displayStatePersistenceInitialized)
                 return;
 
-            if (e.OriginalSource is Button button &&
+            if (e.OriginalSource is WpfButton button &&
                 (button.Name == nameof(CrosshairButton) || button.Name == nameof(GridButton)))
             {
                 // Class handlers run before instance handlers, so defer the save
@@ -83,7 +85,7 @@ namespace TradeIt.Charts
                 ChartSettings settings = ChartSettingsManager.Current;
                 settings.GridVisible = _gridVisible;
                 settings.CrosshairVisible = _crosshairVisible;
-                settings.ChartType = ChartTypeComboBox.SelectedItem is ComboBoxItem item
+                settings.ChartType = ChartTypeComboBox.SelectedItem is WpfComboBoxItem item
                     ? item.Tag?.ToString() ?? _chartType.ToString()
                     : _chartType.ToString();
                 ChartSettingsManager.Save(settings);
