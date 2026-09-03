@@ -1,6 +1,8 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using WpfButton = System.Windows.Controls.Button;
+using WpfComboBox = System.Windows.Controls.ComboBox;
 using WpfComboBoxItem = System.Windows.Controls.ComboBoxItem;
 
 namespace TradeIt.Charts
@@ -19,13 +21,13 @@ namespace TradeIt.Charts
 
             EventManager.RegisterClassHandler(
                 typeof(ChartTabView),
-                Button.ClickEvent,
+                WpfButton.ClickEvent,
                 new RoutedEventHandler(AuthoritativeDisplayState_ButtonClick),
                 true);
 
             EventManager.RegisterClassHandler(
                 typeof(ChartTabView),
-                ComboBox.SelectionChangedEvent,
+                WpfComboBox.SelectionChangedEvent,
                 new SelectionChangedEventHandler(AuthoritativeDisplayState_SelectionChanged),
                 true);
 
@@ -47,7 +49,7 @@ namespace TradeIt.Charts
             if (sender is not ChartTabView chart)
                 return;
 
-            if (e.OriginalSource is Button button &&
+            if (e.OriginalSource is WpfButton button &&
                 (ReferenceEquals(button, chart.GridButton) ||
                  ReferenceEquals(button, chart.CrosshairButton)))
             {
