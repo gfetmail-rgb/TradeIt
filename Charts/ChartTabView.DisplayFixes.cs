@@ -34,7 +34,18 @@ namespace TradeIt.Charts
             try
             {
                 _settings = ChartSettingsManager.Current;
-                _gridVisible = _settings.GridVisible;
+
+                // New charts always start with these display defaults.
+                _chartType = ChartDisplayType.Candlestick;
+                _gridVisible = false;
+                _crosshairVisible = false;
+
+                if (ChartTypeComboBox.SelectedIndex != 0)
+                    ChartTypeComboBox.SelectedIndex = 0;
+
+                if (_crosshair != null)
+                    _crosshair.IsVisible = false;
+
                 ApplyDisplayCrosshairSettings();
                 ApplyDisplayCrosshairLayout();
                 ApplyDisplayGridSettings(Chart);
@@ -42,6 +53,7 @@ namespace TradeIt.Charts
                 ApplyDisplaySeriesWidths();
                 ConfigureDisplayDateAxis(Chart);
                 ApplyUnifiedPlotBorders();
+                UpdateDisplayStateButtons();
                 Chart.Refresh();
             }
             catch { }
@@ -78,7 +90,7 @@ namespace TradeIt.Charts
 
         private void ApplyDisplayGridSettings(ScottPlot.WPF.WpfPlot plot)
         {
-            plot.Plot.Grid.IsVisible = _settings.GridVisible;
+            plot.Plot.Grid.IsVisible = false;
             plot.Plot.Grid.LineColor = ScottPlot.Color.FromHtml(_settings.GridColor);
             plot.Plot.Grid.LinePattern = ParseDisplayPattern(_settings.GridPattern);
             plot.Plot.Grid.MajorLineWidth = (float)Math.Max(0.01, _settings.GridLineWidth);
