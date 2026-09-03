@@ -1,11 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-
 using TradeIt.Models;
 
 using WpfPoint = System.Windows.Point;
@@ -32,8 +31,6 @@ namespace TradeIt.Charts
         private double _initialYMax;
         private bool _chartVisible = true;
         private bool _toolsVisible = true;
-        private bool _volumeVisible = false;
-        private const double VolumeScale = 1000.0;
         private bool _gridVisible = true;
         private ChartSettings _settings;
         private ScottPlot.Plottables.Crosshair? _crosshair;
@@ -67,17 +64,10 @@ namespace TradeIt.Charts
             Chart.PreviewMouseMove += Chart_PreviewMouseMove;
             Chart.PreviewMouseLeftButtonUp += Chart_PreviewMouseLeftButtonUp;
             Chart.MouseLeave += Chart_MouseLeave;
-            VolumeChart.PreviewMouseWheel += VolumeChart_PreviewMouseWheel;
-            VolumeChart.PreviewMouseMove += VolumeChart_PreviewMouseMove;
-            VolumeChart.MouseLeave += VolumeChart_MouseLeave;
-            VolumeContainer.Visibility = Visibility.Collapsed;
-            VolumeChartRow.Height = new GridLength(0);
             InitializeCrosshair();
             DrawChart();
             SetGridVisibility(Chart, _gridVisible);
-            SetGridVisibility(VolumeChart, _gridVisible);
             CrosshairButton.Content = "Crosshair روشن";
-            VolumeButton.Content = "نمایش حجم";
             GridButton.Content = "GRID";
             HideChartButton.Content = "پنهان کردن نمودار";
             HideToolsButton.Content = "پنهان کردن ابزارهای تکنیکال";
@@ -101,12 +91,6 @@ namespace TradeIt.Charts
                 Chart.Plot.Remove(plottable);
             }
             if (_crosshair != null) _crosshair.IsVisible = false;
-        }
-
-        private void ClearVolumeChart()
-        {
-            var plottables = VolumeChart.Plot.GetPlottables().ToList();
-            foreach (var plottable in plottables) VolumeChart.Plot.Remove(plottable);
         }
 
         private void InitializeCrosshair()
@@ -168,27 +152,6 @@ namespace TradeIt.Charts
             Chart.Refresh();
         }
 
-        private void UpdateCrosshairFromVolume(WpfPoint mousePosition)
-        {
-            if (_crosshair == null) return;
-            if (!_chartVisible || !_crosshairVisible)
-            {
-                _crosshair.IsVisible = false;
-                Chart.Refresh();
-                return;
-            }
-            if (!TryGetChartCoordinates(VolumeChart, mousePosition, out ScottPlot.Coordinates volumeCoordinates)) return;
-            var mainLimits = Chart.Plot.Axes.GetLimits();
-            double x = volumeCoordinates.X;
-            if (x < mainLimits.Left || x > mainLimits.Right) return;
-            double y = (mainLimits.Bottom + mainLimits.Top) / 2.0;
-            _crosshair.Position = new ScottPlot.Coordinates(x, y);
-            _crosshair.IsVisible = true;
-            _crosshairMouseInside = true;
-            UpdateMouseInformation(new ScottPlot.Coordinates(x, y));
-            Chart.Refresh();
-        }
-
         private void UpdateMouseInformation(ScottPlot.Coordinates coordinates)
         {
             try
@@ -208,20 +171,7 @@ namespace TradeIt.Charts
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | {_bars.Count:N0} داده";
         }
 
-        private void VolumeChart_MouseLeave(object sender, WpfMouseEventArgs e)
-        {
-            _crosshairMouseInside = false;
-            if (_crosshair != null) { _crosshair.IsVisible = false; Chart.Refresh(); }
-            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | {_bars.Count:N0} داده";
-        }
-
         private void Chart_PreviewMouseWheel(object sender, WpfMouseWheelEventArgs e)
-        {
-            ZoomXAxis(e.Delta > 0 ? 0.80 : 1.25);
-            e.Handled = true;
-        }
-
-        private void VolumeChart_PreviewMouseWheel(object sender, WpfMouseWheelEventArgs e)
         {
             ZoomXAxis(e.Delta > 0 ? 0.80 : 1.25);
             e.Handled = true;
@@ -241,9 +191,7 @@ namespace TradeIt.Charts
             double right = limits.Right;
             double left = right - newRange;
             Chart.Plot.Axes.SetLimits(left, right, limits.Bottom, limits.Top);
-            SyncVolumeXAxis();
             Chart.Refresh();
-            if (_volumeVisible) VolumeChart.Refresh();
         }
 
         private void Chart_PreviewMouseLeftButtonDown(object sender, WpfMouseButtonEventArgs e)
@@ -252,7 +200,9 @@ namespace TradeIt.Charts
             AxisDragMode mode = GetAxisDragMode(p.X, p.Y);
             if (e.ClickCount == 2 && mode == AxisDragMode.PriceAxis)
             {
-                AutoFitVisiblePriceRange(); e.Handled = true; return;
+                AutoFitVisiblePriceRange();
+                e.Handled = true;
+                return;
             }
             if (mode == AxisDragMode.None) return;
             _axisDragMode = mode;
@@ -272,25 +222,22 @@ namespace TradeIt.Charts
             double deltaY = p.Y - _axisDragStartY;
             if (_axisDragMode == AxisDragMode.TimeAxis && Math.Abs(deltaX) >= 1)
             {
-                ApplyHorizontalAxisZoom(deltaX); _axisDragStartX = p.X;
+                ApplyHorizontalAxisZoom(deltaX);
+                _axisDragStartX = p.X;
             }
             else if (_axisDragMode == AxisDragMode.PriceAxis && Math.Abs(deltaY) >= 1)
             {
-                ApplyVerticalAxisZoom(deltaY); _axisDragStartY = p.Y;
+                ApplyVerticalAxisZoom(deltaY);
+                _axisDragStartY = p.Y;
             }
             e.Handled = true;
-        }
-
-        private void VolumeChart_PreviewMouseMove(object sender, WpfMouseEventArgs e)
-        {
-            WpfPoint p = e.GetPosition(VolumeChart);
-            UpdateCrosshairFromVolume(p);
         }
 
         private void Chart_PreviewMouseLeftButtonUp(object sender, WpfMouseButtonEventArgs e)
         {
             if (_axisDragMode == AxisDragMode.None) return;
-            EndAxisDrag(); e.Handled = true;
+            EndAxisDrag();
+            e.Handled = true;
         }
 
         private void EndAxisDrag()
@@ -322,12 +269,8 @@ namespace TradeIt.Charts
             double maximumRange = initialRange * 2.0;
             newRange = Math.Max(minimumRange, Math.Min(maximumRange, newRange));
             double center = (limits.Left + limits.Right) / 2.0;
-            double newXMin = center - newRange / 2.0;
-            double newXMax = center + newRange / 2.0;
-            Chart.Plot.Axes.SetLimits(newXMin, newXMax, limits.Bottom, limits.Top);
-            SyncVolumeXAxis();
+            Chart.Plot.Axes.SetLimits(center - newRange / 2.0, center + newRange / 2.0, limits.Bottom, limits.Top);
             Chart.Refresh();
-            if (_volumeVisible) VolumeChart.Refresh();
         }
 
         private void ApplyVerticalAxisZoom(double deltaY)
@@ -343,9 +286,7 @@ namespace TradeIt.Charts
             double maximumRange = initialRange * 2.0;
             newRange = Math.Max(minimumRange, Math.Min(maximumRange, newRange));
             double center = (limits.Bottom + limits.Top) / 2.0;
-            double newYMin = center - newRange / 2.0;
-            double newYMax = center + newRange / 2.0;
-            Chart.Plot.Axes.SetLimits(limits.Left, limits.Right, newYMin, newYMax);
+            Chart.Plot.Axes.SetLimits(limits.Left, limits.Right, center - newRange / 2.0, center + newRange / 2.0);
             Chart.Refresh();
         }
 
@@ -353,31 +294,19 @@ namespace TradeIt.Charts
         {
             if (!_hasInitialView || _bars.Count == 0) return;
             var limits = Chart.Plot.Axes.GetLimits();
-            double visibleXMin = limits.Left;
-            double visibleXMax = limits.Right;
             double minPrice = double.MaxValue;
             double maxPrice = double.MinValue;
             for (int i = 0; i < _bars.Count; i++)
             {
                 double x = GetBarDateTime(_bars[i], i).ToOADate();
-                if (x < visibleXMin || x > visibleXMax) continue;
+                if (x < limits.Left || x > limits.Right) continue;
                 minPrice = Math.Min(minPrice, _bars[i].Low);
                 maxPrice = Math.Max(maxPrice, _bars[i].High);
             }
             if (minPrice == double.MaxValue || maxPrice == double.MinValue) return;
             double range = maxPrice - minPrice;
-            if (range <= 0)
-            {
-                double padding = Math.Abs(maxPrice) * 0.01;
-                if (padding <= 0) padding = 1;
-                minPrice -= padding; maxPrice += padding;
-            }
-            else
-            {
-                double padding = range * 0.05;
-                minPrice -= padding; maxPrice += padding;
-            }
-            Chart.Plot.Axes.SetLimits(visibleXMin, visibleXMax, minPrice, maxPrice);
+            double padding = range > 0 ? range * 0.05 : Math.Max(Math.Abs(maxPrice) * 0.01, 1);
+            Chart.Plot.Axes.SetLimits(limits.Left, limits.Right, minPrice - padding, maxPrice + padding);
             Chart.Refresh();
         }
 
@@ -385,11 +314,16 @@ namespace TradeIt.Charts
         {
             if (_bars.Count == 0)
             {
-                ClearMainChart(); ClearVolumeChart(); _hasInitialView = false; Chart.Refresh(); VolumeChart.Refresh(); return;
+                ClearMainChart();
+                _hasInitialView = false;
+                Chart.Refresh();
+                return;
             }
+
             bool preserveCurrentView = _hasInitialView && Chart.ActualWidth > 0 && Chart.ActualHeight > 0;
             ScottPlot.AxisLimits currentLimits = default;
             if (preserveCurrentView) currentLimits = Chart.Plot.Axes.GetLimits();
+
             ClearMainChart();
             switch (_chartType)
             {
@@ -397,27 +331,21 @@ namespace TradeIt.Charts
                 case ChartDisplayType.Line: DrawLine(); break;
                 case ChartDisplayType.Bar: DrawBar(); break;
             }
+
             ApplySettings();
-            DrawVolume();
             if (!preserveCurrentView)
             {
-                Chart.Plot.Axes.AutoScale(); SaveInitialView();
+                Chart.Plot.Axes.AutoScale();
+                SaveInitialView();
             }
             else
             {
                 Chart.Plot.Axes.SetLimits(currentLimits.Left, currentLimits.Right, currentLimits.Bottom, currentLimits.Top);
             }
+
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | {_bars.Count:N0} داده";
-            if (_volumeVisible) SyncVolumeXAxis();
             if (_crosshair != null) _crosshair.IsVisible = _crosshairVisible && _chartVisible && _crosshairMouseInside;
             Chart.Refresh();
-            if (_volumeVisible) VolumeChart.Refresh();
-            if (!_volumeVisible)
-            {
-                VolumeContainer.Visibility = Visibility.Collapsed;
-                VolumeChartRow.Height = new GridLength(0);
-                MainChartRow.Height = new GridLength(1, GridUnitType.Star);
-            }
         }
 
         private void DrawCandlestick()
@@ -439,7 +367,11 @@ namespace TradeIt.Charts
         {
             var xs = new DateTime[_bars.Count];
             var ys = new double[_bars.Count];
-            for (int i = 0; i < _bars.Count; i++) { xs[i] = GetBarDateTime(_bars[i], i); ys[i] = _bars[i].Close; }
+            for (int i = 0; i < _bars.Count; i++)
+            {
+                xs[i] = GetBarDateTime(_bars[i], i);
+                ys[i] = _bars[i].Close;
+            }
             var line = Chart.Plot.Add.Scatter(xs, ys);
             line.MarkerSize = 0;
             line.LineWidth = (float)_settings.LineWidth;
@@ -463,53 +395,10 @@ namespace TradeIt.Charts
             Chart.Plot.Axes.DateTimeTicksBottom();
         }
 
-        private void DrawVolume()
-        {
-            ClearVolumeChart();
-            if (_bars.Count == 0) return;
-            var bars = new List<ScottPlot.Bar>();
-            for (int i = 0; i < _bars.Count; i++)
-            {
-                MarketBar marketBar = _bars[i];
-                DateTime time = GetBarDateTime(marketBar, i);
-                double volumeK = marketBar.Volume / VolumeScale;
-                if (double.IsNaN(volumeK) || double.IsInfinity(volumeK) || volumeK < 0) volumeK = 0;
-                bars.Add(new ScottPlot.Bar
-                {
-                    Position = time.ToOADate(),
-                    Value = volumeK,
-                    FillColor = marketBar.Close >= marketBar.Open ? ScottPlot.Color.FromHtml(_settings.RisingColor) : ScottPlot.Color.FromHtml(_settings.FallingColor),
-                    LineColor = ScottPlot.Color.FromHtml(_settings.AxisColor),
-                    LineWidth = 0
-                });
-            }
-            if (bars.Count == 0) return;
-            VolumeChart.Plot.Add.Bars(bars);
-            VolumeChart.Plot.Axes.DateTimeTicksBottom();
-            ConfigureVolumeAxes();
-            VolumeChart.Plot.Axes.Color(ScottPlot.Color.FromHtml(_settings.AxisColor));
-            VolumeChart.Plot.Grid.MajorLineColor = ScottPlot.Color.FromHtml(_settings.GridColor);
-            VolumeChart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(_settings.FigureBackground);
-            VolumeChart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(_settings.DataBackground);
-            double maxVolume = bars.Max(x => x.Value);
-            if (maxVolume <= 0) maxVolume = 1;
-            var mainLimits = Chart.Plot.Axes.GetLimits();
-            VolumeChart.Plot.Axes.SetLimits(mainLimits.Left, mainLimits.Right, 0, maxVolume * 1.10);
-            SetGridVisibility(VolumeChart, _gridVisible);
-        }
-
-        private void ConfigureVolumeAxes()
-        {
-            VolumeChart.Plot.Axes.Bottom.IsVisible = false;
-            VolumeChart.Plot.Axes.Right.IsVisible = false;
-            VolumeChart.Plot.Axes.Left.IsVisible = false;
-            VolumeChart.Plot.Axes.Left.Label.Text = "";
-            VolumeChart.Plot.Axes.Left.Label.IsVisible = false;
-        }
-
         private DateTime GetBarDateTime(MarketBar bar, int index)
         {
-            if (bar.Timestamp.HasValue && bar.Timestamp.Value > DateTime.MinValue && bar.Timestamp.Value < DateTime.MaxValue) return bar.Timestamp.Value;
+            if (bar.Timestamp.HasValue && bar.Timestamp.Value > DateTime.MinValue && bar.Timestamp.Value < DateTime.MaxValue)
+                return bar.Timestamp.Value;
             return new DateTime(2000, 1, 1).AddDays(index);
         }
 
@@ -519,12 +408,7 @@ namespace TradeIt.Charts
             Chart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(_settings.DataBackground);
             Chart.Plot.Grid.MajorLineColor = ScottPlot.Color.FromHtml(_settings.GridColor);
             Chart.Plot.Axes.Color(ScottPlot.Color.FromHtml(_settings.AxisColor));
-            VolumeChart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(_settings.FigureBackground);
-            VolumeChart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(_settings.DataBackground);
-            VolumeChart.Plot.Grid.MajorLineColor = ScottPlot.Color.FromHtml(_settings.GridColor);
-            VolumeChart.Plot.Axes.Color(ScottPlot.Color.FromHtml(_settings.AxisColor));
             SetGridVisibility(Chart, _gridVisible);
-            SetGridVisibility(VolumeChart, _gridVisible);
         }
 
         private void SaveInitialView()
@@ -537,57 +421,12 @@ namespace TradeIt.Charts
             _hasInitialView = true;
         }
 
-        private void SyncVolumeXAxis()
-        {
-            if (!_volumeVisible) return;
-            var mainLimits = Chart.Plot.Axes.GetLimits();
-            var volumeLimits = VolumeChart.Plot.Axes.GetLimits();
-            double volumeTop = volumeLimits.Top;
-            if (volumeTop <= 0)
-            {
-                double maxVolume = _bars.Count > 0 ? _bars.Max(x => x.Volume / VolumeScale) : 1;
-                volumeTop = Math.Max(1, maxVolume * 1.10);
-            }
-            VolumeChart.Plot.Axes.SetLimits(mainLimits.Left, mainLimits.Right, 0, volumeTop);
-            ConfigureVolumeAxes();
-        }
-
-        private void VolumeButton_Click(object sender, RoutedEventArgs e) => SetVolumeVisible(!_volumeVisible, true);
-
-        private void SetVolumeVisible(bool visible, bool refresh)
-        {
-            _volumeVisible = visible;
-            if (_volumeVisible)
-            {
-                MainChartRow.Height = new GridLength(3, GridUnitType.Star);
-                VolumeChartRow.Height = new GridLength(1, GridUnitType.Star);
-                VolumeContainer.Visibility = Visibility.Visible;
-                DrawVolume();
-                SyncVolumeXAxis();
-                VolumeButton.Content = "پنهان کردن حجم";
-            }
-            else
-            {
-                MainChartRow.Height = new GridLength(1, GridUnitType.Star);
-                VolumeChartRow.Height = new GridLength(0);
-                VolumeContainer.Visibility = Visibility.Collapsed;
-                VolumeButton.Content = "نمایش حجم";
-            }
-            if (refresh)
-            {
-                Chart.Refresh();
-                if (_volumeVisible) VolumeChart.Refresh();
-            }
-        }
-
         private void GridButton_Click(object sender, RoutedEventArgs e)
         {
             _gridVisible = !_gridVisible;
             SetGridVisibility(Chart, _gridVisible);
-            SetGridVisibility(VolumeChart, _gridVisible);
             GridButton.Content = _gridVisible ? "GRID" : "GRID خاموش";
             Chart.Refresh();
-            if (_volumeVisible) VolumeChart.Refresh();
         }
 
         private void SetGridVisibility(ScottPlot.WPF.WpfPlot plot, bool visible) => plot.Plot.Grid.IsVisible = visible;
@@ -608,16 +447,9 @@ namespace TradeIt.Charts
                 int height = (int)Math.Max(1, ActualHeight);
                 var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(width, height, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
                 bitmap.Render(this);
-                var dialog = new Microsoft.Win32.SaveFileDialog
-                {
-                    Title = "ذخیره تصویر نمودار",
-                    Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg",
-                    FileName = $"{_symbol.Symbol}_{DateTime.Now:yyyyMMdd_HHmmss}.png"
-                };
+                var dialog = new Microsoft.Win32.SaveFileDialog { Title = "ذخیره تصویر نمودار", Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg", FileName = $"{_symbol.Symbol}_{DateTime.Now:yyyyMMdd_HHmmss}.png" };
                 if (dialog.ShowDialog() != true) return;
-                System.Windows.Media.Imaging.BitmapEncoder encoder;
-                if (Path.GetExtension(dialog.FileName).Equals(".jpg", StringComparison.OrdinalIgnoreCase)) encoder = new System.Windows.Media.Imaging.JpegBitmapEncoder();
-                else encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                System.Windows.Media.Imaging.BitmapEncoder encoder = Path.GetExtension(dialog.FileName).Equals(".jpg", StringComparison.OrdinalIgnoreCase) ? new System.Windows.Media.Imaging.JpegBitmapEncoder() : new System.Windows.Media.Imaging.PngBitmapEncoder();
                 encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
                 using FileStream stream = new FileStream(dialog.FileName, FileMode.Create);
                 encoder.Save(stream);
@@ -691,9 +523,7 @@ namespace TradeIt.Charts
         {
             if (!_hasInitialView) return;
             Chart.Plot.Axes.SetLimits(_initialXMin, _initialXMax, _initialYMin, _initialYMax);
-            SyncVolumeXAxis();
             Chart.Refresh();
-            if (_volumeVisible) VolumeChart.Refresh();
         }
 
         private void FullViewButton_Click(object sender, RoutedEventArgs e)
@@ -701,9 +531,7 @@ namespace TradeIt.Charts
             if (_bars.Count == 0) return;
             Chart.Plot.Axes.AutoScale();
             SaveInitialView();
-            SyncVolumeXAxis();
             Chart.Refresh();
-            if (_volumeVisible) VolumeChart.Refresh();
         }
     }
 
