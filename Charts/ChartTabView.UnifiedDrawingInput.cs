@@ -18,6 +18,7 @@ namespace TradeIt.Charts
             public ScottPlot.Coordinates B { get; set; }
             public ScottPlot.Coordinates C { get; set; }
             public List<ScottPlot.Plottables.Scatter> Lines { get; } = new();
+            public List<ScottPlot.Plottables.Text> Labels { get; } = new();
         }
 
         private readonly List<FibonacciDrawing> _fibonacciDrawings = new();
@@ -221,7 +222,6 @@ namespace TradeIt.Charts
             if (_unifiedFibP1 == null || !TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
             RemoveUnifiedFibPreview();
             point = SnapUnifiedFibPoint(point);
-            var limits = Chart.Plot.Axes.GetLimits();
 
             if ((int)_activeDrawingTool == UnifiedFibRetracement)
             {
@@ -284,18 +284,29 @@ namespace TradeIt.Charts
                 ? new[] { 0.0, 0.382, 0.618, 1.0, 1.618, 2.618 }
                 : new[] { 0.0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0 };
 
-            // Fibonacci horizontal levels are finite: their X-span is the distance
-            // between the first and last defining clicks, not the whole chart.
             double endX = drawing.IsExtension ? drawing.C.X : drawing.B.X;
             double left = Math.Min(drawing.A.X, endX);
             double right = Math.Max(drawing.A.X, endX);
 
-            foreach (double ratio in ratios)
+            for (int i = 0; i < ratios.Length; i++)
             {
+                double ratio = ratios[i];
                 double y = drawing.IsExtension
                     ? drawing.C.Y + ab * ratio
                     : drawing.B.Y - ab * ratio;
+
                 drawing.Lines.Add(AddScatterLine(left, y, right, y));
+
+                string percentText = $"{ratio * 100:0.0}%";
+                var label = Chart.Plot.Add.Text(percentText, right, y);
+                label.LabelFontSize = 11;
+                label.LabelFontColor = ScottPlot.Color.FromHtml(_settings.LineColor);
+                label.LabelBackgroundColor = ScottPlot.Colors.White.WithAlpha(0.85);
+                label.LabelBorderColor = ScottPlot.Color.FromHtml(_settings.LineColor);
+                label.LabelBorderWidth = 1;
+                label.LabelPadding = 3;
+                label.LabelAlignment = ScottPlot.Alignment.MiddleLeft;
+                drawing.Labels.Add(label);
             }
         }
 
@@ -308,7 +319,9 @@ namespace TradeIt.Charts
         private void RemoveFibonacciLines(FibonacciDrawing drawing)
         {
             foreach (var line in drawing.Lines) Chart.Plot.Remove(line);
+            foreach (var label in drawing.Labels) Chart.Plot.Remove(label);
             drawing.Lines.Clear();
+            drawing.Labels.Clear();
         }
 
         private void ResetUnifiedFibPoints()
