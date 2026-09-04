@@ -8,7 +8,6 @@ using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
 using WpfKeyEventHandler = System.Windows.Input.KeyEventHandler;
 using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
-using WpfMouseEventHandler = System.Windows.Input.MouseEventHandler;
 using WpfMouseButtonEventHandler = System.Windows.Input.MouseButtonEventHandler;
 using WpfPoint = System.Windows.Point;
 
@@ -17,11 +16,9 @@ namespace TradeIt.Charts
     public partial class ChartTabView
     {
         private enum TechnicalDrawingTool { Select, TrendLine, HorizontalLine, VerticalLine, Ray }
-
         private sealed class TrendLineDrawing { public double X1 { get; set; } public double Y1 { get; set; } public double X2 { get; set; } public double Y2 { get; set; } public ScottPlot.Plottables.Scatter? PlotLine { get; set; } }
         private sealed class HorizontalLineDrawing { public double Y { get; set; } public ScottPlot.Plottables.HorizontalLine? PlotLine { get; set; } }
         private sealed class VerticalLineDrawing { public double X { get; set; } public ScottPlot.Plottables.VerticalLine? PlotLine { get; set; } }
-        // Ray is intentionally horizontal. X2/Y2 are retained for compatibility with the existing selection model.
         private sealed class RayDrawing { public double X1 { get; set; } public double Y1 { get; set; } public double X2 { get; set; } public double Y2 { get; set; } public ScottPlot.Plottables.Scatter? PlotLine { get; set; } }
 
         private readonly List<TrendLineDrawing> _trendLines = new();
@@ -53,7 +50,6 @@ namespace TradeIt.Charts
         private void DrawingHorizontalLineButton_Click(object sender, RoutedEventArgs e) { _textDrawingActive = false; SetTechnicalDrawingTool(TechnicalDrawingTool.HorizontalLine); FocusChartForDrawing(); }
         private void DrawingVerticalLineButton_Click(object sender, RoutedEventArgs e) { _textDrawingActive = false; SetTechnicalDrawingTool(TechnicalDrawingTool.VerticalLine); FocusChartForDrawing(); }
         private void DrawingRayButton_Click(object sender, RoutedEventArgs e) { _textDrawingActive = false; SetTechnicalDrawingTool(TechnicalDrawingTool.Ray); FocusChartForDrawing(); }
-
         private void FocusChartForDrawing() { Chart.Focusable = true; Chart.Focus(); Focus(); }
 
         private void SetTechnicalDrawingTool(TechnicalDrawingTool tool)
@@ -81,9 +77,10 @@ namespace TradeIt.Charts
         private void TechnicalDrawing_MouseDown(object sender, WpfMouseButtonEventArgs e)
         {
             if (e.ChangedButton != MouseButton.Left || _textDrawingActive) return;
+            if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates)) return;
+
             if (_activeDrawingTool == TechnicalDrawingTool.HorizontalLine)
             {
-                if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates)) return;
                 var drawing = new HorizontalLineDrawing { Y = coordinates.Y };
                 _horizontalLines.Add(drawing); AddHorizontalLineToChart(drawing);
                 ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط افقی رسم شد | قیمت: {coordinates.Y:N2}";
@@ -91,7 +88,6 @@ namespace TradeIt.Charts
             }
             if (_activeDrawingTool == TechnicalDrawingTool.VerticalLine)
             {
-                if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates)) return;
                 int index = FindNearestDrawingBarIndex(coordinates.X); if (index < 0) return;
                 var drawing = new VerticalLineDrawing { X = GetDrawingX(index) };
                 _verticalLines.Add(drawing); AddVerticalLineToChart(drawing);
@@ -100,7 +96,6 @@ namespace TradeIt.Charts
             }
             if (_activeDrawingTool == TechnicalDrawingTool.Ray)
             {
-                if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates)) return;
                 int index = FindNearestDrawingBarIndex(coordinates.X); if (index < 0) return;
                 double x = GetDrawingX(index);
                 var ray = new RayDrawing { X1 = x, Y1 = coordinates.Y, X2 = x + 1.0, Y2 = coordinates.Y };
@@ -109,9 +104,10 @@ namespace TradeIt.Charts
                 Chart.Refresh(); e.Handled = true; return;
             }
             if (_activeDrawingTool != TechnicalDrawingTool.TrendLine) return;
-            if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates drawingCoordinates)) return;
-            int drawingIndex = FindNearestDrawingBarIndex(drawingCoordinates.X); if (drawingIndex < 0) return;
-            var point = new ScottPlot.Coordinates(GetDrawingX(drawingIndex), drawingCoordinates.Y);
+
+            // Trend-line points use the actual chart coordinates. This avoids rejecting
+            // a valid click when bar-index snapping cannot resolve the current X coordinate.
+            var point = coordinates;
             if (_trendLineStart == null)
             {
                 _trendLineStart = point;
@@ -129,8 +125,7 @@ namespace TradeIt.Charts
         {
             if (_textDrawingActive || _trendLineStart == null || _activeDrawingTool != TechnicalDrawingTool.TrendLine) return;
             if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates)) return;
-            int index = FindNearestDrawingBarIndex(coordinates.X); if (index < 0) return;
-            RenderTrendLinePreview(new ScottPlot.Coordinates(GetDrawingX(index), coordinates.Y));
+            RenderTrendLinePreview(coordinates);
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند: نقطه دوم را انتخاب کنید | قیمت: {coordinates.Y:N2}";
         }
 
