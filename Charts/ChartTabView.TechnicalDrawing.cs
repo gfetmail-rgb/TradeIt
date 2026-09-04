@@ -38,12 +38,10 @@ namespace TradeIt.Charts
             Chart.PreviewMouseLeftButtonDown += TechnicalDrawing_MouseDown;
             Chart.PreviewMouseMove += TechnicalDrawing_MouseMove;
 
-            // Register at the UserControl root with handledEventsToo so ScottPlot cannot
-            // swallow cancellation before this handler sees it.
-            AddHandler(Mouse.PreviewMouseRightButtonDownEvent,
-                new MouseButtonEventHandler(TechnicalDrawing_RightMouseDown), true);
+            AddHandler(UIElement.PreviewMouseRightButtonDownEvent,
+                new System.Windows.Input.MouseButtonEventHandler(TechnicalDrawing_RightMouseDown), true);
             AddHandler(Keyboard.PreviewKeyDownEvent,
-                new KeyEventHandler(TechnicalDrawing_KeyDown), true);
+                new System.Windows.Input.KeyEventHandler(TechnicalDrawing_KeyDown), true);
 
             Focusable = true;
             ChartTypeComboBox.SelectionChanged += TechnicalDrawing_ChartTypeChanged;
@@ -350,27 +348,10 @@ namespace TradeIt.Charts
 
         private void RenderTechnicalDrawings()
         {
-            RemoveTrendLinePreview();
-            foreach (TrendLineDrawing drawing in _trendLines)
-            {
-                if (drawing.PlotLine != null) Chart.Plot.Remove(drawing.PlotLine);
-                AddTrendLineToChart(drawing);
-            }
-            foreach (HorizontalLineDrawing drawing in _horizontalLines)
-            {
-                if (drawing.PlotLine != null) Chart.Plot.Remove(drawing.PlotLine);
-                AddHorizontalLineToChart(drawing);
-            }
-            foreach (VerticalLineDrawing drawing in _verticalLines)
-            {
-                if (drawing.PlotLine != null) Chart.Plot.Remove(drawing.PlotLine);
-                AddVerticalLineToChart(drawing);
-            }
-            foreach (RayDrawing drawing in _rays)
-            {
-                if (drawing.PlotLine != null) Chart.Plot.Remove(drawing.PlotLine);
-                AddRayToChart(drawing);
-            }
+            foreach (var drawing in _trendLines) AddTrendLineToChart(drawing);
+            foreach (var drawing in _horizontalLines) AddHorizontalLineToChart(drawing);
+            foreach (var drawing in _verticalLines) AddVerticalLineToChart(drawing);
+            foreach (var drawing in _rays) AddRayToChart(drawing);
         }
     }
 }
