@@ -78,7 +78,7 @@ namespace TradeIt
 
             _nameFilterComboBox = new WpfComboBox { Width = 115, Height = 27, Margin = new Thickness(0, 1, 4, 0) };
             AddComboItems(_nameFilterComboBox, (SymbolNameFilter.All, "همه"), (SymbolNameFilter.Contains, "دارای عبارت"), (SymbolNameFilter.StartsWith, "شروع با"), (SymbolNameFilter.EndsWith, "ختم با"), (SymbolNameFilter.Middle, "عبارت در وسط"), (SymbolNameFilter.DoesNotContain, "فاقد عبارت"), (SymbolNameFilter.ContainsAny, "شامل یکی از عبارات"), (SymbolNameFilter.DoesNotContainAny, "شامل هیچ‌یک از عبارات"));
-            _nameFilterTextBox = new WpfTextBox { Height = 27, MinWidth = 70, Padding = new Thickness(5, 1, 5, 1) };
+            _nameFilterTextBox = new WpfTextBox { Width = 300, Height = 27, Padding = new Thickness(5, 1, 5, 1) };
             _nameFilterTextBox.TextChanged += SymbolFilterInputChanged; _nameFilterComboBox.SelectionChanged += SymbolFilterInputChanged;
             stack.Children.Add(LabeledControl("نام سهم:", Inline(_nameFilterComboBox, _nameFilterTextBox)));
 
@@ -88,7 +88,7 @@ namespace TradeIt
             stack.Children.Add(LabeledControl("فاقد معامله در X روز گذشته:", Inline(_daysWithoutTradeCheckBox, _daysWithoutTradeTextBox)));
 
             _daysWithTradeCheckBox = new WpfCheckBox { Content = "فعال", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) };
-            _daysWithTradeTextBox = new WpfTextBox { Width = 55, Height = 27, Text = "5", HorizontalContentAlignment = WpfHorizontalAlignment.Center };
+            _daysWithTradeTextBox = new WpfTextBox { Width = 55, Height = 27, Text = "5", HorizontalContentContentAlignment = WpfHorizontalAlignment.Center };
             _daysWithTradeCheckBox.Checked += SymbolFilterInputChanged; _daysWithTradeCheckBox.Unchecked += SymbolFilterInputChanged; _daysWithTradeTextBox.TextChanged += SymbolFilterInputChanged;
             stack.Children.Add(LabeledControl("دارای معامله در X روز گذشته:", Inline(_daysWithTradeCheckBox, _daysWithTradeTextBox)));
 
