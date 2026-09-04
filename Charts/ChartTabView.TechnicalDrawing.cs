@@ -157,9 +157,7 @@ namespace TradeIt.Charts
 
             if (_activeDrawingTool == TechnicalDrawingTool.TrendLine)
             {
-                RemoveTrendLinePreview();
-                _trendLineStart = null;
-                Chart.ReleaseMouseCapture();
+                SetTechnicalDrawingTool(TechnicalDrawingTool.Select);
                 _suppressContextMenuAfterCancel = true;
                 ChartInfoTextBlock.Text = $"{_symbol.Symbol} | رسم ابزار لغو شد";
                 Chart.Refresh();
