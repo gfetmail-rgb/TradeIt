@@ -7,8 +7,6 @@ namespace TradeIt.Charts
 {
     public partial class ChartTabView
     {
-        // 11 is intentionally outside the existing drawing-tool values.
-        // The ruler is a transient measurement tool and has no persisted settings.
         private const int MeasurementToolValue = 11;
 
         private bool _measurementEventsAttached;
@@ -40,7 +38,6 @@ namespace TradeIt.Charts
 
             Chart.PreviewMouseLeftButtonDown += MeasurementTool_MouseDown;
             Chart.PreviewMouseMove += MeasurementTool_MouseMove;
-            Chart.PreviewMouseRightButtonDown += MeasurementTool_RightMouseDown;
             DrawingSelectButton.Click += MeasurementTool_DeactivateFromOtherTool;
             DrawingTrendLineButton.Click += MeasurementTool_DeactivateFromOtherTool;
             DrawingArrowButton.Click += MeasurementTool_DeactivateFromOtherTool;
@@ -60,7 +57,6 @@ namespace TradeIt.Charts
 
         private void MeasurementToolButton_Click(object sender, RoutedEventArgs e)
         {
-            // Starting a new measurement replaces the previous temporary measurement.
             RemoveMeasurementPreview();
             RemoveMeasurementPlotOnly();
             RemoveMeasurementLabel();
@@ -105,7 +101,6 @@ namespace TradeIt.Charts
             if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates point))
                 return;
 
-            // First click: anchor point.
             if (_measurementStart == null)
             {
                 _measurementStart = SnapMeasurementX(point);
@@ -116,7 +111,6 @@ namespace TradeIt.Charts
                 return;
             }
 
-            // Second click: finish the measurement, keeping it visible.
             if (_measurementLine == null)
             {
                 _measurementLastPoint = SnapMeasurementX(point);
@@ -128,7 +122,7 @@ namespace TradeIt.Charts
                 return;
             }
 
-            // Third click: switch the tool off. The completed measurement remains visible.
+            // Third click: switch the tool off while keeping the completed result visible.
             DeactivateMeasurementTool(true);
             e.Handled = true;
         }
@@ -143,7 +137,6 @@ namespace TradeIt.Charts
             point = SnapMeasurementX(point);
             _measurementLastPoint = point;
 
-            // Before the second click, show a fine dotted preview from the anchor to the mouse.
             if (_measurementLine == null)
             {
                 RemoveMeasurementPreview();
@@ -158,14 +151,6 @@ namespace TradeIt.Charts
                 UpdateMeasurementLabelPreview(_measurementStart.Value, point);
                 Chart.Refresh();
             }
-        }
-
-        private void MeasurementTool_RightMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if ((int)_activeDrawingTool != MeasurementToolValue || e.ChangedButton != MouseButton.Right)
-                return;
-            DeactivateMeasurementTool(true);
-            e.Handled = true;
         }
 
         private ScottPlot.Coordinates SnapMeasurementX(ScottPlot.Coordinates point)
@@ -211,6 +196,7 @@ namespace TradeIt.Charts
             _measurementLabel.LabelBorderWidth = 1;
             _measurementLabel.LabelPadding = 4;
             _measurementLabel.LabelAlignment = ScottPlot.Alignment.LowerCenter;
+            _measurementLabel.IsVisible = _allDrawingsVisible;
         }
 
         private void RenderMeasurementLine()
@@ -228,6 +214,7 @@ namespace TradeIt.Charts
             _measurementLine.LineColor = ScottPlot.Color.FromHtml("#505050");
             _measurementLine.LineWidth = 1.5f;
             _measurementLine.LinePattern = ScottPlot.LinePattern.Solid;
+            _measurementLine.IsVisible = _allDrawingsVisible;
             UpdateMeasurementLabelPreview(a, b);
         }
 
@@ -256,8 +243,6 @@ namespace TradeIt.Charts
         {
             RemoveMeasurementPreview();
 
-            // Keep a completed measurement after the third click so the result remains
-            // visible. An unfinished first point is discarded when another tool is chosen.
             if (_measurementLine == null)
             {
                 _measurementStart = null;
