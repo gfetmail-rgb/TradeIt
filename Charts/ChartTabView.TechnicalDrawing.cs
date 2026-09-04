@@ -8,6 +8,7 @@ using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
 using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 using WpfMouseButtonEventHandler = System.Windows.Input.MouseButtonEventHandler;
 using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
+using WpfMouseEventHandler = System.Windows.Input.MouseEventHandler;
 using WpfPoint = System.Windows.Point;
 
 namespace TradeIt.Charts
@@ -61,8 +62,17 @@ namespace TradeIt.Charts
                 return;
 
             chart._technicalDrawingEventsAttached = true;
-            chart.Chart.PreviewMouseLeftButtonDown += chart.TechnicalDrawing_MouseDown;
-            chart.Chart.PreviewMouseMove += chart.TechnicalDrawing_MouseMove;
+
+            // Use AddHandler(..., true) so drawing still receives the mouse event
+            // even if ScottPlot or another chart handler marks it handled.
+            chart.Chart.AddHandler(
+                UIElement.PreviewMouseLeftButtonDownEvent,
+                new WpfMouseButtonEventHandler(chart.TechnicalDrawing_MouseDown),
+                true);
+            chart.Chart.AddHandler(
+                UIElement.PreviewMouseMoveEvent,
+                new WpfMouseEventHandler(chart.TechnicalDrawing_MouseMove),
+                true);
             chart.Chart.AddHandler(
                 UIElement.PreviewMouseRightButtonDownEvent,
                 new WpfMouseButtonEventHandler(chart.TechnicalDrawing_RightMouseDown),
