@@ -33,7 +33,7 @@ namespace TradeIt.Charts
             AttachDrawingToolSettingsMenu(DrawingTextButton, "Text", "متن");
         }
 
-        private void AttachDrawingToolSettingsMenu(Button button, string key, string title)
+        private void AttachDrawingToolSettingsMenu(System.Windows.Controls.Button button, string key, string title)
         {
             button.Click += (_, _) => ActivateDrawingToolStyle(key);
             button.AddHandler(UIElement.PreviewMouseRightButtonDownEvent, new MouseButtonEventHandler((_, e) => { ShowDrawingToolSettings(key, title); e.Handled = true; }), true);
@@ -78,24 +78,24 @@ namespace TradeIt.Charts
             form.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             AddSettingRow(form, 0, "رنگ (HEX)", colorBox); AddSettingRow(form, 1, "ضخامت", widthBox); AddSettingRow(form, 2, "استایل", styleBox);
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
-            var defaultButton = new Button { Content = "پیش‌فرض", Width = 85, Height = 30, Margin = new Thickness(4) };
-            var cancelButton = new Button { Content = "لغو", Width = 75, Height = 30, Margin = new Thickness(4), IsCancel = true };
-            var applyButton = new Button { Content = "اعمال", Width = 75, Height = 30, Margin = new Thickness(4), IsDefault = true };
+            var defaultButton = new System.Windows.Controls.Button { Content = "پیش‌فرض", Width = 85, Height = 30, Margin = new Thickness(4) };
+            var cancelButton = new System.Windows.Controls.Button { Content = "لغو", Width = 75, Height = 30, Margin = new Thickness(4), IsCancel = true };
+            var applyButton = new System.Windows.Controls.Button { Content = "اعمال", Width = 75, Height = 30, Margin = new Thickness(4), IsDefault = true };
             buttons.Children.Add(defaultButton); buttons.Children.Add(cancelButton); buttons.Children.Add(applyButton); Grid.SetRow(buttons, 4); form.Children.Add(buttons); window.Content = form;
             defaultButton.Click += (_, _) => { colorBox.Text = defaults.Color; widthBox.Text = defaults.LineWidth.ToString("0.##", CultureInfo.InvariantCulture); styleBox.SelectedItem = defaults.LineStyle; };
             applyButton.Click += (_, _) =>
             {
                 string color = colorBox.Text.Trim();
-                if (!color.StartsWith("#") || (color.Length != 7 && color.Length != 9)) { MessageBox.Show(window, "رنگ باید به صورت HEX مانند #1976D2 باشد.", "تنظیمات ابزار", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
-                if (!double.TryParse(widthBox.Text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double width) || width < 0.5 || width > 10) { MessageBox.Show(window, "ضخامت باید عددی بین 0.5 و 10 باشد.", "تنظیمات ابزار", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
-                try { ScottPlot.Color.FromHtml(color); } catch { MessageBox.Show(window, "کد رنگ معتبر نیست.", "تنظیمات ابزار", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+                if (!color.StartsWith("#") || (color.Length != 7 && color.Length != 9)) { System.Windows.MessageBox.Show(window, "رنگ باید به صورت HEX مانند #1976D2 باشد.", "تنظیمات ابزار", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+                if (!double.TryParse(widthBox.Text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double width) || width < 0.5 || width > 10) { System.Windows.MessageBox.Show(window, "ضخامت باید عددی بین 0.5 و 10 باشد.", "تنظیمات ابزار", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+                try { ScottPlot.Color.FromHtml(color); } catch { System.Windows.MessageBox.Show(window, "کد رنگ معتبر نیست.", "تنظیمات ابزار", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
                 DrawingToolStyle saved = GetDrawingToolStyle(key); saved.Color = color; saved.LineWidth = width; saved.LineStyle = styleBox.SelectedItem?.ToString() ?? "Solid";
                 ChartSettingsManager.SaveDrawingToolStyles(_settings); ActivateDrawingToolStyle(key); ApplyDrawingToolStyle(key); window.DialogResult = true;
             };
             window.ShowDialog();
         }
 
-        private static void AddSettingRow(Grid grid, int row, string label, Control control)
+        private static void AddSettingRow(Grid grid, int row, string label, System.Windows.Controls.Control control)
         {
             var panel = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 2, 0, 2) }; var text = new TextBlock { Text = label, Width = 95, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4) }; DockPanel.SetDock(text, Dock.Left); panel.Children.Add(text); panel.Children.Add(control); Grid.SetRow(panel, row); grid.Children.Add(panel);
         }
