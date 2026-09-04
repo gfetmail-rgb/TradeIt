@@ -31,9 +31,6 @@ namespace TradeIt.Charts
 
         private void DisableLegacyDrawingSelectionHandlers()
         {
-            // There must be exactly one owner of Select-mode mouse input.
-            // DrawingSelection.cs is the legacy implementation; leaving its
-            // handlers attached causes competing MouseDown/Move/Up processing.
             Chart.PreviewMouseLeftButtonDown -= DrawingSelection_MouseDown;
             Chart.PreviewMouseMove -= DrawingSelection_MouseMove;
             Chart.PreviewMouseLeftButtonUp -= DrawingSelection_MouseUp;
@@ -101,7 +98,7 @@ namespace TradeIt.Charts
                 return;
             }
 
-            if (TrySelectDrawingAccurate(chartPoint))
+            if (TrySelectDrawing(chartPoint))
             {
                 _selectionDragging = false;
                 _selectionMouseMoved = false;
@@ -145,9 +142,6 @@ namespace TradeIt.Charts
             if (MoveSelectedHandle(handleKind, drawingPoint))
             {
                 _selectionDragStart = drawingPoint;
-                // RenderDrawingSelectionOverlay() rebuilds the handle markers and
-                // clears the transient active-handle field. Restore it for the next
-                // MouseMove so a drag does not stop after the first few pixels.
                 _activeDrawingHandle = handleKind;
                 e.Handled = true;
                 Chart.Refresh();
