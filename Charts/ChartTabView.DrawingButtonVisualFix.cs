@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 
@@ -30,17 +31,20 @@ namespace TradeIt.Charts
 
             _drawingButtonVisualFixAttached = true;
 
-            DrawingSelectButton.Click += DrawingButtonVisualFix_Click;
-            DrawingTrendLineButton.Click += DrawingButtonVisualFix_Click;
-            DrawingHorizontalLineButton.Click += DrawingButtonVisualFix_Click;
-            DrawingVerticalLineButton.Click += DrawingButtonVisualFix_Click;
-            DrawingRayButton.Click += DrawingButtonVisualFix_Click;
-            DrawingParallelChannelButton.Click += DrawingButtonVisualFix_Click;
-            DrawingRectangleButton.Click += DrawingButtonVisualFix_Click;
-            DrawingPitchforkButton.Click += DrawingButtonVisualFix_Click;
-            DrawingFibRetracementButton.Click += DrawingButtonVisualFix_Click;
-            DrawingFibExtensionButton.Click += DrawingButtonVisualFix_Click;
-            DrawingTextButton.Click += DrawingButtonVisualFix_Click;
+            // Some drawing buttons handle Click themselves. Register directly on each
+            // Button with handledEventsToo=true so the visual synchronizer always runs,
+            // regardless of which XAML/code-behind handler consumed the Click event.
+            AttachDrawingButton(DrawingSelectButton);
+            AttachDrawingButton(DrawingTrendLineButton);
+            AttachDrawingButton(DrawingHorizontalLineButton);
+            AttachDrawingButton(DrawingVerticalLineButton);
+            AttachDrawingButton(DrawingRayButton);
+            AttachDrawingButton(DrawingParallelChannelButton);
+            AttachDrawingButton(DrawingRectangleButton);
+            AttachDrawingButton(DrawingPitchforkButton);
+            AttachDrawingButton(DrawingFibRetracementButton);
+            AttachDrawingButton(DrawingFibExtensionButton);
+            AttachDrawingButton(DrawingTextButton);
 
             AddHandler(Keyboard.PreviewKeyDownEvent,
                 new System.Windows.Input.KeyEventHandler(DrawingButtonVisualFix_KeyDown), true);
@@ -50,8 +54,18 @@ namespace TradeIt.Charts
             Dispatcher.BeginInvoke(new Action(SetAllDrawingButtonVisuals), DispatcherPriority.ContextIdle);
         }
 
+        private void AttachDrawingButton(Button button)
+        {
+            button.AddHandler(
+                Button.ClickEvent,
+                new RoutedEventHandler(DrawingButtonVisualFix_Click),
+                true);
+        }
+
         private void DrawingButtonVisualFix_Click(object sender, RoutedEventArgs e)
         {
+            // ContextIdle is deliberate: it lets the actual drawing-tool Click handler
+            // finish changing _activeDrawingTool/_textDrawingActive first.
             Dispatcher.BeginInvoke(new Action(ApplyDrawingButtonVisualFix), DispatcherPriority.ContextIdle);
         }
 
@@ -59,6 +73,8 @@ namespace TradeIt.Charts
         {
             SetAllDrawingButtonVisuals();
 
+            // Ray uses a separate state flag and therefore needs explicit visual
+            // activation even though _activeDrawingTool remains Select.
             if (_horizontalRayFixActive)
             {
                 RestoreAllDrawingButtonVisuals();
