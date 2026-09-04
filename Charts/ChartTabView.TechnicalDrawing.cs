@@ -16,7 +16,8 @@ namespace TradeIt.Charts
         private enum TechnicalDrawingTool
         {
             Select,
-            TrendLine
+            TrendLine,
+            HorizontalLine
         }
 
         private sealed class TrendLineDrawing
@@ -28,7 +29,14 @@ namespace TradeIt.Charts
             public ScottPlot.Plottables.Scatter? PlotLine { get; set; }
         }
 
+        private sealed class HorizontalLineDrawing
+        {
+            public double Y { get; init; }
+            public ScottPlot.Plottables.HorizontalLine? PlotLine { get; set; }
+        }
+
         private readonly List<TrendLineDrawing> _trendLines = new();
+        private readonly List<HorizontalLineDrawing> _horizontalLines = new();
         private TechnicalDrawingTool _activeDrawingTool = TechnicalDrawingTool.Select;
         private ScottPlot.Coordinates? _trendLineStart;
         private ScottPlot.Plottables.Scatter? _trendLinePreview;
@@ -75,6 +83,12 @@ namespace TradeIt.Charts
             Chart.Focus();
         }
 
+        private void DrawingHorizontalLineButton_Click(object sender, RoutedEventArgs e)
+        {
+            SetTechnicalDrawingTool(TechnicalDrawingTool.HorizontalLine);
+            Chart.Focus();
+        }
+
         private void SetTechnicalDrawingTool(TechnicalDrawingTool tool)
         {
             RemoveTrendLinePreview();
@@ -91,22 +105,40 @@ namespace TradeIt.Charts
         {
             DrawingSelectButton.Opacity = _activeDrawingTool == TechnicalDrawingTool.Select ? 1.0 : 0.55;
             DrawingTrendLineButton.Opacity = _activeDrawingTool == TechnicalDrawingTool.TrendLine ? 1.0 : 0.55;
+            DrawingHorizontalLineButton.Opacity = _activeDrawingTool == TechnicalDrawingTool.HorizontalLine ? 1.0 : 0.55;
         }
 
         private void TechnicalDrawing_MouseDown(object sender, WpfMouseButtonEventArgs e)
         {
-            if (_activeDrawingTool != TechnicalDrawingTool.TrendLine || e.ChangedButton != MouseButton.Left)
+            if (e.ChangedButton != MouseButton.Left)
                 return;
 
-            if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates))
+            if (_activeDrawingTool == TechnicalDrawingTool.HorizontalLine)
+            {
+                if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates))
+                    return;
+
+                var drawing = new HorizontalLineDrawing { Y = coordinates.Y };
+                _horizontalLines.Add(drawing);
+                AddHorizontalLineToChart(drawing);
+                ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط افقی رسم شد | قیمت: {coordinates.Y:N2}";
+                Chart.Refresh();
+                e.Handled = true;
+                return;
+            }
+
+            if (_activeDrawingTool != TechnicalDrawingTool.TrendLine)
                 return;
 
-            int index = FindNearestDrawingBarIndex(coordinates.X);
+            if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates trendCoordinates))
+                return;
+
+            int index = FindNearestDrawingBarIndex(trendCoordinates.X);
             if (index < 0)
                 return;
 
             double x = GetDrawingX(index);
-            double y = coordinates.Y;
+            double y = trendCoordinates.Y;
             var point = new ScottPlot.Coordinates(x, y);
 
             if (_trendLineStart == null)
@@ -121,7 +153,7 @@ namespace TradeIt.Charts
                 Math.Abs(point.Y - _trendLineStart.Value.Y) < 1e-12)
                 return;
 
-            var drawing = new TrendLineDrawing
+            var trendDrawing = new TrendLineDrawing
             {
                 X1 = _trendLineStart.Value.X,
                 Y1 = _trendLineStart.Value.Y,
@@ -129,8 +161,8 @@ namespace TradeIt.Charts
                 Y2 = point.Y
             };
 
-            _trendLines.Add(drawing);
-            AddTrendLineToChart(drawing);
+            _trendLines.Add(trendDrawing);
+            AddTrendLineToChart(trendDrawing);
             RemoveTrendLinePreview();
             _trendLineStart = null;
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند رسم شد؛ برای خط بعدی دوباره کلیک کنید";
@@ -160,7 +192,7 @@ namespace TradeIt.Charts
             if (e.ChangedButton != MouseButton.Right)
                 return;
 
-            if (_activeDrawingTool == TechnicalDrawingTool.TrendLine)
+            if (_activeDrawingTool != TechnicalDrawingTool.Select)
             {
                 SetTechnicalDrawingTool(TechnicalDrawingTool.Select);
                 _suppressContextMenuAfterCancel = true;
@@ -185,8 +217,6 @@ namespace TradeIt.Charts
                 Chart.ShowContextMenu(new ScottPlot.Pixel(position.X * scale, position.Y * scale));
             }
 
-            // The normal single-right-click context menu is intentionally suppressed.
-            // The ScottPlot menu is opened only by a double right-click.
             e.Handled = true;
         }
 
@@ -216,12 +246,13 @@ namespace TradeIt.Charts
 
         private void TechnicalDrawing_KeyDown(object sender, WpfKeyEventArgs e)
         {
-            if (e.Key == Key.Escape && _activeDrawingTool == TechnicalDrawingTool.TrendLine)
+            if (e.Key == Key.Escape && _activeDrawingTool != TechnicalDrawingTool.Select)
             {
                 RemoveTrendLinePreview();
                 _trendLineStart = null;
                 Chart.ReleaseMouseCapture();
-                ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند: لغو شد";
+                SetTechnicalDrawingTool(TechnicalDrawingTool.Select);
+                ChartInfoTextBlock.Text = $"{_symbol.Symbol} | رسم ابزار لغو شد";
                 Chart.Refresh();
                 e.Handled = true;
             }
@@ -239,13 +270,13 @@ namespace TradeIt.Charts
 
         private void QueueTechnicalDrawingRender()
         {
-            if (!IsLoaded || _trendLines.Count == 0)
+            if (!IsLoaded || (_trendLines.Count == 0 && _horizontalLines.Count == 0))
                 return;
 
             Dispatcher.BeginInvoke(
                 new Action(() =>
                 {
-                    if (!IsLoaded || _trendLines.Count == 0)
+                    if (!IsLoaded || (_trendLines.Count == 0 && _horizontalLines.Count == 0))
                         return;
                     RenderTechnicalDrawings();
                     Chart.Refresh();
@@ -294,6 +325,14 @@ namespace TradeIt.Charts
             drawing.PlotLine = line;
         }
 
+        private void AddHorizontalLineToChart(HorizontalLineDrawing drawing)
+        {
+            var line = Chart.Plot.Add.HorizontalLine(drawing.Y);
+            line.LineWidth = (float)Math.Max(1.0, _settings.LineWidth);
+            line.LineColor = ScottPlot.Color.FromHtml(_settings.LineColor);
+            drawing.PlotLine = line;
+        }
+
         private void RenderTechnicalDrawings()
         {
             RemoveTrendLinePreview();
@@ -304,6 +343,14 @@ namespace TradeIt.Charts
                     Chart.Plot.Remove(drawing.PlotLine);
 
                 AddTrendLineToChart(drawing);
+            }
+
+            foreach (HorizontalLineDrawing drawing in _horizontalLines)
+            {
+                if (drawing.PlotLine != null)
+                    Chart.Plot.Remove(drawing.PlotLine);
+
+                AddHorizontalLineToChart(drawing);
             }
         }
     }
