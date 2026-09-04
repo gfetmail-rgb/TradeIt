@@ -57,6 +57,7 @@ namespace TradeIt.Charts
             {
                 _textDrawingActive = false;
                 Chart.UserInputProcessor.IsEnabled = true;
+                UpdateTechnicalDrawingButtons();
                 ChartInfoTextBlock.Text = $"{_symbol.Symbol} | متن لغو شد";
                 e.Handled = true;
                 return;
@@ -65,9 +66,11 @@ namespace TradeIt.Charts
             var drawing = new TextDrawing { Text = text.Trim(), X = coordinates.X, Y = coordinates.Y };
             _textDrawings.Add(drawing);
             AddTextToChart(drawing);
-            _textDrawingActive = false;
-            Chart.UserInputProcessor.IsEnabled = true;
-            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | متن درج شد";
+            // Text is a continuous drawing tool: remain active until Escape/right-click cancels it.
+            _textDrawingActive = true;
+            Chart.UserInputProcessor.IsEnabled = false;
+            UpdateTechnicalDrawingButtons();
+            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | متن درج شد؛ محل متن بعدی را کلیک کنید";
             Chart.Refresh();
             e.Handled = true;
         }
@@ -126,11 +129,12 @@ namespace TradeIt.Charts
 
         private void AddTextToChart(TextDrawing drawing)
         {
+            var style = GetDrawingToolStyle("Text");
             var text = Chart.Plot.Add.Text(drawing.Text, drawing.X, drawing.Y);
             text.LabelFontSize = 14;
-            text.LabelFontColor = ScottPlot.Color.FromHtml(_settings.LineColor);
+            text.LabelFontColor = ScottPlot.Color.FromHtml(style.Color);
             text.LabelBackgroundColor = ScottPlot.Colors.White.WithAlpha(0.85);
-            text.LabelBorderColor = ScottPlot.Color.FromHtml(_settings.LineColor);
+            text.LabelBorderColor = ScottPlot.Color.FromHtml(style.Color);
             text.LabelBorderWidth = 1;
             text.LabelPadding = 4;
             text.LabelAlignment = ScottPlot.Alignment.MiddleCenter;
