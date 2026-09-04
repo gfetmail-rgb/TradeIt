@@ -15,17 +15,17 @@ namespace TradeIt.Charts
             if (_drawingCursorAttached) return;
             _drawingCursorAttached = true;
 
-            DrawingSelectButton.Click += (_, _) => SetDrawingCursor(Cursors.Arrow);
-            DrawingTrendLineButton.Click += (_, _) => SetDrawingCursor(Cursors.Cross);
-            DrawingHorizontalLineButton.Click += (_, _) => SetDrawingCursor(Cursors.SizeNS);
-            DrawingVerticalLineButton.Click += (_, _) => SetDrawingCursor(Cursors.SizeWE);
-            DrawingRayButton.Click += (_, _) => SetDrawingCursor(Cursors.Cross);
-            DrawingParallelChannelButton.Click += (_, _) => SetDrawingCursor(Cursors.Cross);
-            DrawingRectangleButton.Click += (_, _) => SetDrawingCursor(Cursors.Cross);
-            DrawingPitchforkButton.Click += (_, _) => SetDrawingCursor(Cursors.Cross);
-            DrawingFibRetracementButton.Click += (_, _) => SetDrawingCursor(Cursors.Cross);
-            DrawingFibExtensionButton.Click += (_, _) => SetDrawingCursor(Cursors.Cross);
-            DrawingTextButton.Click += (_, _) => SetDrawingCursor(Cursors.IBeam);
+            DrawingSelectButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.Arrow);
+            DrawingTrendLineButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.Cross);
+            DrawingHorizontalLineButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.SizeNS);
+            DrawingVerticalLineButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.SizeWE);
+            DrawingRayButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.Cross);
+            DrawingParallelChannelButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.Cross);
+            DrawingRectangleButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.Cross);
+            DrawingPitchforkButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.Cross);
+            DrawingFibRetracementButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.Cross);
+            DrawingFibExtensionButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.Cross);
+            DrawingTextButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.IBeam);
 
             AddHandler(Keyboard.PreviewKeyDownEvent,
                 new System.Windows.Input.KeyEventHandler(DrawingCursor_KeyDown), true);
@@ -41,8 +41,8 @@ namespace TradeIt.Charts
 
         private void RestoreDrawingCursor()
         {
-            Cursor = Cursors.Arrow;
-            Chart.Cursor = Cursors.Arrow;
+            Cursor = System.Windows.Input.Cursors.Arrow;
+            Chart.Cursor = System.Windows.Input.Cursors.Arrow;
         }
 
         private void DrawingCursor_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -73,7 +73,7 @@ namespace TradeIt.Charts
             DrawingPitchforkButton.Opacity = 0.55;
             DrawingFibRetracementButton.Opacity = 0.55;
             DrawingFibExtensionButton.Opacity = 0.55;
-            SetDrawingCursor(Cursors.Cross);
+            SetDrawingCursor(System.Windows.Input.Cursors.Cross);
             Chart.Focusable = true;
             Chart.Focus();
             Focus();
@@ -164,7 +164,7 @@ namespace TradeIt.Charts
             _horizontalRayFixActive = false;
             DetachHorizontalRayFixHandlers();
             SetAdvancedDrawingTool(AdvancedToolPitchfork);
-            SetDrawingCursor(Cursors.Cross);
+            SetDrawingCursor(System.Windows.Input.Cursors.Cross);
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | چنگال اندروز: نقطه A را کلیک کنید";
         }
     }
