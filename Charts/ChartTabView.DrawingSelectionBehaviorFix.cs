@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace TradeIt.Charts
 {
@@ -29,9 +30,18 @@ namespace TradeIt.Charts
             if (_drawingSelectionBehaviorFixAttached) return;
             _drawingSelectionBehaviorFixAttached = true;
 
+            // DrawingSelection.cs contains the older direct Chart mouse handlers.
+            // Remove them both now and once more after Loaded handlers have finished,
+            // so only this behavior owns selection/editing mouse input.
             Chart.PreviewMouseLeftButtonDown -= DrawingSelection_MouseDown;
             Chart.PreviewMouseMove -= DrawingSelection_MouseMove;
             Chart.PreviewMouseLeftButtonUp -= DrawingSelection_MouseUp;
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                Chart.PreviewMouseLeftButtonDown -= DrawingSelection_MouseDown;
+                Chart.PreviewMouseMove -= DrawingSelection_MouseMove;
+                Chart.PreviewMouseLeftButtonUp -= DrawingSelection_MouseUp;
+            }), DispatcherPriority.Loaded);
 
             Chart.AddHandler(UIElement.PreviewMouseLeftButtonDownEvent,
                 new System.Windows.Input.MouseButtonEventHandler(DrawingSelectionBehaviorFix_MouseDown), true);
@@ -76,6 +86,8 @@ namespace TradeIt.Charts
                 return;
             }
 
+            // A handle belongs to the currently selected drawing and always has
+            // priority over the drawing hit-test itself.
             if (_selectedDrawing != null && TryGetHandleAtPoint(chartPoint, out DrawingHandleKind handleKind))
             {
                 _activeDrawingHandle = handleKind;
@@ -108,19 +120,18 @@ namespace TradeIt.Charts
         {
             if (_textSelectionDragging && e.LeftButton == MouseButtonState.Pressed)
             {
-                if (TryGetRawChartPoint(e, out ScottPlot.Coordinates textPoint))
+                if (TryGetRawChartPoint(e, out ScottPlot.Coordinates textPoint) && MoveSelectedText(textPoint))
                 {
-                    if (MoveSelectedText(textPoint))
-                    {
-                        e.Handled = true;
-                        Chart.Refresh();
-                    }
+                    e.Handled = true;
+                    Chart.Refresh();
                 }
                 return;
             }
 
-            if (!_selectionDragging || _selectedDrawing == null || _activeDrawingHandle == null || e.LeftButton != MouseButtonState.Pressed)
+            if (!_selectionDragging || _selectedDrawing == null || _activeDrawingHandle == null ||
+                e.LeftButton != MouseButtonState.Pressed)
                 return;
+
             if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates drawingPoint)) return;
 
             if (Math.Abs(drawingPoint.X - _selectionDragStart.X) < 1e-15 &&
@@ -148,11 +159,13 @@ namespace TradeIt.Charts
             }
 
             if (!_selectionDragging) return;
+
             _selectionDragging = false;
             _selectionMouseMoved = false;
             _activeDrawingHandle = null;
             Chart.ReleaseMouseCapture();
-            Chart.UserInputProcessor.IsEnabled = false;
+            // Re-enable ScottPlot's normal input after our explicit drag ends.
+            Chart.UserInputProcessor.IsEnabled = true;
             e.Handled = true;
             Chart.Refresh();
         }
