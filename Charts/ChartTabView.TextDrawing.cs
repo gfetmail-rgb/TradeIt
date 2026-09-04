@@ -28,13 +28,13 @@ namespace TradeIt.Charts
 
         private void InitializeTextDrawingHandling()
         {
-            if (_textDrawingEventsAttached)
-                return;
-
+            if (_textDrawingEventsAttached) return;
             _textDrawingEventsAttached = true;
             DrawingTextButton.Click += DrawingTextButton_Click;
+
+            // Use the normal WPF bubbling event and still receive it when ScottPlot handles it.
             Chart.AddHandler(
-                UIElement.PreviewMouseLeftButtonDownEvent,
+                UIElement.MouseLeftButtonDownEvent,
                 new WpfMouseButtonEventHandler(TextDrawing_MouseDown),
                 true);
         }
@@ -50,11 +50,8 @@ namespace TradeIt.Charts
 
         private void TextDrawing_MouseDown(object sender, WpfMouseButtonEventArgs e)
         {
-            if (!_textDrawingActive || e.ChangedButton != MouseButton.Left)
-                return;
-
-            if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates))
-                return;
+            if (!_textDrawingActive || e.ChangedButton != MouseButton.Left) return;
+            if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates)) return;
 
             string? text = ShowTextInputDialog();
             if (string.IsNullOrWhiteSpace(text))
@@ -64,13 +61,7 @@ namespace TradeIt.Charts
                 return;
             }
 
-            var drawing = new TextDrawing
-            {
-                Text = text.Trim(),
-                X = coordinates.X,
-                Y = coordinates.Y
-            };
-
+            var drawing = new TextDrawing { Text = text.Trim(), X = coordinates.X, Y = coordinates.Y };
             _textDrawings.Add(drawing);
             AddTextToChart(drawing);
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | متن درج شد";
@@ -93,29 +84,20 @@ namespace TradeIt.Charts
 
             var textBox = new WpfTextBox
             {
-                Margin = new Thickness(12),
-                Height = 55,
+                Margin = new Thickness(12), Height = 55,
                 VerticalContentAlignment = System.Windows.VerticalAlignment.Center,
-                AcceptsReturn = true,
-                TextWrapping = System.Windows.TextWrapping.Wrap,
+                AcceptsReturn = true, TextWrapping = System.Windows.TextWrapping.Wrap,
                 FlowDirection = System.Windows.FlowDirection.RightToLeft
             };
 
             var okButton = new WpfButton
             {
-                Content = "تأیید",
-                Width = 80,
-                Height = 30,
-                IsDefault = true,
+                Content = "تأیید", Width = 80, Height = 30, IsDefault = true,
                 Margin = new Thickness(4, 0, 4, 10)
             };
-
             var cancelButton = new WpfButton
             {
-                Content = "لغو",
-                Width = 80,
-                Height = 30,
-                IsCancel = true,
+                Content = "لغو", Width = 80, Height = 30, IsCancel = true,
                 Margin = new Thickness(4, 0, 4, 10)
             };
 
@@ -133,11 +115,7 @@ namespace TradeIt.Charts
             window.Content = panel;
 
             okButton.Click += (_, _) => window.DialogResult = true;
-            window.Loaded += (_, _) =>
-            {
-                textBox.Focus();
-                Keyboard.Focus(textBox);
-            };
+            window.Loaded += (_, _) => { textBox.Focus(); Keyboard.Focus(textBox); };
 
             bool? result = window.ShowDialog();
             return result == true ? textBox.Text : null;
@@ -160,9 +138,7 @@ namespace TradeIt.Charts
         {
             foreach (TextDrawing drawing in _textDrawings)
             {
-                if (drawing.PlotText != null)
-                    Chart.Plot.Remove(drawing.PlotText);
-
+                if (drawing.PlotText != null) Chart.Plot.Remove(drawing.PlotText);
                 AddTextToChart(drawing);
             }
         }
