@@ -9,15 +9,27 @@ namespace TradeIt.Charts
     public partial class ChartTabView
     {
         private bool _drawingCancelFixAttached;
+        private Window? _drawingHostWindow;
 
         private void AttachDrawingCancelFix()
         {
             if (_drawingCancelFixAttached) return;
             _drawingCancelFixAttached = true;
 
+            // Handle cancellation directly on the chart as well as on the
+            // UserControl. ScottPlot can consume mouse/keyboard input at the
+            // chart level, so relying only on the parent routed event is not
+            // sufficient.
+            Chart.PreviewMouseRightButtonDown += DrawingCancelFix_RightMouseDown;
             PreviewMouseRightButtonDown += DrawingCancelFix_RightMouseDown;
+            Chart.PreviewKeyDown += DrawingCancelFix_KeyDown;
             PreviewKeyDown += DrawingCancelFix_KeyDown;
             Chart.PreviewMouseMove += DrawingCancelFix_MouseMove;
+
+            _drawingHostWindow = Window.GetWindow(this);
+            if (_drawingHostWindow != null)
+                _drawingHostWindow.PreviewKeyDown += DrawingCancelFix_KeyDown;
+
             Unloaded += DrawingCancelFix_Unloaded;
         }
 
@@ -26,9 +38,15 @@ namespace TradeIt.Charts
             if (!_drawingCancelFixAttached) return;
             _drawingCancelFixAttached = false;
 
+            Chart.PreviewMouseRightButtonDown -= DrawingCancelFix_RightMouseDown;
             PreviewMouseRightButtonDown -= DrawingCancelFix_RightMouseDown;
+            Chart.PreviewKeyDown -= DrawingCancelFix_KeyDown;
             PreviewKeyDown -= DrawingCancelFix_KeyDown;
             Chart.PreviewMouseMove -= DrawingCancelFix_MouseMove;
+
+            if (_drawingHostWindow != null)
+                _drawingHostWindow.PreviewKeyDown -= DrawingCancelFix_KeyDown;
+            _drawingHostWindow = null;
             Unloaded -= DrawingCancelFix_Unloaded;
         }
 
