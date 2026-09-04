@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 
@@ -37,8 +38,6 @@ namespace TradeIt.Charts
             if (_measurementEventsAttached) return;
             _measurementEventsAttached = true;
 
-            // The main chart mouse handlers run first. This handler is intentionally
-            // separate so the ruler does not interfere with the existing drawing tools.
             Chart.PreviewMouseLeftButtonDown += MeasurementTool_MouseDown;
             Chart.PreviewMouseMove += MeasurementTool_MouseMove;
             Chart.PreviewMouseRightButtonDown += MeasurementTool_RightMouseDown;
@@ -61,15 +60,35 @@ namespace TradeIt.Charts
 
         private void MeasurementToolButton_Click(object sender, RoutedEventArgs e)
         {
-            DeactivateMeasurementTool(false);
+            // Starting a new measurement replaces the previous temporary measurement.
+            RemoveMeasurementPreview();
+            RemoveMeasurementPlotOnly();
+            RemoveMeasurementLabel();
+            _measurementStart = null;
+            _measurementLastPoint = null;
+
             _activeDrawingTool = (TechnicalDrawingTool)MeasurementToolValue;
             _textDrawingActive = false;
             Chart.UserInputProcessor.IsEnabled = false;
             Chart.Focusable = true;
             Chart.Focus();
+            SetMeasurementButtonVisual(true);
             UpdateTechnicalDrawingButtons();
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط‌کش: نقطه اول را کلیک کنید";
             Chart.Refresh();
+        }
+
+        private void SetMeasurementButtonVisual(bool selected)
+        {
+            DrawingMeasurementButton.Background = selected
+                ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(25, 118, 210))
+                : System.Windows.Media.Brushes.Transparent;
+            DrawingMeasurementButton.Foreground = selected
+                ? System.Windows.Media.Brushes.White
+                : System.Windows.Media.Brushes.Black;
+            DrawingMeasurementButton.BorderBrush = selected
+                ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(25, 118, 210))
+                : System.Windows.Media.Brushes.Transparent;
         }
 
         private void MeasurementTool_DeactivateFromOtherTool(object? sender, RoutedEventArgs e)
@@ -124,7 +143,7 @@ namespace TradeIt.Charts
             point = SnapMeasurementX(point);
             _measurementLastPoint = point;
 
-            // Before the second click, show a fine dashed preview from the anchor to the mouse.
+            // Before the second click, show a fine dotted preview from the anchor to the mouse.
             if (_measurementLine == null)
             {
                 RemoveMeasurementPreview();
@@ -236,10 +255,18 @@ namespace TradeIt.Charts
         private void DeactivateMeasurementTool(bool refresh)
         {
             RemoveMeasurementPreview();
-            _measurementStart = null;
-            _measurementLastPoint = null;
+
+            // Keep a completed measurement after the third click so the result remains
+            // visible. An unfinished first point is discarded when another tool is chosen.
+            if (_measurementLine == null)
+            {
+                _measurementStart = null;
+                _measurementLastPoint = null;
+            }
+
             _activeDrawingTool = TechnicalDrawingTool.Select;
             Chart.UserInputProcessor.IsEnabled = true;
+            SetMeasurementButtonVisual(false);
             UpdateTechnicalDrawingButtons();
             if (refresh)
             {
