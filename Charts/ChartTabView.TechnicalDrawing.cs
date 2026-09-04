@@ -6,9 +6,7 @@ using System.Windows.Threading;
 
 using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
 using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
-using WpfMouseButtonEventHandler = System.Windows.Input.MouseButtonEventHandler;
 using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
-using WpfMouseEventHandler = System.Windows.Input.MouseEventHandler;
 using WpfPoint = System.Windows.Point;
 
 namespace TradeIt.Charts
@@ -49,13 +47,11 @@ namespace TradeIt.Charts
             DrawingTrendLineButton.Click += DrawingTrendLineButton_Click;
             DrawingHorizontalLineButton.Click += DrawingHorizontalLineButton_Click;
 
-            // Use bubbling WPF mouse events and receive them even when ScottPlot handles them.
-            Chart.AddHandler(UIElement.MouseLeftButtonDownEvent,
-                new WpfMouseButtonEventHandler(TechnicalDrawing_MouseDown), true);
-            Chart.AddHandler(UIElement.MouseMoveEvent,
-                new WpfMouseEventHandler(TechnicalDrawing_MouseMove), true);
-            Chart.AddHandler(UIElement.MouseRightButtonDownEvent,
-                new WpfMouseButtonEventHandler(TechnicalDrawing_RightMouseDown), true);
+            // WpfPlot's mouse handling is reliably reached through the preview events
+            // already attached by ChartTabView itself.
+            Chart.PreviewMouseLeftButtonDown += TechnicalDrawing_MouseDown;
+            Chart.PreviewMouseMove += TechnicalDrawing_MouseMove;
+            Chart.PreviewMouseRightButtonDown += TechnicalDrawing_RightMouseDown;
 
             KeyDown += TechnicalDrawing_KeyDown;
             ChartTypeComboBox.SelectionChanged += TechnicalDrawing_ChartTypeChanged;
