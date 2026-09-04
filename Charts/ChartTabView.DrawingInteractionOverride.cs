@@ -130,7 +130,7 @@ namespace TradeIt.Charts
                 }
             }
 
-            if (e.StagingItem.Input is MouseEventArgs mouse &&
+            if (e.StagingItem.Input is System.Windows.Input.MouseEventArgs mouse &&
                 _selectionDragging && _selectedDrawing != null &&
                 mouse.LeftButton == MouseButtonState.Pressed)
             {
