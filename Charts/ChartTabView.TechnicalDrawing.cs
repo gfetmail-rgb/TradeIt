@@ -47,13 +47,23 @@ namespace TradeIt.Charts
             DrawingTrendLineButton.Click += DrawingTrendLineButton_Click;
             DrawingHorizontalLineButton.Click += DrawingHorizontalLineButton_Click;
 
-            // WpfPlot's mouse handling is reliably reached through the preview events
-            // already attached by ChartTabView itself.
             Chart.PreviewMouseLeftButtonDown += TechnicalDrawing_MouseDown;
             Chart.PreviewMouseMove += TechnicalDrawing_MouseMove;
-            Chart.PreviewMouseRightButtonDown += TechnicalDrawing_RightMouseDown;
 
-            KeyDown += TechnicalDrawing_KeyDown;
+            // Register with handledEventsToo so ScottPlot's own right-click handling
+            // cannot prevent the drawing tool from being cancelled.
+            Chart.AddHandler(
+                UIElement.PreviewMouseRightButtonDownEvent,
+                new WpfMouseButtonEventHandler(TechnicalDrawing_RightMouseDown),
+                true);
+
+            // ESC must be handled at the chart level (not only on the parent UserControl)
+            // because the WpfPlot receives keyboard focus after a drawing tool is selected.
+            Chart.AddHandler(
+                UIElement.PreviewKeyDownEvent,
+                new WpfKeyEventHandler(TechnicalDrawing_KeyDown),
+                true);
+
             ChartTypeComboBox.SelectionChanged += TechnicalDrawing_ChartTypeChanged;
             ChartSettingsManager.SettingsChanged += TechnicalDrawing_SettingsChanged;
             UpdateTechnicalDrawingButtons();
