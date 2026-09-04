@@ -117,7 +117,7 @@ namespace TradeIt.Charts
             text.LabelFontSize = (float)style.FontSize;
             text.LabelFontName = style.FontFamily;
             text.LabelFontColor = ScottPlot.Color.FromHtml(style.Color);
-            text.LabelBackgroundColor = ScottPlot.Colors.White.WithAlpha(0.85);
+            text.LabelBackgroundColor = ScottPlot.Color.FromHtml(style.BackgroundColor);
             text.LabelBorderColor = ScottPlot.Color.FromHtml(style.Color);
             text.LabelBorderWidth = 1;
             text.LabelPadding = 4;
