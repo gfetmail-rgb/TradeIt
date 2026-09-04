@@ -61,25 +61,12 @@ namespace TradeIt.Charts
 
         private void DrawingButtonVisualFix_Click(object sender, RoutedEventArgs e)
         {
-            // The horizontal-ray tool uses a special temporary state while it waits
-            // for the start point. If the user chooses any other drawing tool,
-            // that temporary state must be cancelled immediately; otherwise the
-            // ray button remains highlighted until Escape/Cancel is pressed.
-            if (_horizontalRayFixActive && !ReferenceEquals(sender, DrawingRayButton))
-                CancelHorizontalRayFix();
-
             Dispatcher.BeginInvoke(new Action(ApplyDrawingButtonVisualFix), DispatcherPriority.ContextIdle);
         }
 
         private void ApplyDrawingButtonVisualFix()
         {
             SetAllDrawingButtonVisuals();
-
-            if (_horizontalRayFixActive)
-            {
-                RestoreAllDrawingButtonVisuals();
-                SetDrawingButtonVisual(DrawingRayButton, true);
-            }
         }
 
         private void DrawingButtonVisualFix_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -95,8 +82,7 @@ namespace TradeIt.Charts
             if (e.ChangedButton != MouseButton.Right)
                 return;
 
-            if (_activeDrawingTool != TechnicalDrawingTool.Select ||
-                _textDrawingActive || _horizontalRayFixActive)
+            if (_activeDrawingTool != TechnicalDrawingTool.Select || _textDrawingActive)
             {
                 Dispatcher.BeginInvoke(new Action(ApplyDrawingButtonVisualFix), DispatcherPriority.ContextIdle);
             }
