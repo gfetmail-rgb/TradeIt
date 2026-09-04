@@ -28,6 +28,7 @@ namespace TradeIt.Charts
         private ScottPlot.Coordinates? _trendLineStart;
         private ScottPlot.Plottables.Scatter? _trendLinePreview;
         private bool _technicalDrawingEventsAttached;
+        private bool _suppressContextMenuAfterCancel;
 
         private static readonly bool _technicalDrawingRegistered = RegisterTechnicalDrawingHandling();
 
@@ -48,7 +49,10 @@ namespace TradeIt.Charts
             chart._technicalDrawingEventsAttached = true;
             chart.Chart.PreviewMouseLeftButtonDown += chart.TechnicalDrawing_MouseDown;
             chart.Chart.PreviewMouseMove += chart.TechnicalDrawing_MouseMove;
-            chart.Chart.PreviewMouseLeftButtonUp += chart.TechnicalDrawing_MouseUp;
+            chart.Chart.AddHandler(
+                UIElement.PreviewMouseRightButtonDownEvent,
+                new MouseButtonEventHandler(chart.TechnicalDrawing_RightMouseDown),
+                true);
             chart.KeyDown += chart.TechnicalDrawing_KeyDown;
             chart.ChartTypeComboBox.SelectionChanged += chart.TechnicalDrawing_ChartTypeChanged;
             ChartSettingsManager.SettingsChanged += chart.TechnicalDrawing_SettingsChanged;
@@ -71,6 +75,7 @@ namespace TradeIt.Charts
             RemoveTrendLinePreview();
             _activeDrawingTool = tool;
             _trendLineStart = null;
+            _suppressContextMenuAfterCancel = false;
             Chart.ReleaseMouseCapture();
             Chart.UserInputProcessor.IsEnabled = tool == TechnicalDrawingTool.Select;
             UpdateTechnicalDrawingButtons();
@@ -83,7 +88,7 @@ namespace TradeIt.Charts
             DrawingTrendLineButton.Opacity = _activeDrawingTool == TechnicalDrawingTool.TrendLine ? 1.0 : 0.55;
         }
 
-        private void TechnicalDrawing_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void TechnicalDrawing_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (_activeDrawingTool != TechnicalDrawingTool.TrendLine || e.ChangedButton != MouseButton.Left)
                 return;
@@ -97,13 +102,38 @@ namespace TradeIt.Charts
 
             double x = GetDrawingX(index);
             double y = coordinates.Y;
-            _trendLineStart = new ScottPlot.Coordinates(x, y);
-            Chart.CaptureMouse();
-            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند: درگ کنید تا نقطه دوم مشخص شود";
+            var point = new ScottPlot.Coordinates(x, y);
+
+            if (_trendLineStart == null)
+            {
+                _trendLineStart = point;
+                ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند: نقطه اول انتخاب شد؛ برای نقطه دوم کلیک کنید";
+                e.Handled = true;
+                return;
+            }
+
+            if (Math.Abs(point.X - _trendLineStart.Value.X) < 1e-12 &&
+                Math.Abs(point.Y - _trendLineStart.Value.Y) < 1e-12)
+                return;
+
+            var drawing = new TrendLineDrawing
+            {
+                X1 = _trendLineStart.Value.X,
+                Y1 = _trendLineStart.Value.Y,
+                X2 = point.X,
+                Y2 = point.Y
+            };
+
+            _trendLines.Add(drawing);
+            AddTrendLineToChart(drawing);
+            RemoveTrendLinePreview();
+            _trendLineStart = null;
+            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند رسم شد؛ برای خط بعدی دوباره کلیک کنید";
+            Chart.Refresh();
             e.Handled = true;
         }
 
-        private void TechnicalDrawing_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        private void TechnicalDrawing_MouseMove(object sender, MouseEventArgs e)
         {
             if (_activeDrawingTool != TechnicalDrawingTool.TrendLine || _trendLineStart == null)
                 return;
@@ -117,45 +147,43 @@ namespace TradeIt.Charts
 
             var end = new ScottPlot.Coordinates(GetDrawingX(index), coordinates.Y);
             RenderTrendLinePreview(end);
-            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند: نقطه دوم | قیمت: {coordinates.Y:N2}";
-            e.Handled = true;
+            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند: نقطه دوم را انتخاب کنید | قیمت: {coordinates.Y:N2}";
         }
 
-        private void TechnicalDrawing_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void TechnicalDrawing_RightMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (_activeDrawingTool != TechnicalDrawingTool.TrendLine ||
-                e.ChangedButton != MouseButton.Left ||
-                _trendLineStart == null)
+            if (e.ChangedButton != MouseButton.Right)
                 return;
 
-            if (TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates))
+            if (_activeDrawingTool == TechnicalDrawingTool.TrendLine)
             {
-                int index = FindNearestDrawingBarIndex(coordinates.X);
-                if (index >= 0)
-                {
-                    var end = new ScottPlot.Coordinates(GetDrawingX(index), coordinates.Y);
-                    if (Math.Abs(end.X - _trendLineStart.Value.X) > 1e-12 ||
-                        Math.Abs(end.Y - _trendLineStart.Value.Y) > 1e-12)
-                    {
-                        var drawing = new TrendLineDrawing
-                        {
-                            X1 = _trendLineStart.Value.X,
-                            Y1 = _trendLineStart.Value.Y,
-                            X2 = end.X,
-                            Y2 = end.Y
-                        };
-
-                        _trendLines.Add(drawing);
-                        AddTrendLineToChart(drawing);
-                        ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند رسم شد";
-                    }
-                }
+                RemoveTrendLinePreview();
+                _trendLineStart = null;
+                Chart.ReleaseMouseCapture();
+                _suppressContextMenuAfterCancel = true;
+                ChartInfoTextBlock.Text = $"{_symbol.Symbol} | رسم ابزار لغو شد";
+                Chart.Refresh();
+                e.Handled = true;
+                return;
             }
 
-            RemoveTrendLinePreview();
-            _trendLineStart = null;
-            Chart.ReleaseMouseCapture();
-            Chart.Refresh();
+            if (_suppressContextMenuAfterCancel)
+            {
+                _suppressContextMenuAfterCancel = false;
+                e.Handled = true;
+                return;
+            }
+
+            if (e.ClickCount == 2)
+            {
+                WpfPoint position = e.GetPosition(Chart);
+                double scale = Chart.DisplayScale;
+                if (scale <= 0) scale = 1.0;
+                Chart.ShowContextMenu(new ScottPlot.Pixel(position.X * scale, position.Y * scale));
+            }
+
+            // The normal single-right-click context menu is intentionally suppressed.
+            // The ScottPlot menu is opened only by a double right-click.
             e.Handled = true;
         }
 
@@ -183,7 +211,7 @@ namespace TradeIt.Charts
             _trendLinePreview = null;
         }
 
-        private void TechnicalDrawing_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        private void TechnicalDrawing_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Escape && _activeDrawingTool == TechnicalDrawingTool.TrendLine)
             {
