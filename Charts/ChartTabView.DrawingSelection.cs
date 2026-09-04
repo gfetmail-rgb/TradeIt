@@ -104,11 +104,8 @@ namespace TradeIt.Charts
             for (int i = _fibonacciDrawings.Count - 1; i >= 0; i--)
             {
                 var d = _fibonacciDrawings[i];
-                foreach (var line in d.Lines)
-                {
-                    if (DistancePointToSegment(point, new ScottPlot.Coordinates(line.Xs[0], line.Ys[0]), new ScottPlot.Coordinates(line.Xs[1], line.Ys[1])) <= tolerance)
-                        return SelectDrawing(DrawingSelectionKind.Fibonacci, d);
-                }
+                if (DistanceToFibonacci(point, d) <= tolerance)
+                    return SelectDrawing(DrawingSelectionKind.Fibonacci, d);
             }
             for (int i = _pitchforks.Count - 1; i >= 0; i--)
             {
@@ -153,6 +150,30 @@ namespace TradeIt.Charts
                 if (Math.Abs(point.X - _verticalLines[i].X) <= tolerance) return SelectDrawing(DrawingSelectionKind.VerticalLine, _verticalLines[i]);
             }
             return false;
+        }
+
+        private double DistanceToFibonacci(ScottPlot.Coordinates point, FibonacciDrawing drawing)
+        {
+            var limits = Chart.Plot.Axes.GetLimits();
+            double ab = drawing.B.Y - drawing.A.Y;
+            double[] ratios = drawing.IsExtension
+                ? new[] { 0.0, 0.382, 0.618, 1.0, 1.618, 2.618 }
+                : new[] { 0.0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0 };
+
+            double minDistance = double.MaxValue;
+            foreach (double ratio in ratios)
+            {
+                double y = drawing.IsExtension
+                    ? drawing.C.Y + ab * ratio
+                    : drawing.B.Y - ab * ratio;
+                double distance = DistancePointToSegment(
+                    point,
+                    new ScottPlot.Coordinates(limits.Left, y),
+                    new ScottPlot.Coordinates(limits.Right, y));
+                if (distance < minDistance)
+                    minDistance = distance;
+            }
+            return minDistance;
         }
 
         private bool SelectDrawing(DrawingSelectionKind kind, object drawing)
