@@ -16,8 +16,8 @@ namespace TradeIt.Charts
         private sealed class TextDrawing
         {
             public string Text { get; init; } = string.Empty;
-            public double X { get; init; }
-            public double Y { get; init; }
+            public double X { get; set; }
+            public double Y { get; set; }
             public ScottPlot.Plottables.Text? PlotText { get; set; }
         }
 
