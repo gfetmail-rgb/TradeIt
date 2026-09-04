@@ -119,7 +119,6 @@ namespace TradeIt.Charts
         {
             if (e.ChangedButton != MouseButton.Left || _textDrawingActive) return;
 
-            // Ray is a one-click horizontal half-line from the clicked bar to the right edge.
             if (_activeDrawingTool == TechnicalDrawingTool.Ray)
             {
                 if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates p)) return;
@@ -137,7 +136,6 @@ namespace TradeIt.Charts
             if (!IsAdvancedDrawingTool) return;
             if (!TryGetAdvancedPoint(e, out ScottPlot.Coordinates point)) return;
 
-            // Rectangle: exactly two clicks, opposite corners.
             if ((int)_activeDrawingTool == AdvancedToolRectangle)
             {
                 if (_advancedDrawingP1 == null)
@@ -206,13 +204,7 @@ namespace TradeIt.Charts
         private void AdvancedDrawing_MouseMove(object sender, WpfMouseEventArgs e)
         {
             if (_textDrawingActive) return;
-
-            // Ray preview is always horizontal and starts at the first click.
-            if (_activeDrawingTool == TechnicalDrawingTool.Ray)
-            {
-                return;
-            }
-
+            if (_activeDrawingTool == TechnicalDrawingTool.Ray) return;
             if (!IsAdvancedDrawingTool || !TryGetAdvancedPoint(e, out ScottPlot.Coordinates point)) return;
             RemoveAdvancedPreview();
 
@@ -243,7 +235,7 @@ namespace TradeIt.Charts
                 {
                     var target = Midpoint(_advancedDrawingP2.Value, point);
                     _advancedDrawingPreview1 = AddRayThroughPoints(_advancedDrawingP1.Value, target);
-                    _advancedDrawingPreview2 = AddRayThroughPoints(_advancedDrawingP2.Value, target);
+                    _advancedDrawingPreview2 = AddParallelRayThroughPoint(_advancedDrawingP1.Value, target, _advancedDrawingP2.Value);
                 }
             }
             Chart.Refresh();
@@ -308,6 +300,22 @@ namespace TradeIt.Charts
             return AddScatterLine(start.X, start.Y, endX, endY);
         }
 
+        private ScottPlot.Plottables.Scatter AddParallelRayThroughPoint(ScottPlot.Coordinates directionStart, ScottPlot.Coordinates directionThrough, ScottPlot.Coordinates lineStart)
+        {
+            var limits = Chart.Plot.Axes.GetLimits();
+            double dx = directionThrough.X - directionStart.X;
+            double dy = directionThrough.Y - directionStart.Y;
+            if (Math.Abs(dx) < 1e-12)
+            {
+                double endY = dy >= 0 ? limits.Top : limits.Bottom;
+                return AddScatterLine(lineStart.X, lineStart.Y, lineStart.X, endY);
+            }
+
+            double endX = dx >= 0 ? limits.Right : limits.Left;
+            double endY = lineStart.Y + dy / dx * (endX - lineStart.X);
+            return AddScatterLine(lineStart.X, lineStart.Y, endX, endY);
+        }
+
         private void AddRectangleToChart(RectangleDrawing d)
         {
             double left = Math.Min(d.A.X, d.B.X), right = Math.Max(d.A.X, d.B.X);
@@ -330,11 +338,12 @@ namespace TradeIt.Charts
         private void AddPitchforkToChart(PitchforkDrawing d)
         {
             // Standard Andrews Pitchfork:
-            // median = A -> midpoint(B,C); upper/lower tines are parallel through B/C.
+            // median is A -> midpoint(B,C). Both tines are parallel to the median,
+            // starting at B and C respectively.
             var target = Midpoint(d.B, d.C);
             d.MedianLine = AddRayThroughPoints(d.A, target);
-            d.UpperLine = AddRayThroughPoints(d.B, target);
-            d.LowerLine = AddRayThroughPoints(d.C, target);
+            d.UpperLine = AddParallelRayThroughPoint(d.A, target, d.B);
+            d.LowerLine = AddParallelRayThroughPoint(d.A, target, d.C);
         }
     }
 }
