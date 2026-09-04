@@ -57,8 +57,6 @@ namespace TradeIt.Charts
             _advancedDrawingToolsAttached = true;
             DrawingParallelChannelButton.Click += DrawingParallelChannelButton_Click_Advanced;
             DrawingRectangleButton.Click += DrawingRectangleButton_Click_Advanced;
-            // Pitchfork is handled by the XAML direct handler DrawingPitchforkButton_Click_Direct.
-            // Do not attach a second Click handler here because it would reset the first point.
         }
 
         private void DrawingParallelChannelButton_Click_Advanced(object sender, RoutedEventArgs e)
@@ -125,7 +123,6 @@ namespace TradeIt.Charts
                 int index = FindNearestDrawingBarIndex(p.X);
                 if (index < 0) return;
                 p = new ScottPlot.Coordinates(GetDrawingX(index), p.Y);
-
                 AddHorizontalRayToChart(p);
                 ChartInfoTextBlock.Text = $"{_symbol.Symbol} | نیم‌خط افقی رسم شد";
                 e.Handled = true;
@@ -157,8 +154,6 @@ namespace TradeIt.Charts
                 return;
             }
 
-            // Parallel channel: A-B is the base line, C defines the parallel.
-            // Andrews Pitchfork: A is the first pivot, B and C are the next two pivots.
             if (_advancedDrawingP1 == null)
             {
                 _advancedDrawingP1 = point;
@@ -307,8 +302,8 @@ namespace TradeIt.Charts
             double dy = directionThrough.Y - directionStart.Y;
             if (Math.Abs(dx) < 1e-12)
             {
-                double endY = dy >= 0 ? limits.Top : limits.Bottom;
-                return AddScatterLine(lineStart.X, lineStart.Y, lineStart.X, endY);
+                double verticalEndY = dy >= 0 ? limits.Top : limits.Bottom;
+                return AddScatterLine(lineStart.X, lineStart.Y, lineStart.X, verticalEndY);
             }
 
             double endX = dx >= 0 ? limits.Right : limits.Left;
@@ -337,13 +332,10 @@ namespace TradeIt.Charts
 
         private void AddPitchforkToChart(PitchforkDrawing d)
         {
-            // Standard Andrews Pitchfork:
-            // median is A -> midpoint(B,C). Both tines are parallel to the median,
-            // starting at B and C respectively.
             var target = Midpoint(d.B, d.C);
             d.MedianLine = AddRayThroughPoints(d.A, target);
-            d.UpperLine = AddParallelRayThroughPoint(d.A, target, d.B);
-            d.LowerLine = AddParallelRayThroughPoint(d.A, target, d.C);
+            d.UpperLine = AddRayThroughPoints(d.B, target);
+            d.LowerLine = AddRayThroughPoints(d.C, target);
         }
     }
 }
