@@ -31,17 +31,14 @@ namespace TradeIt.Charts
 
         private static bool RegisterUnifiedDrawingInput()
         {
-            EventManager.RegisterClassHandler(
-                typeof(ChartTabView),
-                FrameworkElement.LoadedEvent,
+            EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.LoadedEvent,
                 new RoutedEventHandler(UnifiedDrawing_StaticLoaded));
             return true;
         }
 
         private static void UnifiedDrawing_StaticLoaded(object sender, RoutedEventArgs e)
         {
-            if (sender is ChartTabView chart)
-                chart.AttachUnifiedDrawingInput();
+            if (sender is ChartTabView chart) chart.AttachUnifiedDrawingInput();
         }
 
         private void AttachUnifiedDrawingInput()
@@ -53,10 +50,13 @@ namespace TradeIt.Charts
             DrawingFibRetracementButton.Click += UnifiedDrawing_FibRetracementClick;
             DrawingFibExtensionButton.Click += UnifiedDrawing_FibExtensionClick;
 
+            // Fibonacci must receive chart clicks after TechnicalDrawing's preview handler.
+            Chart.PreviewMouseLeftButtonDown += UnifiedDrawing_ChartLeftMouseDown;
+            Chart.PreviewMouseMove += UnifiedDrawing_ChartMouseMove;
+
             AddHandler(Keyboard.PreviewKeyDownEvent,
                 new System.Windows.Input.KeyEventHandler(UnifiedDrawing_ControlKeyDown), true);
             Chart.PreviewMouseRightButtonDown += UnifiedDrawing_ChartRightMouseDown;
-
             Loaded += UnifiedDrawing_Loaded;
             Unloaded += UnifiedDrawing_Unloaded;
         }
@@ -89,32 +89,26 @@ namespace TradeIt.Charts
                 return;
             }
 
-            if (e.StagingItem.Input is System.Windows.Input.MouseButtonEventArgs mouseButton)
-            {
-                if (mouseButton.ChangedButton == MouseButton.Right)
-                {
-                    if (!IsUnifiedDrawingActive() && !_textDrawingActive) return;
-                    CancelUnifiedDrawing();
-                    mouseButton.Handled = true;
-                    return;
-                }
+            // Do NOT consume left mouse input here. It is handled by the chart routed
+            // events below, which prevents the Fibonacci clicks from being swallowed
+            // before ChartTabView receives them.
+        }
 
-                if (!SourceBelongsToThisChart(mouseButton.OriginalSource as DependencyObject)) return;
-                if (mouseButton.ChangedButton != MouseButton.Left || _textDrawingActive) return;
-                if (!IsUnifiedDrawingActive()) return;
+        private void UnifiedDrawing_ChartLeftMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton != MouseButton.Left || _textDrawingActive) return;
+            if (!IsUnifiedFibonacciActive()) return;
+            if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
+            UnifiedFib_MouseDown(e);
+            e.Handled = true;
+        }
 
-                HandleUnifiedDrawingMouseDown(mouseButton);
-                mouseButton.Handled = true;
-                return;
-            }
-
-            if (e.StagingItem.Input is System.Windows.Input.MouseEventArgs mouse)
-            {
-                if (!SourceBelongsToThisChart(mouse.OriginalSource as DependencyObject)) return;
-                if (_textDrawingActive || !IsUnifiedDrawingActive()) return;
-                HandleUnifiedDrawingMouseMove(mouse);
-                mouse.Handled = true;
-            }
+        private void UnifiedDrawing_ChartMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (_textDrawingActive || !IsUnifiedFibonacciActive()) return;
+            if (_unifiedFibP1 == null) return;
+            UnifiedFib_MouseMove(e);
+            e.Handled = true;
         }
 
         private void UnifiedDrawing_ControlKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -149,42 +143,21 @@ namespace TradeIt.Charts
                 if (ReferenceEquals(current, Chart) || ReferenceEquals(current, this)) return true;
                 current = current is System.Windows.Media.Visual visual
                     ? System.Windows.Media.VisualTreeHelper.GetParent(visual)
-                    : current is FrameworkElement element
-                        ? element.Parent
-                        : current is FrameworkContentElement content
-                            ? content.Parent
-                            : null;
+                    : current is FrameworkElement element ? element.Parent
+                    : current is FrameworkContentElement content ? content.Parent : null;
             }
             return false;
         }
 
+        private bool IsUnifiedFibonacciActive()
+        {
+            int tool = (int)_activeDrawingTool;
+            return tool == UnifiedFibRetracement || tool == UnifiedFibExtension;
+        }
+
         private bool IsUnifiedDrawingActive()
         {
-            int tool = (int)_activeDrawingTool;
-            return _activeDrawingTool == TechnicalDrawingTool.Ray ||
-                   IsAdvancedDrawingTool ||
-                   tool == UnifiedFibRetracement ||
-                   tool == UnifiedFibExtension;
-        }
-
-        private void HandleUnifiedDrawingMouseDown(System.Windows.Input.MouseButtonEventArgs e)
-        {
-            int tool = (int)_activeDrawingTool;
-            if (tool == UnifiedFibRetracement || tool == UnifiedFibExtension)
-            {
-                UnifiedFib_MouseDown(e);
-                return;
-            }
-            AdvancedDrawing_MouseDown(Chart, e);
-        }
-
-        private void HandleUnifiedDrawingMouseMove(System.Windows.Input.MouseEventArgs e)
-        {
-            int tool = (int)_activeDrawingTool;
-            if (tool == UnifiedFibRetracement || tool == UnifiedFibExtension)
-                UnifiedFib_MouseMove(e);
-            else
-                AdvancedDrawing_MouseMove(Chart, e);
+            return _activeDrawingTool == TechnicalDrawingTool.Ray || IsAdvancedDrawingTool || IsUnifiedFibonacciActive();
         }
 
         private void UnifiedDrawing_FibRetracementClick(object sender, RoutedEventArgs e)
@@ -246,12 +219,14 @@ namespace TradeIt.Charts
                 {
                     ChartInfoTextBlock.Text = $"{_symbol.Symbol} | فیبوناچی اکستنشن: نقطه C را کلیک کنید";
                 }
+                Chart.Refresh();
                 return;
             }
 
             DrawUnifiedFibExtension(point);
             ResetUnifiedFibPoints();
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | فیبوناچی اکستنشن رسم شد";
+            Chart.Refresh();
         }
 
         private void UnifiedFib_MouseMove(System.Windows.Input.MouseEventArgs e)
@@ -336,8 +311,7 @@ namespace TradeIt.Charts
 
         private void RemoveFibonacciLines(FibonacciDrawing drawing)
         {
-            foreach (var line in drawing.Lines)
-                Chart.Plot.Remove(line);
+            foreach (var line in drawing.Lines) Chart.Plot.Remove(line);
             drawing.Lines.Clear();
         }
 
