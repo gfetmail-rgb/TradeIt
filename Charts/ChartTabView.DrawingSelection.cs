@@ -59,6 +59,7 @@ namespace TradeIt.Charts
             _selectionDragStart = point;
             _selectionDragging = true;
             Chart.CaptureMouse();
+            Chart.UserInputProcessor.IsEnabled = false;
             e.Handled = true;
             Chart.Refresh();
         }
@@ -83,6 +84,7 @@ namespace TradeIt.Charts
             if (e.ChangedButton != MouseButton.Left || !_selectionDragging) return;
             _selectionDragging = false;
             Chart.ReleaseMouseCapture();
+            Chart.UserInputProcessor.IsEnabled = true;
             e.Handled = true;
         }
 
@@ -317,11 +319,22 @@ namespace TradeIt.Charts
             if (line != null) Chart.Plot.Remove(line);
         }
 
+        private void RemovePlotLine(ScottPlot.Plottables.HorizontalLine? line)
+        {
+            if (line != null) Chart.Plot.Remove(line);
+        }
+
+        private void RemovePlotLine(ScottPlot.Plottables.VerticalLine? line)
+        {
+            if (line != null) Chart.Plot.Remove(line);
+        }
+
         private void ClearDrawingSelection()
         {
             _selectedDrawing = null;
             _selectedDrawingKind = DrawingSelectionKind.None;
             _selectionDragging = false;
+            Chart.UserInputProcessor.IsEnabled = true;
             if (Chart.IsMouseCaptured) Chart.ReleaseMouseCapture();
         }
     }
