@@ -99,6 +99,16 @@ namespace TradeIt.Charts
 
         private void DeleteAllDrawingsButton_Click(object sender, RoutedEventArgs e)
         {
+            var result = System.Windows.MessageBox.Show(
+                "آیا مطمئن هستید که می‌خواهید همه ابزارهای رسم حذف شوند؟",
+                "تأیید حذف همه ابزارهای رسم",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+
+            if (result != MessageBoxResult.Yes)
+                return;
+
             ClearDrawingSelection();
             ClearTextSelection();
 
