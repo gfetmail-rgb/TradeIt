@@ -1,8 +1,8 @@
 using System;
 using System.Windows;
-using System.Windows.Controls;
+using WpfButton = System.Windows.Controls.Button;
 using System.Windows.Input;
-using System.Windows.Media;
+using WpfBrushes = System.Windows.Media.Brushes;
 using System.Windows.Threading;
 
 namespace TradeIt.Charts
@@ -69,7 +69,6 @@ namespace TradeIt.Charts
             {
                 if (!SourceBelongsToThisChart(button.OriginalSource as DependencyObject)) return;
 
-                // Left mouse DOWN: select, or start dragging the already selected object.
                 if (button.ChangedButton == MouseButton.Left &&
                     button.ButtonState == MouseButtonState.Pressed &&
                     _activeDrawingTool == TechnicalDrawingTool.Select && !_textDrawingActive)
@@ -95,8 +94,6 @@ namespace TradeIt.Charts
                     return;
                 }
 
-                // Left mouse UP: second simple click on the selected object deselects it.
-                // A real drag leaves it selected.
                 if (button.ChangedButton == MouseButton.Left &&
                     button.ButtonState == MouseButtonState.Released && _selectionDragging)
                 {
@@ -113,7 +110,6 @@ namespace TradeIt.Charts
                     return;
                 }
 
-                // Right click on a selected object opens its settings instead of cancelling drawing mode.
                 if (button.ChangedButton == MouseButton.Right &&
                     button.ButtonState == MouseButtonState.Pressed &&
                     _activeDrawingTool == TechnicalDrawingTool.Select && !_textDrawingActive &&
@@ -219,12 +215,12 @@ namespace TradeIt.Charts
             SetDrawingButtonVisual(DrawingPitchforkButton, IsAdvancedDrawingTool && (int)_activeDrawingTool == 7);
         }
 
-        private static void SetDrawingButtonVisual(Button button, bool active)
+        private static void SetDrawingButtonVisual(WpfButton button, bool active)
         {
             button.Opacity = active ? 1.0 : 0.55;
-            button.Background = active ? Brushes.DodgerBlue : null;
-            button.Foreground = active ? Brushes.White : null;
-            button.BorderBrush = active ? Brushes.DodgerBlue : null;
+            button.Background = active ? WpfBrushes.DodgerBlue : null;
+            button.Foreground = active ? WpfBrushes.White : null;
+            button.BorderBrush = active ? WpfBrushes.DodgerBlue : null;
             button.BorderThickness = active ? new Thickness(2) : new Thickness(1);
             button.FontWeight = active ? FontWeights.Bold : FontWeights.Normal;
         }
