@@ -18,7 +18,7 @@ namespace TradeIt.Charts
             LineStyle = LineStyle,
             FontFamily = FontFamily,
             FontSize = FontSize,
-            FibonacciLevels = new Dictionary<string, bool>(FibonacciLevels)
+            FibonacciLevels = FibonacciLevels == null ? new Dictionary<string, bool>() : new Dictionary<string, bool>(FibonacciLevels)
         };
     }
 
@@ -49,7 +49,6 @@ namespace TradeIt.Charts
         public string ChartType { get; set; } = "Candlestick";
         public bool ShowTimeGaps { get; set; } = true;
         public bool HasUserSavedSettings { get; set; } = false;
-
         public Dictionary<string, DrawingToolStyle> DrawingToolStyles { get; set; } = CreateDefaultDrawingToolStyles();
 
         public static Dictionary<string, bool> CreateDefaultRetracementLevels() => new()
