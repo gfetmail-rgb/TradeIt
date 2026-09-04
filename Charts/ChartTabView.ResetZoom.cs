@@ -6,15 +6,9 @@ namespace TradeIt.Charts
     {
         private void ResetZoomButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!_hasInitialView) return;
-
-            Chart.Plot.Axes.SetLimits(
-                _initialXMin,
-                _initialXMax,
-                _initialYMin,
-                _initialYMax);
-
-            RenderAllFibonacciDrawings();
+            // Reset must restore the same canonical initial view used when the
+            // chart was opened. Do not redraw/remove plottables here.
+            ApplyInitialCandleRange();
             Chart.Refresh();
         }
     }
