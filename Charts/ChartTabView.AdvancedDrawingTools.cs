@@ -16,25 +16,25 @@ namespace TradeIt.Charts
 
         private sealed class ParallelChannelDrawing
         {
-            public ScottPlot.Coordinates A { get; init; }
-            public ScottPlot.Coordinates B { get; init; }
-            public ScottPlot.Coordinates C { get; init; }
+            public ScottPlot.Coordinates A { get; set; }
+            public ScottPlot.Coordinates B { get; set; }
+            public ScottPlot.Coordinates C { get; set; }
             public ScottPlot.Plottables.Scatter? BaseLine { get; set; }
             public ScottPlot.Plottables.Scatter? ParallelLine { get; set; }
         }
 
         private sealed class RectangleDrawing
         {
-            public ScottPlot.Coordinates A { get; init; }
-            public ScottPlot.Coordinates B { get; init; }
+            public ScottPlot.Coordinates A { get; set; }
+            public ScottPlot.Coordinates B { get; set; }
             public readonly List<ScottPlot.Plottables.Scatter> Lines = new();
         }
 
         private sealed class PitchforkDrawing
         {
-            public ScottPlot.Coordinates A { get; init; }
-            public ScottPlot.Coordinates B { get; init; }
-            public ScottPlot.Coordinates C { get; init; }
+            public ScottPlot.Coordinates A { get; set; }
+            public ScottPlot.Coordinates B { get; set; }
+            public ScottPlot.Coordinates C { get; set; }
             public ScottPlot.Plottables.Scatter? MedianLine { get; set; }
             public ScottPlot.Plottables.Scatter? UpperLine { get; set; }
             public ScottPlot.Plottables.Scatter? LowerLine { get; set; }
@@ -218,8 +218,8 @@ namespace TradeIt.Charts
                     _advancedDrawingPreview1 = AddScatterLine(_advancedDrawingP1.Value.X, _advancedDrawingP1.Value.Y, point.X, point.Y);
                 else
                 {
-                    _advancedDrawingPreview1 = AddLineThroughPoints(_advancedDrawingP1.Value, _advancedDrawingP2.Value);
-                    _advancedDrawingPreview2 = AddParallelLineThroughPoint(_advancedDrawingP1.Value, _advancedDrawingP2.Value, point);
+                    _advancedDrawingPreview1 = AddScatterLine(_advancedDrawingP1.Value.X, _advancedDrawingP1.Value.Y, _advancedDrawingP2.Value.X, _advancedDrawingP2.Value.Y);
+                    _advancedDrawingPreview2 = AddParallelLineSegment(_advancedDrawingP1.Value, _advancedDrawingP2.Value, point);
                 }
             }
             else if ((int)_activeDrawingTool == AdvancedToolPitchfork && _advancedDrawingP1 != null)
@@ -265,22 +265,11 @@ namespace TradeIt.Charts
             AddScatterLine(start.X, start.Y, limits.Right, start.Y);
         }
 
-        private ScottPlot.Plottables.Scatter AddLineThroughPoints(ScottPlot.Coordinates a, ScottPlot.Coordinates b)
+        private ScottPlot.Plottables.Scatter AddParallelLineSegment(ScottPlot.Coordinates a, ScottPlot.Coordinates b, ScottPlot.Coordinates c)
         {
-            var limits = Chart.Plot.Axes.GetLimits();
             double dx = b.X - a.X;
             double dy = b.Y - a.Y;
-            if (Math.Abs(dx) < 1e-12) return AddScatterLine(a.X, limits.Bottom, a.X, limits.Top);
-            return AddScatterLine(limits.Left, a.Y + dy / dx * (limits.Left - a.X), limits.Right, a.Y + dy / dx * (limits.Right - a.X));
-        }
-
-        private ScottPlot.Plottables.Scatter AddParallelLineThroughPoint(ScottPlot.Coordinates a, ScottPlot.Coordinates b, ScottPlot.Coordinates c)
-        {
-            var limits = Chart.Plot.Axes.GetLimits();
-            double dx = b.X - a.X;
-            double dy = b.Y - a.Y;
-            if (Math.Abs(dx) < 1e-12) return AddScatterLine(c.X, limits.Bottom, c.X, limits.Top);
-            return AddScatterLine(limits.Left, c.Y + dy / dx * (limits.Left - c.X), limits.Right, c.Y + dy / dx * (limits.Right - c.X));
+            return AddScatterLine(c.X, c.Y, c.X + dx, c.Y + dy);
         }
 
         private ScottPlot.Plottables.Scatter AddRayThroughPoints(ScottPlot.Coordinates start, ScottPlot.Coordinates through)
@@ -323,8 +312,8 @@ namespace TradeIt.Charts
 
         private void AddParallelChannelToChart(ParallelChannelDrawing d)
         {
-            d.BaseLine = AddLineThroughPoints(d.A, d.B);
-            d.ParallelLine = AddParallelLineThroughPoint(d.A, d.B, d.C);
+            d.BaseLine = AddScatterLine(d.A.X, d.A.Y, d.B.X, d.B.Y);
+            d.ParallelLine = AddParallelLineSegment(d.A, d.B, d.C);
         }
 
         private static ScottPlot.Coordinates Midpoint(ScottPlot.Coordinates a, ScottPlot.Coordinates b) =>
@@ -334,8 +323,8 @@ namespace TradeIt.Charts
         {
             var target = Midpoint(d.B, d.C);
             d.MedianLine = AddRayThroughPoints(d.A, target);
-            d.UpperLine = AddRayThroughPoints(d.B, target);
-            d.LowerLine = AddRayThroughPoints(d.C, target);
+            d.UpperLine = AddParallelRayThroughPoint(d.A, target, d.B);
+            d.LowerLine = AddParallelRayThroughPoint(d.A, target, d.C);
         }
     }
 }
