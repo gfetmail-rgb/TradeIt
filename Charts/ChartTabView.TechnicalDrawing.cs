@@ -54,14 +54,14 @@ namespace TradeIt.Charts
             // cannot prevent the drawing tool from being cancelled.
             Chart.AddHandler(
                 UIElement.PreviewMouseRightButtonDownEvent,
-                new WpfMouseButtonEventHandler(TechnicalDrawing_RightMouseDown),
+                new MouseButtonEventHandler(TechnicalDrawing_RightMouseDown),
                 true);
 
             // ESC must be handled at the chart level (not only on the parent UserControl)
             // because the WpfPlot receives keyboard focus after a drawing tool is selected.
             Chart.AddHandler(
                 UIElement.PreviewKeyDownEvent,
-                new WpfKeyEventHandler(TechnicalDrawing_KeyDown),
+                new KeyEventHandler(TechnicalDrawing_KeyDown),
                 true);
 
             ChartTypeComboBox.SelectionChanged += TechnicalDrawing_ChartTypeChanged;
