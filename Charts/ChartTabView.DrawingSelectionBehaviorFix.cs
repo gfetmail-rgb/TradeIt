@@ -182,7 +182,7 @@ namespace TradeIt.Charts
                 return;
             }
 
-            if (_selectedDrawing == null || !IsPointOnSelectedDrawing(point)) return;
+            if (_selectedDrawing == null || !IsSelectedDrawingAtPoint(point)) return;
 
             var menu = new ContextMenu();
             var deleteItem = new MenuItem { Header = "حذف" };
@@ -190,6 +190,20 @@ namespace TradeIt.Charts
             menu.Items.Add(deleteItem);
             menu.IsOpen = true;
             e.Handled = true;
+        }
+
+        private bool IsSelectedDrawingAtPoint(ScottPlot.Coordinates point)
+        {
+            if (_selectedDrawing == null) return false;
+
+            var candidates = GetDrawingCandidates(point);
+            foreach (var candidate in candidates)
+            {
+                if (candidate.Kind == _selectedDrawingKind && ReferenceEquals(candidate.Drawing, _selectedDrawing))
+                    return true;
+            }
+
+            return false;
         }
     }
 }
