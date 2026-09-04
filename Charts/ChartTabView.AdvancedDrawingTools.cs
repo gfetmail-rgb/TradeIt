@@ -18,7 +18,7 @@ namespace TradeIt.Charts
         {
             public ScottPlot.Coordinates A { get; init; }
             public ScottPlot.Coordinates B { get; init; }
-            public double OffsetY { get; init; }
+            public ScottPlot.Coordinates C { get; init; }
             public ScottPlot.Plottables.Scatter? BaseLine { get; set; }
             public ScottPlot.Plottables.Scatter? ParallelLine { get; set; }
         }
@@ -27,7 +27,7 @@ namespace TradeIt.Charts
         {
             public ScottPlot.Coordinates A { get; init; }
             public ScottPlot.Coordinates B { get; init; }
-            public ScottPlot.Plottables.Scatter? PlotLine { get; set; }
+            public readonly List<ScottPlot.Plottables.Scatter> Lines = new();
         }
 
         private sealed class PitchforkDrawing
@@ -55,20 +55,10 @@ namespace TradeIt.Charts
         {
             if (_advancedDrawingToolsAttached) return;
             _advancedDrawingToolsAttached = true;
-
             DrawingParallelChannelButton.Click += DrawingParallelChannelButton_Click_Advanced;
             DrawingRectangleButton.Click += DrawingRectangleButton_Click_Advanced;
             DrawingPitchforkButton.Click += DrawingPitchforkButton_Click_Advanced;
-
-            // Replace the original left-click/move subscriptions so Ray can be
-            // implemented as a horizontal half-line without changing the
-            // already-working Trend/Horizontal/Vertical tools.
-            Chart.PreviewMouseLeftButtonDown -= TechnicalDrawing_MouseDown;
-            Chart.PreviewMouseMove -= TechnicalDrawing_MouseMove;
-            Chart.PreviewMouseLeftButtonDown += AdvancedDrawing_MouseDown;
-            Chart.PreviewMouseMove += AdvancedDrawing_MouseMove;
-            Chart.PreviewMouseRightButtonDown += AdvancedDrawing_RightMouseDown;
-            Chart.PreviewKeyDown += AdvancedDrawing_KeyDown;
+            // Mouse/keyboard routing is centralized in DrawingEventRouterFix.
         }
 
         private void DrawingParallelChannelButton_Click_Advanced(object sender, RoutedEventArgs e)
@@ -92,10 +82,10 @@ namespace TradeIt.Charts
         private void SetAdvancedDrawingTool(int tool)
         {
             RemoveAdvancedPreview();
-            _advancedDrawingP1 = null;
-            _advancedDrawingP2 = null;
             _horizontalRayStart = null;
             RemoveHorizontalRayPreview();
+            _advancedDrawingP1 = null;
+            _advancedDrawingP2 = null;
             _activeDrawingTool = (TechnicalDrawingTool)tool;
             Chart.UserInputProcessor.IsEnabled = false;
             DrawingParallelChannelButton.Opacity = tool == AdvancedToolParallelChannel ? 1.0 : 0.55;
@@ -115,8 +105,7 @@ namespace TradeIt.Charts
         private bool TryGetAdvancedPoint(WpfMouseEventArgs e, out ScottPlot.Coordinates point)
         {
             point = default;
-            if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates))
-                return false;
+            if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates)) return false;
             int index = FindNearestDrawingBarIndex(coordinates.X);
             if (index < 0) return false;
             point = new ScottPlot.Coordinates(GetDrawingX(index), coordinates.Y);
@@ -124,54 +113,43 @@ namespace TradeIt.Charts
         }
 
         private bool TryGetRawChartPoint(WpfMouseEventArgs e, out ScottPlot.Coordinates point)
-        {
-            point = default;
-            return TryGetChartCoordinates(Chart, e.GetPosition(Chart), out point);
-        }
+            => TryGetChartCoordinates(Chart, e.GetPosition(Chart), out point);
 
         private void AdvancedDrawing_MouseDown(object sender, WpfMouseButtonEventArgs e)
         {
             if (e.ChangedButton != MouseButton.Left || _textDrawingActive) return;
 
-            // Horizontal half-line (Ray): click 1 fixes the start point;
-            // click 2 fixes only the direction. The final line is horizontal
-            // and extends from the start point to the corresponding chart edge.
+            // Ray is ONLY a horizontal half-line.
             if (_activeDrawingTool == TechnicalDrawingTool.Ray)
             {
-                if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates rayPoint)) return;
-                int rayIndex = FindNearestDrawingBarIndex(rayPoint.X);
-                if (rayIndex < 0) return;
-                rayPoint = new ScottPlot.Coordinates(GetDrawingX(rayIndex), rayPoint.Y);
+                if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates p)) return;
+                int index = FindNearestDrawingBarIndex(p.X);
+                if (index < 0) return;
+                p = new ScottPlot.Coordinates(GetDrawingX(index), p.Y);
 
                 if (_horizontalRayStart == null)
                 {
-                    _horizontalRayStart = rayPoint;
+                    _horizontalRayStart = p;
                     ChartInfoTextBlock.Text = $"{_symbol.Symbol} | نیم‌خط افقی: نقطه شروع انتخاب شد؛ جهت را با کلیک دوم مشخص کنید";
                 }
                 else
                 {
-                    double dx = rayPoint.X - _horizontalRayStart.Value.X;
+                    double dx = p.X - _horizontalRayStart.Value.X;
                     if (Math.Abs(dx) < 1e-12) return;
                     AddHorizontalRayToChart(_horizontalRayStart.Value, dx > 0);
                     _horizontalRayStart = null;
                     RemoveHorizontalRayPreview();
                     ChartInfoTextBlock.Text = $"{_symbol.Symbol} | نیم‌خط افقی رسم شد";
                 }
-
                 e.Handled = true;
                 Chart.Refresh();
                 return;
             }
 
-            // Existing tools keep their original implementation.
-            if (!IsAdvancedDrawingTool)
-            {
-                TechnicalDrawing_MouseDown(sender, e);
-                return;
-            }
-
+            if (!IsAdvancedDrawingTool) return;
             if (!TryGetAdvancedPoint(e, out ScottPlot.Coordinates point)) return;
 
+            // Rectangle: exactly two clicks, opposite corners.
             if ((int)_activeDrawingTool == AdvancedToolRectangle)
             {
                 if (_advancedDrawingP1 == null)
@@ -181,9 +159,9 @@ namespace TradeIt.Charts
                 }
                 else
                 {
-                    var drawing = new RectangleDrawing { A = _advancedDrawingP1.Value, B = point };
-                    _drawingRectangles.Add(drawing);
-                    AddRectangleToChart(drawing);
+                    var d = new RectangleDrawing { A = _advancedDrawingP1.Value, B = point };
+                    _drawingRectangles.Add(d);
+                    AddRectangleToChart(d);
                     _advancedDrawingP1 = null;
                     RemoveAdvancedPreview();
                     ChartInfoTextBlock.Text = $"{_symbol.Symbol} | مستطیل رسم شد";
@@ -193,12 +171,13 @@ namespace TradeIt.Charts
                 return;
             }
 
+            // Parallel channel: A-B is the base line, C defines the parallel.
             if (_advancedDrawingP1 == null)
             {
                 _advancedDrawingP1 = point;
                 ChartInfoTextBlock.Text = (int)_activeDrawingTool == AdvancedToolParallelChannel
                     ? $"{_symbol.Symbol} | کانال موازی: نقطه اول خط پایه انتخاب شد"
-                    : $"{_symbol.Symbol} | چنگال: نقطه اول انتخاب شد؛ نقطه دوم را کلیک کنید";
+                    : $"{_symbol.Symbol} | چنگال اندروز: نقطه A انتخاب شد؛ نقطه B را کلیک کنید";
                 e.Handled = true;
                 return;
             }
@@ -207,35 +186,24 @@ namespace TradeIt.Charts
             {
                 _advancedDrawingP2 = point;
                 ChartInfoTextBlock.Text = (int)_activeDrawingTool == AdvancedToolParallelChannel
-                    ? $"{_symbol.Symbol} | کانال موازی: نقطه دوم خط پایه انتخاب شد؛ نقطه سوم را برای فاصله کانال کلیک کنید"
-                    : $"{_symbol.Symbol} | چنگال: نقطه دوم انتخاب شد؛ نقطه سوم را کلیک کنید";
+                    ? $"{_symbol.Symbol} | کانال موازی: نقطه دوم خط پایه انتخاب شد؛ نقطه سوم را برای فاصله کلیک کنید"
+                    : $"{_symbol.Symbol} | چنگال اندروز: نقطه B انتخاب شد؛ نقطه C را کلیک کنید";
                 e.Handled = true;
                 return;
             }
 
             if ((int)_activeDrawingTool == AdvancedToolParallelChannel)
             {
-                double offset = point.Y - _advancedDrawingP2.Value.Y;
-                var drawing = new ParallelChannelDrawing
-                {
-                    A = _advancedDrawingP1.Value,
-                    B = _advancedDrawingP2.Value,
-                    OffsetY = offset
-                };
-                _parallelChannels.Add(drawing);
-                AddParallelChannelToChart(drawing);
+                var d = new ParallelChannelDrawing { A = _advancedDrawingP1.Value, B = _advancedDrawingP2.Value, C = point };
+                _parallelChannels.Add(d);
+                AddParallelChannelToChart(d);
                 ChartInfoTextBlock.Text = $"{_symbol.Symbol} | کانال موازی رسم شد";
             }
             else
             {
-                var drawing = new PitchforkDrawing
-                {
-                    A = _advancedDrawingP1.Value,
-                    B = _advancedDrawingP2.Value,
-                    C = point
-                };
-                _pitchforks.Add(drawing);
-                AddPitchforkToChart(drawing);
+                var d = new PitchforkDrawing { A = _advancedDrawingP1.Value, B = _advancedDrawingP2.Value, C = point };
+                _pitchforks.Add(d);
+                AddPitchforkToChart(d);
                 ChartInfoTextBlock.Text = $"{_symbol.Symbol} | چنگال اندروز رسم شد";
             }
 
@@ -252,27 +220,21 @@ namespace TradeIt.Charts
 
             if (_activeDrawingTool == TechnicalDrawingTool.Ray)
             {
-                if (_horizontalRayStart == null || !TryGetRawChartPoint(e, out ScottPlot.Coordinates rayPoint)) return;
-                double dx = rayPoint.X - _horizontalRayStart.Value.X;
+                if (_horizontalRayStart == null || !TryGetRawChartPoint(e, out ScottPlot.Coordinates p)) return;
+                double dx = p.X - _horizontalRayStart.Value.X;
                 if (Math.Abs(dx) < 1e-12) return;
                 RemoveHorizontalRayPreview();
                 var limits = Chart.Plot.Axes.GetLimits();
                 double endX = dx > 0 ? limits.Right : limits.Left;
                 _horizontalRayPreview = AddScatterLine(_horizontalRayStart.Value.X, _horizontalRayStart.Value.Y, endX, _horizontalRayStart.Value.Y);
-                ChartInfoTextBlock.Text = $"{_symbol.Symbol} | نیم‌خط افقی: جهت را انتخاب کنید";
+                ChartInfoTextBlock.Text = $"{_symbol.Symbol} | نیم‌خط افقی: سمت {(dx > 0 ? "راست" : "چپ")}";
                 Chart.Refresh();
                 return;
             }
 
-            if (!IsAdvancedDrawingTool)
-            {
-                TechnicalDrawing_MouseMove(sender, e);
-                return;
-            }
-
-            if (!TryGetAdvancedPoint(e, out ScottPlot.Coordinates point)) return;
-
+            if (!IsAdvancedDrawingTool || !TryGetAdvancedPoint(e, out ScottPlot.Coordinates point)) return;
             RemoveAdvancedPreview();
+
             if ((int)_activeDrawingTool == AdvancedToolRectangle && _advancedDrawingP1 != null)
             {
                 double left = Math.Min(_advancedDrawingP1.Value.X, point.X);
@@ -288,9 +250,8 @@ namespace TradeIt.Charts
                     _advancedDrawingPreview1 = AddScatterLine(_advancedDrawingP1.Value.X, _advancedDrawingP1.Value.Y, point.X, point.Y);
                 else
                 {
-                    double offset = point.Y - _advancedDrawingP2.Value.Y;
-                    _advancedDrawingPreview1 = AddInfiniteDirectionLine(_advancedDrawingP1.Value, _advancedDrawingP2.Value, 0);
-                    _advancedDrawingPreview2 = AddInfiniteDirectionLine(_advancedDrawingP1.Value, _advancedDrawingP2.Value, offset);
+                    _advancedDrawingPreview1 = AddLineThroughPoints(_advancedDrawingP1.Value, _advancedDrawingP2.Value);
+                    _advancedDrawingPreview2 = AddParallelLineThroughPoint(_advancedDrawingP1.Value, _advancedDrawingP2.Value, point);
                 }
             }
             else if ((int)_activeDrawingTool == AdvancedToolPitchfork && _advancedDrawingP1 != null)
@@ -299,34 +260,12 @@ namespace TradeIt.Charts
                     _advancedDrawingPreview1 = AddScatterLine(_advancedDrawingP1.Value.X, _advancedDrawingP1.Value.Y, point.X, point.Y);
                 else
                 {
-                    var median = Midpoint(_advancedDrawingP2.Value, point);
-                    _advancedDrawingPreview1 = AddInfiniteDirectionLine(_advancedDrawingP1.Value, median, 0);
-                    _advancedDrawingPreview2 = AddInfiniteDirectionLine(_advancedDrawingP2.Value, median, 0);
+                    var target = Midpoint(_advancedDrawingP2.Value, point);
+                    _advancedDrawingPreview1 = AddRayThroughPoints(_advancedDrawingP1.Value, target);
+                    _advancedDrawingPreview2 = AddRayThroughPoints(_advancedDrawingP2.Value, target);
                 }
             }
             Chart.Refresh();
-        }
-
-        private void AdvancedDrawing_RightMouseDown(object sender, WpfMouseButtonEventArgs e)
-        {
-            if (e.ChangedButton != MouseButton.Right) return;
-            if (_activeDrawingTool == TechnicalDrawingTool.Ray || IsAdvancedDrawingTool)
-            {
-                _horizontalRayStart = null;
-                RemoveHorizontalRayPreview();
-                RemoveAdvancedPreview();
-            }
-        }
-
-        private void AdvancedDrawing_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
-        {
-            if (e.Key != Key.Escape) return;
-            if (_activeDrawingTool == TechnicalDrawingTool.Ray || IsAdvancedDrawingTool)
-            {
-                _horizontalRayStart = null;
-                RemoveHorizontalRayPreview();
-                RemoveAdvancedPreview();
-            }
         }
 
         private void RemoveAdvancedPreview()
@@ -355,35 +294,53 @@ namespace TradeIt.Charts
         private void AddHorizontalRayToChart(ScottPlot.Coordinates start, bool toRight)
         {
             var limits = Chart.Plot.Axes.GetLimits();
-            double endX = toRight ? limits.Right : limits.Left;
-            AddScatterLine(start.X, start.Y, endX, start.Y);
+            AddScatterLine(start.X, start.Y, toRight ? limits.Right : limits.Left, start.Y);
         }
 
-        private ScottPlot.Plottables.Scatter AddInfiniteDirectionLine(ScottPlot.Coordinates a, ScottPlot.Coordinates b, double offsetY)
+        private ScottPlot.Plottables.Scatter AddLineThroughPoints(ScottPlot.Coordinates a, ScottPlot.Coordinates b)
         {
             var limits = Chart.Plot.Axes.GetLimits();
             double dx = b.X - a.X;
+            double dy = b.Y - a.Y;
+            if (Math.Abs(dx) < 1e-12) return AddScatterLine(a.X, limits.Bottom, a.X, limits.Top);
+            return AddScatterLine(limits.Left, a.Y + dy / dx * (limits.Left - a.X), limits.Right, a.Y + dy / dx * (limits.Right - a.X));
+        }
+
+        private ScottPlot.Plottables.Scatter AddParallelLineThroughPoint(ScottPlot.Coordinates a, ScottPlot.Coordinates b, ScottPlot.Coordinates c)
+        {
+            var limits = Chart.Plot.Axes.GetLimits();
+            double dx = b.X - a.X;
+            double dy = b.Y - a.Y;
+            if (Math.Abs(dx) < 1e-12) return AddScatterLine(c.X, limits.Bottom, c.X, limits.Top);
+            return AddScatterLine(limits.Left, c.Y + dy / dx * (limits.Left - c.X), limits.Right, c.Y + dy / dx * (limits.Right - c.X));
+        }
+
+        private ScottPlot.Plottables.Scatter AddRayThroughPoints(ScottPlot.Coordinates start, ScottPlot.Coordinates through)
+        {
+            var limits = Chart.Plot.Axes.GetLimits();
+            double dx = through.X - start.X;
+            double dy = through.Y - start.Y;
             if (Math.Abs(dx) < 1e-12)
-                return AddScatterLine(a.X, a.Y + offsetY, a.X, limits.Top);
-            double y1 = a.Y + offsetY;
-            double y2 = y1 + (b.Y - a.Y) / dx * (limits.Right - a.X);
-            return AddScatterLine(a.X, y1, limits.Right, y2);
+                return AddScatterLine(start.X, start.Y, start.X, dy >= 0 ? limits.Top : limits.Bottom);
+            double endX = dx >= 0 ? limits.Right : limits.Left;
+            double endY = start.Y + dy / dx * (endX - start.X);
+            return AddScatterLine(start.X, start.Y, endX, endY);
         }
 
         private void AddRectangleToChart(RectangleDrawing d)
         {
             double left = Math.Min(d.A.X, d.B.X), right = Math.Max(d.A.X, d.B.X);
             double bottom = Math.Min(d.A.Y, d.B.Y), top = Math.Max(d.A.Y, d.B.Y);
-            d.PlotLine = AddScatterLine(left, bottom, right, bottom);
-            AddScatterLine(right, bottom, right, top);
-            AddScatterLine(right, top, left, top);
-            AddScatterLine(left, top, left, bottom);
+            d.Lines.Add(AddScatterLine(left, bottom, right, bottom));
+            d.Lines.Add(AddScatterLine(right, bottom, right, top));
+            d.Lines.Add(AddScatterLine(right, top, left, top));
+            d.Lines.Add(AddScatterLine(left, top, left, bottom));
         }
 
         private void AddParallelChannelToChart(ParallelChannelDrawing d)
         {
-            d.BaseLine = AddInfiniteDirectionLine(d.A, d.B, 0);
-            d.ParallelLine = AddInfiniteDirectionLine(d.A, d.B, d.OffsetY);
+            d.BaseLine = AddLineThroughPoints(d.A, d.B);
+            d.ParallelLine = AddParallelLineThroughPoint(d.A, d.B, d.C);
         }
 
         private static ScottPlot.Coordinates Midpoint(ScottPlot.Coordinates a, ScottPlot.Coordinates b) =>
@@ -391,10 +348,10 @@ namespace TradeIt.Charts
 
         private void AddPitchforkToChart(PitchforkDrawing d)
         {
-            var median = Midpoint(d.B, d.C);
-            d.MedianLine = AddInfiniteDirectionLine(d.A, median, 0);
-            d.UpperLine = AddInfiniteDirectionLine(d.B, median, 0);
-            d.LowerLine = AddInfiniteDirectionLine(d.C, median, 0);
+            var target = Midpoint(d.B, d.C);
+            d.MedianLine = AddRayThroughPoints(d.A, target);
+            d.UpperLine = AddRayThroughPoints(d.B, target);
+            d.LowerLine = AddRayThroughPoints(d.C, target);
         }
     }
 }
