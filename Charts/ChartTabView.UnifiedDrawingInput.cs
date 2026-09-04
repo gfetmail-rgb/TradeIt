@@ -25,6 +25,14 @@ namespace TradeIt.Charts
             DrawingFibRetracementButton.Click += UnifiedDrawing_FibRetracementClick;
             DrawingFibExtensionButton.Click += UnifiedDrawing_FibExtensionClick;
 
+            // Use direct routed handlers as well as PreProcessInput. ScottPlot has its own
+            // input processor and can consume mouse/keyboard input before the normal
+            // drawing handlers see it. These handlers are intentionally limited to the
+            // cancellation actions.
+            AddHandler(Keyboard.PreviewKeyDownEvent,
+                new System.Windows.Input.KeyEventHandler(UnifiedDrawing_ControlKeyDown), true);
+            Chart.PreviewMouseRightButtonDown += UnifiedDrawing_ChartRightMouseDown;
+
             Loaded += UnifiedDrawing_Loaded;
             Unloaded += UnifiedDrawing_Unloaded;
         }
@@ -52,9 +60,6 @@ namespace TradeIt.Charts
             {
                 if (key.Key != Key.Escape && key.Key != Key.Cancel) return;
                 if (!IsUnifiedDrawingActive() && !_textDrawingActive) return;
-
-                // Escape must cancel the active drawing regardless of which WPF control
-                // currently owns keyboard focus (toolbar, chart, text box, etc.).
                 CancelUnifiedDrawing();
                 key.Handled = true;
                 return;
@@ -65,10 +70,6 @@ namespace TradeIt.Charts
                 if (mouseButton.ChangedButton == MouseButton.Right)
                 {
                     if (!IsUnifiedDrawingActive() && !_textDrawingActive) return;
-
-                    // Right-click is the drawing cancel action. Do not require the event
-                    // source to be inside the chart because ScottPlot/WPF may change the
-                    // original source while the drawing tool has the input path active.
                     CancelUnifiedDrawing();
                     mouseButton.Handled = true;
                     return;
@@ -90,6 +91,22 @@ namespace TradeIt.Charts
                 HandleUnifiedDrawingMouseMove(mouse);
                 mouse.Handled = true;
             }
+        }
+
+        private void UnifiedDrawing_ControlKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key != Key.Escape && e.Key != Key.Cancel) return;
+            if (!IsUnifiedDrawingActive() && !_textDrawingActive) return;
+            CancelUnifiedDrawing();
+            e.Handled = true;
+        }
+
+        private void UnifiedDrawing_ChartRightMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton != MouseButton.Right) return;
+            if (!IsUnifiedDrawingActive() && !_textDrawingActive) return;
+            CancelUnifiedDrawing();
+            e.Handled = true;
         }
 
         private void UnifiedDrawing_WindowKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
