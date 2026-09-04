@@ -1,5 +1,6 @@
 using System.Windows;
-using System.Windows.Media;
+using WpfBrushes = System.Windows.Media.Brushes;
+using WpfSystemColors = System.Windows.SystemColors;
 
 namespace TradeIt.Charts
 {
@@ -39,8 +40,8 @@ namespace TradeIt.Charts
             button.Opacity = active ? 1.0 : 0.55;
             button.BorderThickness = active ? new Thickness(2) : new Thickness(1);
             button.BorderBrush = active
-                ? Brushes.DodgerBlue
-                : SystemColors.ControlDarkBrush;
+                ? WpfBrushes.DodgerBlue
+                : WpfSystemColors.ControlDarkBrush;
             button.FontWeight = active ? FontWeights.Bold : FontWeights.Normal;
         }
     }
