@@ -27,6 +27,23 @@ namespace TradeIt.Charts
         private ScottPlot.Coordinates? _unifiedFibP2;
         private ScottPlot.Plottables.Scatter? _unifiedFibPreview;
 
+        private static readonly bool _unifiedDrawingInputRegistered = RegisterUnifiedDrawingInput();
+
+        private static bool RegisterUnifiedDrawingInput()
+        {
+            EventManager.RegisterClassHandler(
+                typeof(ChartTabView),
+                FrameworkElement.LoadedEvent,
+                new RoutedEventHandler(UnifiedDrawing_StaticLoaded));
+            return true;
+        }
+
+        private static void UnifiedDrawing_StaticLoaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is ChartTabView chart)
+                chart.AttachUnifiedDrawingInput();
+        }
+
         private void AttachUnifiedDrawingInput()
         {
             if (_unifiedDrawingInputAttached) return;
