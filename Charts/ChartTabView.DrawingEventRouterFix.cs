@@ -28,7 +28,7 @@ namespace TradeIt.Charts
             AddHandler(UIElement.PreviewMouseRightButtonDownEvent,
                 new MouseButtonEventHandler(DrawingRouter_RightDown), true);
             AddHandler(Keyboard.PreviewKeyDownEvent,
-                new KeyEventHandler(DrawingRouter_KeyDown), true);
+                new System.Windows.Input.KeyEventHandler(DrawingRouter_KeyDown), true);
 
             _drawingRouterWindow = Window.GetWindow(this);
             if (_drawingRouterWindow != null)
@@ -36,7 +36,7 @@ namespace TradeIt.Charts
                 _drawingRouterWindow.PreviewKeyDown += DrawingRouter_KeyDown;
                 _drawingRouterWindow.AddHandler(
                     Keyboard.PreviewKeyDownEvent,
-                    new KeyEventHandler(DrawingRouter_KeyDown), true);
+                    new System.Windows.Input.KeyEventHandler(DrawingRouter_KeyDown), true);
             }
 
             Unloaded += DrawingRouter_Unloaded;
