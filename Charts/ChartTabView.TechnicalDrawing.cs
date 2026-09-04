@@ -46,6 +46,14 @@ namespace TradeIt.Charts
                 return;
 
             _technicalDrawingEventsAttached = true;
+
+            // The previous implementation initialized mouse/key handlers but did not
+            // connect the toolbar buttons to their handlers. Consequently clicking
+            // the horizontal-line button never changed the active drawing tool.
+            DrawingSelectButton.Click += DrawingSelectButton_Click;
+            DrawingTrendLineButton.Click += DrawingTrendLineButton_Click;
+            DrawingHorizontalLineButton.Click += DrawingHorizontalLineButton_Click;
+
             Chart.AddHandler(UIElement.PreviewMouseLeftButtonDownEvent,
                 new WpfMouseButtonEventHandler(TechnicalDrawing_MouseDown), true);
             Chart.AddHandler(UIElement.PreviewMouseMoveEvent,
