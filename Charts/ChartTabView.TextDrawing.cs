@@ -55,6 +55,8 @@ namespace TradeIt.Charts
             string? text = ShowTextInputDialog();
             if (string.IsNullOrWhiteSpace(text))
             {
+                _textDrawingActive = false;
+                Chart.UserInputProcessor.IsEnabled = true;
                 ChartInfoTextBlock.Text = $"{_symbol.Symbol} | متن لغو شد";
                 e.Handled = true;
                 return;
@@ -63,6 +65,8 @@ namespace TradeIt.Charts
             var drawing = new TextDrawing { Text = text.Trim(), X = coordinates.X, Y = coordinates.Y };
             _textDrawings.Add(drawing);
             AddTextToChart(drawing);
+            _textDrawingActive = false;
+            Chart.UserInputProcessor.IsEnabled = true;
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | متن درج شد";
             Chart.Refresh();
             e.Handled = true;
