@@ -33,7 +33,7 @@ namespace TradeIt.Charts
                 new System.Windows.Input.MouseButtonEventHandler(DrawingCursor_RightMouseDown), true);
         }
 
-        private void SetDrawingCursor(Cursor cursor)
+        private void SetDrawingCursor(System.Windows.Input.Cursor cursor)
         {
             Cursor = cursor;
             Chart.Cursor = cursor;
@@ -62,8 +62,6 @@ namespace TradeIt.Charts
             e.Handled = true;
             _textDrawingActive = false;
 
-            // Do not activate TechnicalDrawingTool.Ray: its legacy two-click handler
-            // would intercept the same mouse event. The replacement below is one-click.
             _activeDrawingTool = TechnicalDrawingTool.Select;
             Chart.UserInputProcessor.IsEnabled = false;
             _horizontalRayFixActive = true;
