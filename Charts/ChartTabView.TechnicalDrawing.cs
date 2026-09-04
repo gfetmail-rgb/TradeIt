@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+
 using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
+using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
+using WpfPoint = System.Windows.Point;
 
 namespace TradeIt.Charts
 {
@@ -90,7 +93,7 @@ namespace TradeIt.Charts
             DrawingTrendLineButton.Opacity = _activeDrawingTool == TechnicalDrawingTool.TrendLine ? 1.0 : 0.55;
         }
 
-        private void TechnicalDrawing_MouseDown(object sender, MouseButtonEventArgs e)
+        private void TechnicalDrawing_MouseDown(object sender, WpfMouseButtonEventArgs e)
         {
             if (_activeDrawingTool != TechnicalDrawingTool.TrendLine || e.ChangedButton != MouseButton.Left)
                 return;
@@ -152,7 +155,7 @@ namespace TradeIt.Charts
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند: نقطه دوم را انتخاب کنید | قیمت: {coordinates.Y:N2}";
         }
 
-        private void TechnicalDrawing_RightMouseDown(object sender, MouseButtonEventArgs e)
+        private void TechnicalDrawing_RightMouseDown(object sender, WpfMouseButtonEventArgs e)
         {
             if (e.ChangedButton != MouseButton.Right)
                 return;
