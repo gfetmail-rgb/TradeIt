@@ -2,7 +2,6 @@ using System.Windows;
 using System.Windows.Input;
 using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
-using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
 
 namespace TradeIt.Charts
 {
@@ -16,15 +15,10 @@ namespace TradeIt.Charts
             if (_drawingCancelFixAttached) return;
             _drawingCancelFixAttached = true;
 
-            // Handle cancellation directly on the chart as well as on the
-            // UserControl. ScottPlot can consume mouse/keyboard input at the
-            // chart level, so relying only on the parent routed event is not
-            // sufficient.
             Chart.PreviewMouseRightButtonDown += DrawingCancelFix_RightMouseDown;
             PreviewMouseRightButtonDown += DrawingCancelFix_RightMouseDown;
             Chart.PreviewKeyDown += DrawingCancelFix_KeyDown;
             PreviewKeyDown += DrawingCancelFix_KeyDown;
-            Chart.PreviewMouseMove += DrawingCancelFix_MouseMove;
 
             _drawingHostWindow = Window.GetWindow(this);
             if (_drawingHostWindow != null)
@@ -42,7 +36,6 @@ namespace TradeIt.Charts
             PreviewMouseRightButtonDown -= DrawingCancelFix_RightMouseDown;
             Chart.PreviewKeyDown -= DrawingCancelFix_KeyDown;
             PreviewKeyDown -= DrawingCancelFix_KeyDown;
-            Chart.PreviewMouseMove -= DrawingCancelFix_MouseMove;
 
             if (_drawingHostWindow != null)
                 _drawingHostWindow.PreviewKeyDown -= DrawingCancelFix_KeyDown;
@@ -55,6 +48,12 @@ namespace TradeIt.Charts
             if (e.ChangedButton != MouseButton.Right) return;
             if (_activeDrawingTool == TechnicalDrawingTool.Select && !_textDrawingActive) return;
 
+            _horizontalRayStart = null;
+            RemoveHorizontalRayPreview();
+            RemoveAdvancedPreview();
+            _advancedDrawingP1 = null;
+            _advancedDrawingP2 = null;
+
             CancelDrawingMode();
             e.Handled = true;
         }
@@ -64,16 +63,14 @@ namespace TradeIt.Charts
             if (e.Key != Key.Escape) return;
             if (_activeDrawingTool == TechnicalDrawingTool.Select && !_textDrawingActive) return;
 
+            _horizontalRayStart = null;
+            RemoveHorizontalRayPreview();
+            RemoveAdvancedPreview();
+            _advancedDrawingP1 = null;
+            _advancedDrawingP2 = null;
+
             CancelDrawingMode();
             e.Handled = true;
-        }
-
-        private void DrawingCancelFix_MouseMove(object sender, WpfMouseEventArgs e)
-        {
-            if (_textDrawingActive) return;
-            if (_activeDrawingTool != TechnicalDrawingTool.Ray) return;
-
-            TechnicalDrawing_MouseMove(sender, e);
         }
     }
 }
