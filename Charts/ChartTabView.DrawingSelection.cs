@@ -225,7 +225,7 @@ namespace TradeIt.Charts
             return false;
         }
 
-        private static bool IsPointOnRectangle(ScottPlot.Coordinates point, RectangleDrawing d, double tolerance)
+        private bool IsPointOnRectangle(ScottPlot.Coordinates point, RectangleDrawing d, double tolerance)
         {
             GetRectangleCorners(d, out var tl, out var tr, out var br, out var bl);
             if (DistancePointToSegment(point, tl, tr) <= tolerance ||
@@ -370,13 +370,13 @@ namespace TradeIt.Charts
             _selectedDrawing = null;
             _selectedDrawingKind = DrawingSelectionKind.None;
             _selectionDragging = false;
-            _activeDrawingHandle = null;
             _selectionCycleIndex = -1;
             _selectionCycleCount = 0;
             _lastSelectionX = double.NaN;
             _lastSelectionY = double.NaN;
+            _activeDrawingHandle = null;
+            Chart.ReleaseMouseCapture();
             Chart.UserInputProcessor.IsEnabled = true;
-            if (Chart.IsMouseCaptured) Chart.ReleaseMouseCapture();
             Chart.Refresh();
         }
     }
