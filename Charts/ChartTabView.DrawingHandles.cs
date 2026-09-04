@@ -47,7 +47,7 @@ namespace TradeIt.Charts
         private void RenderDrawingSelectionOverlay()
         {
             ClearDrawingSelectionVisuals();
-            if (_selectedDrawing == null) return;
+            if (_selectedDrawing == null || !_allDrawingsVisible) return;
 
             ScottPlot.Color color = ScottPlot.Color.FromHtml(SelectedDrawingColor);
             foreach (var line in GetSelectedDrawingOverlayLines())
@@ -126,8 +126,8 @@ namespace TradeIt.Charts
                         var d = (PitchforkDrawing)_selectedDrawing;
                         var target = Midpoint(d.B, d.C);
                         AddSelectionRay(result, d.A, target, limits);
-                        AddSelectionRay(result, d.B, target, limits);
-                        AddSelectionRay(result, d.C, target, limits);
+                        AddSelectionParallelRay(result, d.A, target, d.B, limits);
+                        AddSelectionParallelRay(result, d.A, target, d.C, limits);
                         break;
                     }
                 case DrawingSelectionKind.Fibonacci:
@@ -161,6 +161,22 @@ namespace TradeIt.Charts
         {
             GetRayEnd(start.X, start.Y, through.X, through.Y, limits, out double endX, out double endY);
             lines.Add(AddSelectionLine(start.X, start.Y, endX, endY));
+        }
+
+        private void AddSelectionParallelRay(List<ScottPlot.Plottables.Scatter> lines, ScottPlot.Coordinates directionStart, ScottPlot.Coordinates directionThrough, ScottPlot.Coordinates lineStart, ScottPlot.AxisLimits limits)
+        {
+            double dx = directionThrough.X - directionStart.X;
+            double dy = directionThrough.Y - directionStart.Y;
+            if (Math.Abs(dx) < 1e-12)
+            {
+                double endY = dy >= 0 ? limits.Top : limits.Bottom;
+                lines.Add(AddSelectionLine(lineStart.X, lineStart.Y, lineStart.X, endY));
+                return;
+            }
+
+            double endX = dx >= 0 ? limits.Right : limits.Left;
+            double endY2 = lineStart.Y + dy / dx * (endX - lineStart.X);
+            lines.Add(AddSelectionLine(lineStart.X, lineStart.Y, endX, endY2));
         }
 
         private static void GetRayEnd(double x1, double y1, double x2, double y2, ScottPlot.AxisLimits limits, out double endX, out double endY)
