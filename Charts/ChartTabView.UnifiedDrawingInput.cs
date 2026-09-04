@@ -2,7 +2,6 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Interop;
 
 namespace TradeIt.Charts
 {
@@ -48,13 +47,9 @@ namespace TradeIt.Charts
         {
             if (e.StagingItem.Input is KeyEventArgs key)
             {
-                if (key.Key != Key.Escape && key.Key != Key.Cancel)
-                    return;
-                if (!IsUnifiedDrawingActive() && !_textDrawingActive)
-                    return;
-                if (!SourceBelongsToThisChart(key.OriginalSource as DependencyObject))
-                    return;
-
+                if (key.Key != Key.Escape && key.Key != Key.Cancel) return;
+                if (!IsUnifiedDrawingActive() && !_textDrawingActive) return;
+                if (!SourceBelongsToThisChart(key.OriginalSource as DependencyObject)) return;
                 CancelUnifiedDrawing();
                 key.Handled = true;
                 return;
@@ -62,24 +57,18 @@ namespace TradeIt.Charts
 
             if (e.StagingItem.Input is MouseButtonEventArgs mouseButton)
             {
-                if (!SourceBelongsToThisChart(mouseButton.OriginalSource as DependencyObject))
-                    return;
+                if (!SourceBelongsToThisChart(mouseButton.OriginalSource as DependencyObject)) return;
 
                 if (mouseButton.ChangedButton == MouseButton.Right)
                 {
-                    if (!IsUnifiedDrawingActive() && !_textDrawingActive)
-                        return;
-
+                    if (!IsUnifiedDrawingActive() && !_textDrawingActive) return;
                     CancelUnifiedDrawing();
                     mouseButton.Handled = true;
                     return;
                 }
 
-                if (mouseButton.ChangedButton != MouseButton.Left || _textDrawingActive)
-                    return;
-
-                if (!IsUnifiedDrawingActive())
-                    return;
+                if (mouseButton.ChangedButton != MouseButton.Left || _textDrawingActive) return;
+                if (!IsUnifiedDrawingActive()) return;
 
                 HandleUnifiedDrawingMouseDown(mouseButton);
                 mouseButton.Handled = true;
@@ -88,11 +77,8 @@ namespace TradeIt.Charts
 
             if (e.StagingItem.Input is MouseEventArgs mouse)
             {
-                if (!SourceBelongsToThisChart(mouse.OriginalSource as DependencyObject))
-                    return;
-                if (_textDrawingActive || !IsUnifiedDrawingActive())
-                    return;
-
+                if (!SourceBelongsToThisChart(mouse.OriginalSource as DependencyObject)) return;
+                if (_textDrawingActive || !IsUnifiedDrawingActive()) return;
                 HandleUnifiedDrawingMouseMove(mouse);
                 mouse.Handled = true;
             }
@@ -100,11 +86,8 @@ namespace TradeIt.Charts
 
         private void UnifiedDrawing_WindowKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key != Key.Escape && e.Key != Key.Cancel)
-                return;
-            if (!IsUnifiedDrawingActive() && !_textDrawingActive)
-                return;
-
+            if (e.Key != Key.Escape && e.Key != Key.Cancel) return;
+            if (!IsUnifiedDrawingActive() && !_textDrawingActive) return;
             CancelUnifiedDrawing();
             e.Handled = true;
         }
@@ -114,20 +97,14 @@ namespace TradeIt.Charts
             DependencyObject? current = source;
             while (current != null)
             {
-                if (ReferenceEquals(current, Chart))
-                    return true;
-                if (ReferenceEquals(current, this))
-                    return true;
-
+                if (ReferenceEquals(current, Chart) || ReferenceEquals(current, this)) return true;
                 current = current is System.Windows.Media.Visual visual
                     ? System.Windows.Media.VisualTreeHelper.GetParent(visual)
-                    : current is System.Windows.Media.Media3D.Visual3D visual3D
-                        ? System.Windows.Media.MediaTreeHelper.GetParent(visual3D)
-                        : current is FrameworkElement element
-                            ? element.Parent
-                            : current is FrameworkContentElement content
-                                ? content.Parent
-                                : null;
+                    : current is FrameworkElement element
+                        ? element.Parent
+                        : current is FrameworkContentElement content
+                            ? content.Parent
+                            : null;
             }
             return false;
         }
@@ -144,23 +121,17 @@ namespace TradeIt.Charts
         private void HandleUnifiedDrawingMouseDown(MouseButtonEventArgs e)
         {
             int tool = (int)_activeDrawingTool;
-
             if (tool == UnifiedFibRetracement || tool == UnifiedFibExtension)
             {
                 UnifiedFib_MouseDown(e);
                 return;
             }
-
-            // These tools have their complete geometry/state machine in
-            // AdvancedDrawingTools.cs. The crucial point is that this is now
-            // invoked before the old Chart.PreviewMouseLeftButtonDown bridge.
             AdvancedDrawing_MouseDown(Chart, e);
         }
 
         private void HandleUnifiedDrawingMouseMove(MouseEventArgs e)
         {
             int tool = (int)_activeDrawingTool;
-
             if (tool == UnifiedFibRetracement || tool == UnifiedFibExtension)
                 UnifiedFib_MouseMove(e);
             else
@@ -201,9 +172,7 @@ namespace TradeIt.Charts
 
         private void UnifiedFib_MouseDown(MouseButtonEventArgs e)
         {
-            if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates point))
-                return;
-
+            if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
             point = SnapUnifiedFibPoint(point);
 
             if (_unifiedFibP1 == null)
@@ -238,9 +207,7 @@ namespace TradeIt.Charts
 
         private void UnifiedFib_MouseMove(MouseEventArgs e)
         {
-            if (_unifiedFibP1 == null || !TryGetRawChartPoint(e, out ScottPlot.Coordinates point))
-                return;
-
+            if (_unifiedFibP1 == null || !TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
             RemoveUnifiedFibPreview();
             point = SnapUnifiedFibPoint(point);
             var limits = Chart.Plot.Axes.GetLimits();
@@ -253,25 +220,20 @@ namespace TradeIt.Charts
             }
             else if (_unifiedFibP2 == null)
             {
-                _unifiedFibPreview = AddScatterLine(
-                    _unifiedFibP1.Value.X, _unifiedFibP1.Value.Y,
-                    point.X, point.Y);
+                _unifiedFibPreview = AddScatterLine(_unifiedFibP1.Value.X, _unifiedFibP1.Value.Y, point.X, point.Y);
             }
             else
             {
                 double y = point.Y + (_unifiedFibP2.Value.Y - _unifiedFibP1.Value.Y);
                 _unifiedFibPreview = AddScatterLine(limits.Left, y, limits.Right, y);
             }
-
             Chart.Refresh();
         }
 
         private ScottPlot.Coordinates SnapUnifiedFibPoint(ScottPlot.Coordinates point)
         {
             int index = FindNearestDrawingBarIndex(point.X);
-            return index >= 0
-                ? new ScottPlot.Coordinates(GetDrawingX(index), point.Y)
-                : point;
+            return index >= 0 ? new ScottPlot.Coordinates(GetDrawingX(index), point.Y) : point;
         }
 
         private void DrawUnifiedFibRetracement()
@@ -307,8 +269,7 @@ namespace TradeIt.Charts
 
         private void RemoveUnifiedFibPreview()
         {
-            if (_unifiedFibPreview != null)
-                Chart.Plot.Remove(_unifiedFibPreview);
+            if (_unifiedFibPreview != null) Chart.Plot.Remove(_unifiedFibPreview);
             _unifiedFibPreview = null;
         }
 
@@ -333,8 +294,7 @@ namespace TradeIt.Charts
             DrawingFibRetracementButton.Opacity = 0.55;
             DrawingFibExtensionButton.Opacity = 0.55;
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | رسم ابزار لغو شد";
-            if (refresh)
-                Chart.Refresh();
+            if (refresh) Chart.Refresh();
         }
     }
 }
