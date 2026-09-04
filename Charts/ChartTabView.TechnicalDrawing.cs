@@ -6,6 +6,7 @@ using System.Windows.Threading;
 
 using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
 using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
+using WpfMouseButtonEventHandler = System.Windows.Input.MouseButtonEventHandler;
 using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
 using WpfPoint = System.Windows.Point;
 
@@ -43,33 +44,22 @@ namespace TradeIt.Charts
         private bool _technicalDrawingEventsAttached;
         private bool _suppressContextMenuAfterCancel;
 
-        private static readonly bool _technicalDrawingRegistered = RegisterTechnicalDrawingHandling();
-
-        private static bool RegisterTechnicalDrawingHandling()
+        private void InitializeTechnicalDrawingHandling()
         {
-            EventManager.RegisterClassHandler(
-                typeof(ChartTabView),
-                FrameworkElement.LoadedEvent,
-                new RoutedEventHandler(TechnicalDrawing_Loaded));
-            return true;
-        }
-
-        private static void TechnicalDrawing_Loaded(object sender, RoutedEventArgs e)
-        {
-            if (sender is not ChartTabView chart || chart._technicalDrawingEventsAttached)
+            if (_technicalDrawingEventsAttached)
                 return;
 
-            chart._technicalDrawingEventsAttached = true;
-            chart.Chart.PreviewMouseLeftButtonDown += chart.TechnicalDrawing_MouseDown;
-            chart.Chart.PreviewMouseMove += chart.TechnicalDrawing_MouseMove;
-            chart.Chart.AddHandler(
+            _technicalDrawingEventsAttached = true;
+            Chart.PreviewMouseLeftButtonDown += TechnicalDrawing_MouseDown;
+            Chart.PreviewMouseMove += TechnicalDrawing_MouseMove;
+            Chart.AddHandler(
                 UIElement.PreviewMouseRightButtonDownEvent,
-                new MouseButtonEventHandler(chart.TechnicalDrawing_RightMouseDown),
+                new WpfMouseButtonEventHandler(TechnicalDrawing_RightMouseDown),
                 true);
-            chart.KeyDown += chart.TechnicalDrawing_KeyDown;
-            chart.ChartTypeComboBox.SelectionChanged += chart.TechnicalDrawing_ChartTypeChanged;
-            ChartSettingsManager.SettingsChanged += chart.TechnicalDrawing_SettingsChanged;
-            chart.UpdateTechnicalDrawingButtons();
+            KeyDown += TechnicalDrawing_KeyDown;
+            ChartTypeComboBox.SelectionChanged += TechnicalDrawing_ChartTypeChanged;
+            ChartSettingsManager.SettingsChanged += TechnicalDrawing_SettingsChanged;
+            UpdateTechnicalDrawingButtons();
         }
 
         private void DrawingSelectButton_Click(object sender, RoutedEventArgs e)
