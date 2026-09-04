@@ -36,7 +36,7 @@ namespace TradeIt.Charts
         private void AttachDrawingToolSettingsMenu(System.Windows.Controls.Button button, string key, string title)
         {
             button.Click += (_, _) => ActivateDrawingToolStyle(key);
-            button.AddHandler(UIElement.PreviewMouseRightButtonDownEvent, new MouseButtonEventHandler((_, e) => { ShowDrawingToolSettings(key, title); e.Handled = true; }), true);
+            button.AddHandler(UIElement.PreviewMouseRightButtonDownEvent, new System.Windows.Input.MouseButtonEventHandler((_, e) => { ShowDrawingToolSettings(key, title); e.Handled = true; }), true);
         }
 
         private void ActivateDrawingToolStyle(string key)
@@ -60,7 +60,9 @@ namespace TradeIt.Charts
         {
             "Dash" => ScottPlot.LinePattern.Dashed,
             "Dot" => ScottPlot.LinePattern.Dotted,
-            "DashDot" => ScottPlot.LinePattern.DashDot,
+            // ScottPlot 5 version used by TradeIt has no DashDot member.
+            // Keep DashDot as a persisted UI option and render it with dashed lines.
+            "DashDot" => ScottPlot.LinePattern.Dashed,
             _ => ScottPlot.LinePattern.Solid
         };
 
@@ -68,20 +70,20 @@ namespace TradeIt.Charts
         {
             DrawingToolStyle current = GetDrawingToolStyle(key).Clone();
             DrawingToolStyle defaults = ChartSettings.CreateDefaultDrawingToolStyles()[key];
-            var window = new Window { Title = $"تنظیمات {title}", Width = 360, Height = 265, WindowStartupLocation = WindowStartupLocation.CenterOwner, ResizeMode = ResizeMode.NoResize, FlowDirection = FlowDirection.RightToLeft, Owner = Window.GetWindow(this) };
-            var colorBox = new TextBox { Text = current.Color, Margin = new Thickness(6), Height = 30 };
-            var widthBox = new TextBox { Text = current.LineWidth.ToString("0.##", CultureInfo.InvariantCulture), Margin = new Thickness(6), Height = 30 };
-            var styleBox = new ComboBox { Margin = new Thickness(6), Height = 30 };
+            var window = new Window { Title = $"تنظیمات {title}", Width = 360, Height = 265, WindowStartupLocation = WindowStartupLocation.CenterOwner, ResizeMode = ResizeMode.NoResize, FlowDirection = System.Windows.FlowDirection.RightToLeft, Owner = Window.GetWindow(this) };
+            var colorBox = new System.Windows.Controls.TextBox { Text = current.Color, Margin = new Thickness(6), Height = 30 };
+            var widthBox = new System.Windows.Controls.TextBox { Text = current.LineWidth.ToString("0.##", CultureInfo.InvariantCulture), Margin = new Thickness(6), Height = 30 };
+            var styleBox = new System.Windows.Controls.ComboBox { Margin = new Thickness(6), Height = 30 };
             styleBox.Items.Add("Solid"); styleBox.Items.Add("Dash"); styleBox.Items.Add("Dot"); styleBox.Items.Add("DashDot"); styleBox.SelectedItem = current.LineStyle;
-            var form = new Grid { Margin = new Thickness(10) };
-            for (int i = 0; i < 3; i++) form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            form.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var form = new System.Windows.Controls.Grid { Margin = new Thickness(10) };
+            for (int i = 0; i < 3; i++) form.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+            form.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); form.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
             AddSettingRow(form, 0, "رنگ (HEX)", colorBox); AddSettingRow(form, 1, "ضخامت", widthBox); AddSettingRow(form, 2, "استایل", styleBox);
-            var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
+            var buttons = new System.Windows.Controls.StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, HorizontalAlignment = System.Windows.HorizontalAlignment.Center };
             var defaultButton = new System.Windows.Controls.Button { Content = "پیش‌فرض", Width = 85, Height = 30, Margin = new Thickness(4) };
             var cancelButton = new System.Windows.Controls.Button { Content = "لغو", Width = 75, Height = 30, Margin = new Thickness(4), IsCancel = true };
             var applyButton = new System.Windows.Controls.Button { Content = "اعمال", Width = 75, Height = 30, Margin = new Thickness(4), IsDefault = true };
-            buttons.Children.Add(defaultButton); buttons.Children.Add(cancelButton); buttons.Children.Add(applyButton); Grid.SetRow(buttons, 4); form.Children.Add(buttons); window.Content = form;
+            buttons.Children.Add(defaultButton); buttons.Children.Add(cancelButton); buttons.Children.Add(applyButton); System.Windows.Controls.Grid.SetRow(buttons, 4); form.Children.Add(buttons); window.Content = form;
             defaultButton.Click += (_, _) => { colorBox.Text = defaults.Color; widthBox.Text = defaults.LineWidth.ToString("0.##", CultureInfo.InvariantCulture); styleBox.SelectedItem = defaults.LineStyle; };
             applyButton.Click += (_, _) =>
             {
@@ -95,9 +97,9 @@ namespace TradeIt.Charts
             window.ShowDialog();
         }
 
-        private static void AddSettingRow(Grid grid, int row, string label, System.Windows.Controls.Control control)
+        private static void AddSettingRow(System.Windows.Controls.Grid grid, int row, string label, System.Windows.Controls.Control control)
         {
-            var panel = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 2, 0, 2) }; var text = new TextBlock { Text = label, Width = 95, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4) }; DockPanel.SetDock(text, Dock.Left); panel.Children.Add(text); panel.Children.Add(control); Grid.SetRow(panel, row); grid.Children.Add(panel);
+            var panel = new System.Windows.Controls.DockPanel { LastChildFill = true, Margin = new Thickness(0, 2, 0, 2) }; var text = new System.Windows.Controls.TextBlock { Text = label, Width = 95, VerticalAlignment = System.Windows.VerticalAlignment.Center, Margin = new Thickness(4) }; System.Windows.Controls.DockPanel.SetDock(text, System.Windows.Controls.Dock.Left); panel.Children.Add(text); panel.Children.Add(control); System.Windows.Controls.Grid.SetRow(panel, row); grid.Children.Add(panel);
         }
 
         private void ApplyDrawingToolStyle(string key)
