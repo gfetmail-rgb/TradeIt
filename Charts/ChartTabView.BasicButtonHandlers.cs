@@ -90,6 +90,14 @@ namespace TradeIt.Charts
             if (_textSelectionHandle != null)
                 _textSelectionHandle.IsVisible = _allDrawingsVisible;
 
+            if (_measurementLine != null)
+                _measurementLine.IsVisible = _allDrawingsVisible;
+            if (_measurementLabel != null)
+                _measurementLabel.IsVisible = _allDrawingsVisible;
+
+            foreach (var drawing in _arrowDrawings)
+                if (drawing.PlotArrow != null) drawing.PlotArrow.IsVisible = _allDrawingsVisible && _arrowsVisible;
+
             HideAllDrawingsButton.Content = _allDrawingsVisible ? "🙈" : "👁";
             HideAllDrawingsButton.ToolTip = _allDrawingsVisible
                 ? "پنهان کردن همه ابزارهای رسم"
@@ -149,6 +157,13 @@ namespace TradeIt.Charts
             foreach (var drawing in _textDrawings)
                 if (drawing.PlotText != null) Chart.Plot.Remove(drawing.PlotText);
 
+            foreach (var drawing in _arrowDrawings)
+                if (drawing.PlotArrow != null) Chart.Plot.Remove(drawing.PlotArrow);
+
+            if (_measurementPreview != null) Chart.Plot.Remove(_measurementPreview);
+            if (_measurementLine != null) Chart.Plot.Remove(_measurementLine);
+            if (_measurementLabel != null) Chart.Plot.Remove(_measurementLabel);
+
             _trendLines.Clear();
             _horizontalLines.Clear();
             _verticalLines.Clear();
@@ -158,6 +173,24 @@ namespace TradeIt.Charts
             _pitchforks.Clear();
             _fibonacciDrawings.Clear();
             _textDrawings.Clear();
+            _arrowDrawings.Clear();
+            _measurementPreview = null;
+            _measurementLine = null;
+            _measurementLabel = null;
+            _measurementStart = null;
+            _measurementLastPoint = null;
+            _pendingArrowStart = null;
+            _arrowDrawingActive = false;
+            _arrowsVisible = true;
+            ClearArrowSelection();
+            if ((int)_activeDrawingTool == 10 || (int)_activeDrawingTool == 11)
+            {
+                _activeDrawingTool = TechnicalDrawingTool.Select;
+                Chart.UserInputProcessor.IsEnabled = true;
+                SetArrowButtonVisual(false);
+                SetMeasurementButtonVisual(false);
+                UpdateTechnicalDrawingButtons();
+            }
 
             _allDrawingsVisible = true;
             HideAllDrawingsButton.Content = "🙈";
