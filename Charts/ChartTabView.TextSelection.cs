@@ -26,9 +26,11 @@ namespace TradeIt.Charts
 
         private bool IsPointOnTextDrawing(ScottPlot.Coordinates point, TextDrawing drawing)
         {
-            double tolerance = GetTextHitTolerance();
-            return Math.Abs(point.X - drawing.X) <= tolerance &&
-                   Math.Abs(point.Y - drawing.Y) <= tolerance;
+            ScottPlot.Pixel mousePixel = Chart.Plot.GetPixel(point);
+            ScottPlot.Pixel textPixel = Chart.Plot.GetPixel(new ScottPlot.Coordinates(drawing.X, drawing.Y));
+            double dx = mousePixel.X - textPixel.X;
+            double dy = mousePixel.Y - textPixel.Y;
+            return Math.Sqrt(dx * dx + dy * dy) <= GetTextHitTolerance();
         }
 
         private bool IsPointOnSelectedText(ScottPlot.Coordinates point)
@@ -36,15 +38,7 @@ namespace TradeIt.Charts
             return _textSelection != null && IsPointOnTextDrawing(point, _textSelection);
         }
 
-        private double GetTextHitTolerance()
-        {
-            var limits = Chart.Plot.Axes.GetLimits();
-            double width = Math.Max(1.0, Chart.ActualWidth);
-            double height = Math.Max(1.0, Chart.ActualHeight);
-            double tx = Math.Abs(limits.Right - limits.Left) * 30.0 / width;
-            double ty = Math.Abs(limits.Top - limits.Bottom) * 30.0 / height;
-            return Math.Max(tx, ty);
-        }
+        private double GetTextHitTolerance() => 10.0;
 
         private bool TryGetTextSelectionHandle(ScottPlot.Coordinates point, out bool hit)
         {
