@@ -108,7 +108,7 @@ namespace TradeIt.Charts
             }
         }
 
-        private void DrawingSelectionBehaviorFix_MouseMove(object sender, MouseEventArgs e)
+        private void DrawingSelectionBehaviorFix_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             if (_textSelectionDragging && e.LeftButton == MouseButtonState.Pressed)
             {
