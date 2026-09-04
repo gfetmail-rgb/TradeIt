@@ -260,9 +260,12 @@ namespace TradeIt.Charts
             RemoveFibonacciLines(drawing);
             var style = GetDrawingToolStyle(drawing.IsExtension ? "FibonacciExtension" : "FibonacciRetracement");
             double ab = drawing.B.Y - drawing.A.Y;
+
+            // Keep this list in sync with the levels offered by the settings dialog.
+            // The previous implementation omitted the newly added extension/retracement levels.
             string[] levels = drawing.IsExtension
-                ? new[] { "0.0", "38.2", "61.8", "100.0", "127.2", "161.8", "261.8" }
-                : new[] { "0.0", "23.6", "38.2", "50.0", "61.8", "78.6", "100.0" };
+                ? new[] { "0.0", "38.2", "61.8", "100.0", "127.2", "161.8", "200.0", "261.8" }
+                : new[] { "0.0", "23.6", "38.2", "50.0", "61.8", "78.6", "100.0", "127.2", "161.8", "200.0" };
 
             double endX = drawing.IsExtension ? drawing.C.X : drawing.B.X;
             double left = Math.Min(drawing.A.X, endX);
