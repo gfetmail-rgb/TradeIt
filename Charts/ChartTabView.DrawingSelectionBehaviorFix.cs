@@ -132,54 +132,5 @@ namespace TradeIt.Charts
             menu.IsOpen = true;
             e.Handled = true;
         }
-
-        private bool IsPointOnSelectedDrawing(ScottPlot.Coordinates point)
-        {
-            if (_selectedDrawing == null) return false;
-            double tolerance = GetDrawingHitTolerance();
-
-            switch (_selectedDrawingKind)
-            {
-                case DrawingSelectionKind.Fibonacci:
-                    return DistanceToFibonacci(point, (FibonacciDrawing)_selectedDrawing) <= tolerance;
-                case DrawingSelectionKind.Pitchfork:
-                    return DistanceToPitchfork(point, (PitchforkDrawing)_selectedDrawing) <= tolerance;
-                case DrawingSelectionKind.ParallelChannel:
-                    {
-                        var d = (ParallelChannelDrawing)_selectedDrawing;
-                        return DistancePointToSegment(point, d.A, d.B) <= tolerance ||
-                               DistancePointToSegment(point, d.C,
-                                   new ScottPlot.Coordinates(d.C.X + d.B.X - d.A.X, d.C.Y + d.B.Y - d.A.Y)) <= tolerance;
-                    }
-                case DrawingSelectionKind.Rectangle:
-                    {
-                        var d = (RectangleDrawing)_selectedDrawing;
-                        double left = Math.Min(d.A.X, d.B.X), right = Math.Max(d.A.X, d.B.X);
-                        double bottom = Math.Min(d.A.Y, d.B.Y), top = Math.Max(d.A.Y, d.B.Y);
-                        return DistancePointToSegment(point, new ScottPlot.Coordinates(left, bottom), new ScottPlot.Coordinates(right, bottom)) <= tolerance ||
-                               DistancePointToSegment(point, new ScottPlot.Coordinates(right, bottom), new ScottPlot.Coordinates(right, top)) <= tolerance ||
-                               DistancePointToSegment(point, new ScottPlot.Coordinates(right, top), new ScottPlot.Coordinates(left, top)) <= tolerance ||
-                               DistancePointToSegment(point, new ScottPlot.Coordinates(left, top), new ScottPlot.Coordinates(left, bottom)) <= tolerance;
-                    }
-                case DrawingSelectionKind.Ray:
-                    {
-                        var d = (RayDrawing)_selectedDrawing;
-                        return DistanceToRay(point, d.X1, d.Y1, d.X2, d.Y2) <= tolerance;
-                    }
-                case DrawingSelectionKind.TrendLine:
-                    {
-                        var d = (TrendLineDrawing)_selectedDrawing;
-                        return DistancePointToSegment(point,
-                            new ScottPlot.Coordinates(d.X1, d.Y1),
-                            new ScottPlot.Coordinates(d.X2, d.Y2)) <= tolerance;
-                    }
-                case DrawingSelectionKind.HorizontalLine:
-                    return Math.Abs(point.Y - ((HorizontalLineDrawing)_selectedDrawing).Y) <= tolerance;
-                case DrawingSelectionKind.VerticalLine:
-                    return Math.Abs(point.X - ((VerticalLineDrawing)_selectedDrawing).X) <= tolerance;
-                default:
-                    return false;
-            }
-        }
     }
 }
