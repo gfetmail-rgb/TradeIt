@@ -33,7 +33,10 @@ namespace TradeIt.Charts
         {
             _unifiedDrawingWindow = Window.GetWindow(this);
             if (_unifiedDrawingWindow != null)
+            {
+                _unifiedDrawingWindow.PreviewKeyDown -= UnifiedDrawing_WindowKeyDown;
                 _unifiedDrawingWindow.PreviewKeyDown += UnifiedDrawing_WindowKeyDown;
+            }
         }
 
         private void UnifiedDrawing_Unloaded(object sender, RoutedEventArgs e)
@@ -49,7 +52,9 @@ namespace TradeIt.Charts
             {
                 if (key.Key != Key.Escape && key.Key != Key.Cancel) return;
                 if (!IsUnifiedDrawingActive() && !_textDrawingActive) return;
-                if (!SourceBelongsToThisChart(key.OriginalSource as DependencyObject)) return;
+
+                // Escape must cancel the active drawing regardless of which WPF control
+                // currently owns keyboard focus (toolbar, chart, text box, etc.).
                 CancelUnifiedDrawing();
                 key.Handled = true;
                 return;
@@ -57,16 +62,19 @@ namespace TradeIt.Charts
 
             if (e.StagingItem.Input is System.Windows.Input.MouseButtonEventArgs mouseButton)
             {
-                if (!SourceBelongsToThisChart(mouseButton.OriginalSource as DependencyObject)) return;
-
                 if (mouseButton.ChangedButton == MouseButton.Right)
                 {
                     if (!IsUnifiedDrawingActive() && !_textDrawingActive) return;
+
+                    // Right-click is the drawing cancel action. Do not require the event
+                    // source to be inside the chart because ScottPlot/WPF may change the
+                    // original source while the drawing tool has the input path active.
                     CancelUnifiedDrawing();
                     mouseButton.Handled = true;
                     return;
                 }
 
+                if (!SourceBelongsToThisChart(mouseButton.OriginalSource as DependencyObject)) return;
                 if (mouseButton.ChangedButton != MouseButton.Left || _textDrawingActive) return;
                 if (!IsUnifiedDrawingActive()) return;
 
