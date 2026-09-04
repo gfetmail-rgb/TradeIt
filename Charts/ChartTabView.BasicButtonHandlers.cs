@@ -90,7 +90,69 @@ namespace TradeIt.Charts
             if (_textSelectionHandle != null)
                 _textSelectionHandle.IsVisible = _allDrawingsVisible;
 
-            HideAllDrawingsButton.Content = _allDrawingsVisible ? "پنهان کردن همه" : "نمایش همه";
+            HideAllDrawingsButton.Content = _allDrawingsVisible ? "🙈" : "👁";
+            HideAllDrawingsButton.ToolTip = _allDrawingsVisible
+                ? "پنهان کردن همه ابزارهای رسم"
+                : "نمایش همه ابزارهای رسم";
+            Chart.Refresh();
+        }
+
+        private void DeleteAllDrawingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            ClearDrawingSelection();
+            ClearTextSelection();
+
+            foreach (var drawing in _trendLines)
+                if (drawing.PlotLine != null) Chart.Plot.Remove(drawing.PlotLine);
+            foreach (var drawing in _horizontalLines)
+                if (drawing.PlotLine != null) Chart.Plot.Remove(drawing.PlotLine);
+            foreach (var drawing in _verticalLines)
+                if (drawing.PlotLine != null) Chart.Plot.Remove(drawing.PlotLine);
+            foreach (var drawing in _rays)
+                if (drawing.PlotLine != null) Chart.Plot.Remove(drawing.PlotLine);
+
+            foreach (var drawing in _parallelChannels)
+            {
+                if (drawing.BaseLine != null) Chart.Plot.Remove(drawing.BaseLine);
+                if (drawing.ParallelLine != null) Chart.Plot.Remove(drawing.ParallelLine);
+            }
+
+            foreach (var drawing in _drawingRectangles)
+                foreach (var line in drawing.Lines)
+                    Chart.Plot.Remove(line);
+
+            foreach (var drawing in _pitchforks)
+            {
+                if (drawing.MedianLine != null) Chart.Plot.Remove(drawing.MedianLine);
+                if (drawing.UpperLine != null) Chart.Plot.Remove(drawing.UpperLine);
+                if (drawing.LowerLine != null) Chart.Plot.Remove(drawing.LowerLine);
+            }
+
+            foreach (var drawing in _fibonacciDrawings)
+            {
+                foreach (var line in drawing.Lines)
+                    Chart.Plot.Remove(line);
+                foreach (var label in drawing.Labels)
+                    Chart.Plot.Remove(label);
+            }
+
+            foreach (var drawing in _textDrawings)
+                if (drawing.PlotText != null) Chart.Plot.Remove(drawing.PlotText);
+
+            _trendLines.Clear();
+            _horizontalLines.Clear();
+            _verticalLines.Clear();
+            _rays.Clear();
+            _parallelChannels.Clear();
+            _drawingRectangles.Clear();
+            _pitchforks.Clear();
+            _fibonacciDrawings.Clear();
+            _textDrawings.Clear();
+
+            _allDrawingsVisible = true;
+            HideAllDrawingsButton.Content = "🙈";
+            HideAllDrawingsButton.ToolTip = "پنهان کردن همه ابزارهای رسم";
+            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | همه ابزارهای رسم حذف شدند";
             Chart.Refresh();
         }
 
