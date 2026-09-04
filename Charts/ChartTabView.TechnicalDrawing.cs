@@ -26,6 +26,7 @@ namespace TradeIt.Charts
         private readonly List<TrendLineDrawing> _trendLines = new();
         private TechnicalDrawingTool _activeDrawingTool = TechnicalDrawingTool.Select;
         private ScottPlot.Coordinates? _trendLineStart;
+        private ScottPlot.Plottables.Scatter? _trendLinePreview;
         private bool _technicalDrawingEventsAttached;
 
         private static readonly bool _technicalDrawingRegistered = RegisterTechnicalDrawingHandling();
@@ -67,6 +68,7 @@ namespace TradeIt.Charts
 
         private void SetTechnicalDrawingTool(TechnicalDrawingTool tool)
         {
+            RemoveTrendLinePreview();
             _activeDrawingTool = tool;
             _trendLineStart = null;
             Chart.ReleaseMouseCapture();
@@ -95,33 +97,9 @@ namespace TradeIt.Charts
 
             double x = GetDrawingX(index);
             double y = coordinates.Y;
-            var point = new ScottPlot.Coordinates(x, y);
-
-            if (_trendLineStart == null)
-            {
-                _trendLineStart = point;
-                ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند: نقطه اول انتخاب شد";
-                e.Handled = true;
-                return;
-            }
-
-            if (Math.Abs(point.X - _trendLineStart.Value.X) < 1e-12 &&
-                Math.Abs(point.Y - _trendLineStart.Value.Y) < 1e-12)
-                return;
-
-            var drawing = new TrendLineDrawing
-            {
-                X1 = _trendLineStart.Value.X,
-                Y1 = _trendLineStart.Value.Y,
-                X2 = point.X,
-                Y2 = point.Y
-            };
-
-            _trendLines.Add(drawing);
-            AddTrendLineToChart(drawing);
-            _trendLineStart = null;
-            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند رسم شد";
-            Chart.Refresh();
+            _trendLineStart = new ScottPlot.Coordinates(x, y);
+            Chart.CaptureMouse();
+            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند: درگ کنید تا نقطه دوم مشخص شود";
             e.Handled = true;
         }
 
@@ -137,25 +115,83 @@ namespace TradeIt.Charts
             if (index < 0)
                 return;
 
-            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند: نقطه دوم را انتخاب کنید | قیمت: {coordinates.Y:N2}";
+            var end = new ScottPlot.Coordinates(GetDrawingX(index), coordinates.Y);
+            RenderTrendLinePreview(end);
+            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند: نقطه دوم | قیمت: {coordinates.Y:N2}";
+            e.Handled = true;
         }
 
         private void TechnicalDrawing_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            if (_activeDrawingTool == TechnicalDrawingTool.TrendLine &&
-                e.ChangedButton == MouseButton.Left &&
-                _trendLineStart != null)
+            if (_activeDrawingTool != TechnicalDrawingTool.TrendLine ||
+                e.ChangedButton != MouseButton.Left ||
+                _trendLineStart == null)
+                return;
+
+            if (TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates))
             {
-                e.Handled = true;
+                int index = FindNearestDrawingBarIndex(coordinates.X);
+                if (index >= 0)
+                {
+                    var end = new ScottPlot.Coordinates(GetDrawingX(index), coordinates.Y);
+                    if (Math.Abs(end.X - _trendLineStart.Value.X) > 1e-12 ||
+                        Math.Abs(end.Y - _trendLineStart.Value.Y) > 1e-12)
+                    {
+                        var drawing = new TrendLineDrawing
+                        {
+                            X1 = _trendLineStart.Value.X,
+                            Y1 = _trendLineStart.Value.Y,
+                            X2 = end.X,
+                            Y2 = end.Y
+                        };
+
+                        _trendLines.Add(drawing);
+                        AddTrendLineToChart(drawing);
+                        ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند رسم شد";
+                    }
+                }
             }
+
+            RemoveTrendLinePreview();
+            _trendLineStart = null;
+            Chart.ReleaseMouseCapture();
+            Chart.Refresh();
+            e.Handled = true;
+        }
+
+        private void RenderTrendLinePreview(ScottPlot.Coordinates end)
+        {
+            if (_trendLineStart == null)
+                return;
+
+            RemoveTrendLinePreview();
+            _trendLinePreview = Chart.Plot.Add.ScatterLine(
+                new[] { _trendLineStart.Value.X, end.X },
+                new[] { _trendLineStart.Value.Y, end.Y });
+            _trendLinePreview.MarkerSize = 0;
+            _trendLinePreview.LineWidth = (float)Math.Max(1.0, _settings.LineWidth);
+            _trendLinePreview.LineColor = ScottPlot.Color.FromHtml(_settings.LineColor);
+            Chart.Refresh();
+        }
+
+        private void RemoveTrendLinePreview()
+        {
+            if (_trendLinePreview == null)
+                return;
+
+            Chart.Plot.Remove(_trendLinePreview);
+            _trendLinePreview = null;
         }
 
         private void TechnicalDrawing_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
             if (e.Key == Key.Escape && _activeDrawingTool == TechnicalDrawingTool.TrendLine)
             {
+                RemoveTrendLinePreview();
                 _trendLineStart = null;
+                Chart.ReleaseMouseCapture();
                 ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند: لغو شد";
+                Chart.Refresh();
                 e.Handled = true;
             }
         }
@@ -229,6 +265,8 @@ namespace TradeIt.Charts
 
         private void RenderTechnicalDrawings()
         {
+            RemoveTrendLinePreview();
+
             foreach (TrendLineDrawing drawing in _trendLines)
             {
                 if (drawing.PlotLine != null)
