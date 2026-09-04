@@ -52,6 +52,7 @@ namespace TradeIt.Charts
             SubscribeToSettingsChanges();
             ChartTypeComboBox.SelectedIndex = 0;
             ConfigureInteraction();
+            InitializeTechnicalDrawingHandling();
             Chart.PreviewMouseWheel += Chart_PreviewMouseWheel;
             Chart.PreviewMouseLeftButtonDown += Chart_PreviewMouseLeftButtonDown;
             Chart.PreviewMouseMove += Chart_PreviewMouseMove;
@@ -258,84 +259,3 @@ namespace TradeIt.Charts
             {
                 Chart.Plot.Axes.AutoScale();
                 ApplyInitial365ViewAfterAutoScale();
-            }
-            else
-            {
-                Chart.Plot.Axes.SetLimits(currentLimits.Left, currentLimits.Right, currentLimits.Bottom, currentLimits.Top);
-            }
-
-            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | {_bars.Count:N0} داده";
-            if (_crosshair != null) _crosshair.IsVisible = _crosshairVisible && _chartVisible && (_crosshairMouseInside || !_hasInitialView);
-            Chart.Refresh();
-        }
-
-        private void ApplyInitial365ViewAfterAutoScale()
-        {
-            const int visibleCount = 365;
-            int firstIndex = Math.Max(0, _bars.Count - visibleCount);
-            int lastIndex = _bars.Count - 1;
-
-            double firstX = GetBarDateTime(_bars[firstIndex], firstIndex).ToOADate();
-            double lastX = GetBarDateTime(_bars[lastIndex], lastIndex).ToOADate();
-            if (!double.IsFinite(firstX) || !double.IsFinite(lastX) || lastX < firstX)
-            {
-                SaveInitialView();
-                return;
-            }
-
-            // Keep the Y range produced by AutoScale(), but restrict the initial
-            // X range to the latest 365 candles. The complete history remains in
-            // _bars and is still reachable by pan/zoom.
-            var autoLimits = Chart.Plot.Axes.GetLimits();
-            const double candleHalfWidthDays = 0.5;
-            Chart.Plot.Axes.SetLimits(
-                firstX - candleHalfWidthDays,
-                lastX + candleHalfWidthDays,
-                autoLimits.Bottom,
-                autoLimits.Top);
-
-            AutoFitVisiblePriceRange();
-            SaveInitialView();
-        }
-
-        private void DrawCandlestick()
-        {
-            var candles = new List<ScottPlot.OHLC>(); for (int i = 0; i < _bars.Count; i++) { MarketBar bar = _bars[i]; DateTime time = GetBarDateTime(bar, i); candles.Add(new ScottPlot.OHLC(bar.Open, bar.High, bar.Low, bar.Close, time, TimeSpan.FromDays(1))); }
-            var candlePlot = Chart.Plot.Add.Candlestick(candles); candlePlot.RisingColor = ScottPlot.Color.FromHtml(_settings.RisingColor); candlePlot.FallingColor = ScottPlot.Color.FromHtml(_settings.FallingColor); Chart.Plot.Axes.DateTimeTicksBottom();
-        }
-        private void DrawLine()
-        {
-            var points = new List<(double X, double Y)>(); for (int i = 0; i < _bars.Count; i++) { MarketBar bar = _bars[i]; if (!bar.Timestamp.HasValue || bar.Timestamp.Value <= DateTime.MinValue || bar.Timestamp.Value >= DateTime.MaxValue) continue; double x = bar.Timestamp.Value.ToOADate(), y = bar.Close; if (!double.IsFinite(x) || !double.IsFinite(y)) continue; points.Add((x, y)); }
-            if (points.Count == 0) return; points.Sort((a, b) => a.X.CompareTo(b.X)); var cleanPoints = new List<(double X, double Y)>(points.Count);
-            foreach (var point in points) { if (cleanPoints.Count == 0) cleanPoints.Add(point); else if (point.X == cleanPoints[^1].X) cleanPoints[^1] = point; else cleanPoints.Add(point); }
-            if (cleanPoints.Count == 0) return; double[] xs = cleanPoints.Select(p => p.X).ToArray(), ys = cleanPoints.Select(p => p.Y).ToArray();
-            var line = Chart.Plot.Add.ScatterLine(xs, ys); line.MarkerSize = 0; line.LineWidth = (float)Math.Max(0.01, _settings.LineWidth); line.LineColor = ScottPlot.Color.FromHtml(_settings.LineColor); line.ConnectStyle = ScottPlot.ConnectStyle.Straight; line.Smooth = false; line.PathStrategy = new ScottPlot.PathStrategies.Straight(); line.MinRenderIndex = 0; line.MaxRenderIndex = xs.Length - 1; Chart.Plot.Axes.DateTimeTicksBottom();
-        }
-        private void DrawBar()
-        {
-            var ohlcs = new List<ScottPlot.OHLC>(); for (int i = 0; i < _bars.Count; i++) { MarketBar bar = _bars[i]; DateTime time = GetBarDateTime(bar, i); ohlcs.Add(new ScottPlot.OHLC(bar.Open, bar.High, bar.Low, bar.Close, time, TimeSpan.FromDays(1))); }
-            if (ohlcs.Count == 0) return; var ohlcPlot = Chart.Plot.Add.OHLC(ohlcs); ohlcPlot.RisingStyle.Color = ScottPlot.Color.FromHtml(_settings.RisingColor); ohlcPlot.FallingStyle.Color = ScottPlot.Color.FromHtml(_settings.FallingColor); Chart.Plot.Axes.DateTimeTicksBottom();
-        }
-        private DateTime GetBarDateTime(MarketBar bar, int index) => bar.Timestamp.HasValue && bar.Timestamp.Value > DateTime.MinValue && bar.Timestamp.Value < DateTime.MaxValue ? bar.Timestamp.Value : new DateTime(2000, 1, 1).AddDays(index);
-        private void ApplySettings()
-        {
-            Chart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(_settings.FigureBackground); Chart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(_settings.DataBackground); Chart.Plot.Grid.LineColor = ScottPlot.Color.FromHtml(_settings.GridColor); Chart.Plot.Grid.LinePattern = ParseLinePattern(_settings.GridPattern); Chart.Plot.Grid.MajorLineWidth = (float)Math.Max(0.01, _settings.GridLineWidth); Chart.Plot.Grid.MinorLineWidth = (float)Math.Max(0.01, _settings.GridLineWidth); Chart.Plot.Axes.Color(ScottPlot.Color.FromHtml(_settings.AxisColor)); SetGridVisibility(Chart, _gridVisible);
-            foreach (var plottable in Chart.Plot.GetPlottables()) { if (plottable is ScottPlot.Plottables.CandlestickPlot candles) { candles.RisingLineStyle.Width = (float)Math.Max(0.01, _settings.CandleLineWidth); candles.FallingLineStyle.Width = (float)Math.Max(0.01, _settings.CandleLineWidth); } else if (plottable is ScottPlot.Plottables.OhlcPlot ohlc) { ohlc.RisingStyle.Width = (float)Math.Max(0.01, _settings.BarLineWidth); ohlc.FallingStyle.Width = (float)Math.Max(0.01, _settings.BarLineWidth); } else if (plottable is ScottPlot.Plottables.Scatter scatter) scatter.LineWidth = (float)Math.Max(0.01, _settings.LineWidth); }
-            if (_crosshair != null) { _crosshair.LineColor = ScottPlot.Color.FromHtml(_settings.CrosshairColor); _crosshair.LineWidth = (float)Math.Max(0.01, _settings.CrosshairLineWidth); _crosshair.LinePattern = ParseLinePattern(_settings.CrosshairPattern); _crosshair.HorizontalLine.LabelOppositeAxis = false; _crosshair.VerticalLine.LabelOppositeAxis = false; _crosshair.HorizontalLine.LabelAlignment = ScottPlot.Alignment.MiddleRight; _crosshair.VerticalLine.LabelAlignment = ScottPlot.Alignment.LowerCenter; }
-        }
-        private static ScottPlot.LinePattern ParseLinePattern(string? value) => value?.Trim().ToLowerInvariant() switch { "dotted" => ScottPlot.LinePattern.Dotted, "dashed" => ScottPlot.LinePattern.Dashed, "denselydashed" => ScottPlot.LinePattern.DenselyDashed, _ => ScottPlot.LinePattern.Solid };
-        private void SaveInitialView() { var limits = Chart.Plot.Axes.GetLimits(); _initialXMin = limits.Left; _initialXMax = limits.Right; _initialYMin = limits.Bottom; _initialYMax = limits.Top; _hasInitialView = true; }
-        private void GridButton_Click(object sender, RoutedEventArgs e) { _gridVisible = !_gridVisible; SetGridVisibility(Chart, _gridVisible); GridButton.Content = _gridVisible ? "GRID" : "GRID خاموش"; Chart.Refresh(); }
-        private void SetGridVisibility(ScottPlot.WPF.WpfPlot plot, bool visible) => plot.Plot.Grid.IsVisible = visible;
-        private void CrosshairButton_Click(object sender, RoutedEventArgs e) { _crosshairVisible = !_crosshairVisible; if (_crosshair != null) _crosshair.IsVisible = _crosshairVisible && _chartVisible && (_crosshairMouseInside || !_hasInitialView); CrosshairButton.Content = _crosshairVisible ? "Crosshair روشن" : "Crosshair خاموش"; Chart.Refresh(); }
-        private void ScreenshotButton_Click(object sender, RoutedEventArgs e) { try { int width = (int)Math.Max(1, ActualWidth), height = (int)Math.Max(1, ActualHeight); var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(width, height, 96, 96, System.Windows.Media.PixelFormats.Pbgra32); bitmap.Render(this); var dialog = new Microsoft.Win32.SaveFileDialog { Title = "ذخیره تصویر نمودار", Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg", FileName = $"{_symbol.Symbol}_{DateTime.Now:yyyyMMdd_HHmmss}.png" }; if (dialog.ShowDialog() != true) return; System.Windows.Media.Imaging.BitmapEncoder encoder = Path.GetExtension(dialog.FileName).Equals(".jpg", StringComparison.OrdinalIgnoreCase) ? new System.Windows.Media.Imaging.JpegBitmapEncoder() : new System.Windows.Media.Imaging.PngBitmapEncoder(); encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap)); using FileStream stream = new FileStream(dialog.FileName, FileMode.Create); encoder.Save(stream); BottomInfoTextBlock.Text = $"تصویر ذخیره شد: {dialog.FileName}"; } catch (Exception ex) { WpfMessageBox.Show($"خطا در گرفتن تصویر نمودار:\n{ex.Message}", "Screenshot", WpfMessageBoxButton.OK, WpfMessageBoxImage.Error); } }
-        private void PrintButton_Click(object sender, RoutedEventArgs e) { try { var dialog = new WpfPrintDialog(); if (dialog.ShowDialog() != true) return; dialog.PrintVisual(this, $"TradeIt - {_symbol.Symbol}"); BottomInfoTextBlock.Text = "نمودار برای چاپ ارسال شد."; } catch (Exception ex) { WpfMessageBox.Show($"خطا در چاپ نمودار:\n{ex.Message}", "Print", WpfMessageBoxButton.OK, WpfMessageBoxImage.Error); } }
-        private void ChartTypeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (ChartTypeComboBox.SelectedItem is not ComboBoxItem item) return; string type = item.Tag?.ToString() ?? ""; _chartType = type switch { "Line" => ChartDisplayType.Line, "Bar" => ChartDisplayType.Bar, _ => ChartDisplayType.Candlestick }; if (IsLoaded) DrawChart(); }
-        private void SettingsButton_Click(object sender, RoutedEventArgs e) => OpenSettings();
-        private void OpenSettings() { var window = new ChartSettingsWindow(ChartSettingsManager.Current) { Owner = Window.GetWindow(this) }; if (window.ShowDialog() == true) { _settings = ChartSettingsManager.Current; DrawChart(); } }
-        private void HideChartButton_Click(object sender, RoutedEventArgs e) { _chartVisible = !_chartVisible; foreach (var plottable in Chart.Plot.GetPlottables()) { if (ReferenceEquals(plottable, _crosshair)) continue; plottable.IsVisible = _chartVisible; } if (_crosshair != null) _crosshair.IsVisible = _chartVisible && _crosshairVisible && (_crosshairMouseInside || !_hasInitialView); HideChartButton.Content = _chartVisible ? "پنهان کردن نمودار" : "نمایش نمودار"; Chart.Refresh(); }
-        private void HideToolsButton_Click(object sender, RoutedEventArgs e) { _toolsVisible = !_toolsVisible; HideToolsButton.Content = _toolsVisible ? "پنهان کردن ابزارهای تکنیکال" : "نمایش ابزارهای تکنیکال"; }
-        private void ZoomInButton_Click(object sender, RoutedEventArgs e) => ZoomXAxis(0.80);
-        private void ZoomOutButton_Click(object sender, RoutedEventArgs e) => ZoomXAxis(1.25);
-    }
-}
