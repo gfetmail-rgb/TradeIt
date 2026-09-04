@@ -32,8 +32,6 @@ namespace TradeIt.Charts
             if (_drawingSelectionBehaviorFixAttached) return;
             _drawingSelectionBehaviorFixAttached = true;
 
-            // Replace the original selection handlers so a single click only selects.
-            // A second mouse-down on the selected object starts the drag operation.
             Chart.PreviewMouseLeftButtonDown -= DrawingSelection_MouseDown;
             Chart.PreviewMouseMove -= DrawingSelection_MouseMove;
             Chart.PreviewMouseLeftButtonUp -= DrawingSelection_MouseUp;
@@ -50,19 +48,22 @@ namespace TradeIt.Charts
                 return;
             if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
 
-            bool clickedSelected = _selectedDrawing != null && IsPointOnSelectedDrawing(point);
-
-            if (clickedSelected)
+            // A visible anchor always wins over the drawing body. This is the key
+            // interaction rule that makes overlapping drawings predictable.
+            if (_selectedDrawing != null && TryGetHandleAtPoint(point, out DrawingHandleKind handleKind))
             {
+                _activeDrawingHandle = handleKind;
                 _selectionDragStart = point;
-                _selectionDragging = true;
                 _selectionMouseMoved = false;
+                _selectionDragging = true;
                 Chart.CaptureMouse();
                 Chart.UserInputProcessor.IsEnabled = false;
                 e.Handled = true;
                 return;
             }
 
+            // Clicking a drawing selects it only. It never moves the whole drawing.
+            // If several drawings overlap, repeated clicks cycle through them.
             if (TrySelectDrawing(point))
             {
                 _selectionDragging = false;
@@ -75,25 +76,25 @@ namespace TradeIt.Charts
             else
             {
                 ClearDrawingSelection();
-                Chart.UserInputProcessor.IsEnabled = true;
             }
         }
 
         private void DrawingSelectionBehaviorFix_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            if (!_selectionDragging || _selectedDrawing == null || e.LeftButton != MouseButtonState.Pressed)
+            if (!_selectionDragging || _selectedDrawing == null || _activeDrawingHandle == null || e.LeftButton != MouseButtonState.Pressed)
                 return;
             if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
 
-            double dx = point.X - _selectionDragStart.X;
-            double dy = point.Y - _selectionDragStart.Y;
-            if (Math.Abs(dx) < 1e-15 && Math.Abs(dy) < 1e-15) return;
+            if (Math.Abs(point.X - _selectionDragStart.X) < 1e-15 && Math.Abs(point.Y - _selectionDragStart.Y) < 1e-15)
+                return;
 
             _selectionMouseMoved = true;
-            MoveSelectedDrawing(dx, dy);
-            _selectionDragStart = point;
-            e.Handled = true;
-            Chart.Refresh();
+            if (MoveSelectedHandle(_activeDrawingHandle.Value, point))
+            {
+                _selectionDragStart = point;
+                e.Handled = true;
+                Chart.Refresh();
+            }
         }
 
         private void DrawingSelectionBehaviorFix_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -101,19 +102,11 @@ namespace TradeIt.Charts
             if (e.ChangedButton != MouseButton.Left || !_selectionDragging)
                 return;
 
-            bool wasDrag = _selectionMouseMoved;
             _selectionDragging = false;
             _selectionMouseMoved = false;
+            _activeDrawingHandle = null;
             Chart.ReleaseMouseCapture();
             Chart.UserInputProcessor.IsEnabled = false;
-
-            // Second click without movement = deselect.
-            if (!wasDrag)
-            {
-                ClearDrawingSelection();
-                ChartInfoTextBlock.Text = $"{_symbol.Symbol} | انتخاب ابزار لغو شد";
-            }
-
             e.Handled = true;
             Chart.Refresh();
         }
