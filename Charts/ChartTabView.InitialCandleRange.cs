@@ -6,7 +6,8 @@ namespace TradeIt.Charts
 {
     public partial class ChartTabView
     {
-        private const int InitialVisibleCandleCount = 365;
+        private const int InitialVisibleCandleCount = 200;
+        private const double InitialRightMarginFraction = 0.20;
         private bool _initialCandleRangeApplied;
         private static readonly bool _initialCandleRangeRegistered = RegisterInitialCandleRange();
 
@@ -24,18 +25,8 @@ namespace TradeIt.Charts
             if (sender is not ChartTabView chart)
                 return;
 
-            // The chart has several other Loaded handlers which may rebuild the
-            // plottable or restore settings. Queue two ApplicationIdle passes so
-            // this is the final range operation after those handlers complete.
-            chart.Dispatcher.BeginInvoke(
-                new Action(() =>
-                {
-                    chart.ApplyInitialCandleRange();
-                    chart.Dispatcher.BeginInvoke(
-                        new Action(chart.ApplyInitialCandleRange),
-                        DispatcherPriority.ApplicationIdle);
-                }),
-                DispatcherPriority.ApplicationIdle);
+            chart.Dispatcher.BeginInvoke(new Action(chart.ApplyInitialCandleRange), DispatcherPriority.ApplicationIdle);
+            chart.Dispatcher.BeginInvoke(new Action(chart.ApplyInitialCandleRange), DispatcherPriority.ApplicationIdle);
         }
 
         private void ApplyInitialCandleRange()
@@ -49,21 +40,20 @@ namespace TradeIt.Charts
 
             double firstX = GetBarDateTime(_bars[firstVisibleIndex], firstVisibleIndex).ToOADate();
             double lastX = GetBarDateTime(_bars[lastVisibleIndex], lastVisibleIndex).ToOADate();
-
             if (!double.IsFinite(firstX) || !double.IsFinite(lastX) || lastX < firstX)
                 return;
 
+            double candleRange = Math.Max(1.0, lastX - firstX);
+            double rightMargin = candleRange * InitialRightMarginFraction / (1.0 - InitialRightMarginFraction);
             const double CandleHalfWidthDays = 0.5;
             var limits = Chart.Plot.Axes.GetLimits();
 
             Chart.Plot.Axes.SetLimits(
                 firstX - CandleHalfWidthDays,
-                lastX + CandleHalfWidthDays,
+                lastX + CandleHalfWidthDays + rightMargin,
                 limits.Bottom,
                 limits.Top);
 
-            // Recalculate price limits only from the candles inside the new X
-            // range, then store this exact range for Reset Zoom.
             AutoFitVisiblePriceRange();
             SaveInitialView();
             _initialCandleRangeApplied = true;
