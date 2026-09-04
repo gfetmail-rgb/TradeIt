@@ -108,7 +108,7 @@ namespace TradeIt.Charts
                 Height = isFib ? 510 : isText ? 300 : 285,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 ResizeMode = ResizeMode.NoResize,
-                FlowDirection = FlowDirection.RightToLeft,
+                FlowDirection = System.Windows.FlowDirection.RightToLeft,
                 Owner = Window.GetWindow(this)
             };
 
@@ -160,8 +160,8 @@ namespace TradeIt.Charts
 
             var buttons = new WpfStackPanel
             {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Center,
+                Orientation = System.Windows.Controls.Orientation.Horizontal,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
                 Margin = new Thickness(4)
             };
             var defaultButton = new WpfButton { Content = "پیش‌فرض", Width = 85, Height = 30, Margin = new Thickness(4) };
@@ -242,7 +242,7 @@ namespace TradeIt.Charts
 
         private static WpfButton CreateColorButton(string color)
         {
-            var button = new WpfButton { Width = 150, Height = 30, HorizontalContentAlignment = HorizontalAlignment.Stretch, Margin = new Thickness(6) };
+            var button = new WpfButton { Width = 150, Height = 30, HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch, Margin = new Thickness(6) };
             SetColorButton(button, color);
             return button;
         }
@@ -252,8 +252,8 @@ namespace TradeIt.Charts
             button.Tag = color;
             button.Content = new Border
             {
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color)),
-                BorderBrush = Brushes.Gray,
+                Background = new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(color)),
+                BorderBrush = System.Windows.Media.Brushes.Gray,
                 BorderThickness = new Thickness(1),
                 Height = 20
             };
@@ -282,7 +282,7 @@ namespace TradeIt.Charts
         private static WpfComboBox CreateFontCombo(string value)
         {
             var combo = new WpfComboBox { Width = 150, Height = 30, Margin = new Thickness(6), IsEditable = false };
-            foreach (FontFamily family in Fonts.SystemFontFamilies)
+            foreach (System.Windows.Media.FontFamily family in Fonts.SystemFontFamilies)
                 combo.Items.Add(family.Source);
             combo.SelectedItem = value;
             if (combo.SelectedIndex < 0) combo.SelectedItem = "Segoe UI";
