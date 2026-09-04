@@ -85,7 +85,7 @@ namespace TradeIt.Charts
             e.Handled = true;
         }
 
-        private void HorizontalRayFix_KeyDown(object sender, KeyEventArgs e)
+        private void HorizontalRayFix_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
             if (!_horizontalRayFixActive || (e.Key != Key.Escape && e.Key != Key.Cancel)) return;
             CancelHorizontalRayFix();
