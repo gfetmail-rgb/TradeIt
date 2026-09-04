@@ -71,8 +71,12 @@ namespace TradeIt.Charts
             }
 
             foreach (var drawing in _fibonacciDrawings)
+            {
                 foreach (var line in drawing.Lines)
                     line.IsVisible = _allDrawingsVisible;
+                foreach (var label in drawing.Labels)
+                    label.IsVisible = _allDrawingsVisible;
+            }
 
             foreach (var drawing in _textDrawings)
                 if (drawing.PlotText != null) drawing.PlotText.IsVisible = _allDrawingsVisible;
