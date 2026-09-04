@@ -30,17 +30,20 @@ namespace TradeIt.Charts
             if (_textDrawingEventsAttached) return;
             _textDrawingEventsAttached = true;
             DrawingTextButton.Click += DrawingTextButton_Click;
-
-            // Use the WPF preview event path already known to reach ChartTabView.
             Chart.PreviewMouseLeftButtonDown += TextDrawing_MouseDown;
         }
 
         private void DrawingTextButton_Click(object? sender, RoutedEventArgs e)
         {
+            RemoveTrendLinePreview();
+            _trendLineStart = null;
+            _activeDrawingTool = TechnicalDrawingTool.Select;
             _textDrawingActive = true;
             Chart.UserInputProcessor.IsEnabled = false;
             Chart.ReleaseMouseCapture();
+            Chart.Focusable = true;
             Chart.Focus();
+            UpdateTechnicalDrawingButtons();
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | متن: محل درج متن را روی نمودار انتخاب کنید";
         }
 
