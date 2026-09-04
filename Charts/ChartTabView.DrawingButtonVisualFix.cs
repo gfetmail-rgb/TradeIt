@@ -30,28 +30,17 @@ namespace TradeIt.Charts
 
             _drawingButtonVisualFixAttached = true;
 
-            AddHandler(DrawingSelectButton, System.Windows.Controls.Button.ClickEvent,
-                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
-            AddHandler(DrawingTrendLineButton, System.Windows.Controls.Button.ClickEvent,
-                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
-            AddHandler(DrawingHorizontalLineButton, System.Windows.Controls.Button.ClickEvent,
-                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
-            AddHandler(DrawingVerticalLineButton, System.Windows.Controls.Button.ClickEvent,
-                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
-            AddHandler(DrawingRayButton, System.Windows.Controls.Button.ClickEvent,
-                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
-            AddHandler(DrawingParallelChannelButton, System.Windows.Controls.Button.ClickEvent,
-                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
-            AddHandler(DrawingRectangleButton, System.Windows.Controls.Button.ClickEvent,
-                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
-            AddHandler(DrawingPitchforkButton, System.Windows.Controls.Button.ClickEvent,
-                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
-            AddHandler(DrawingFibRetracementButton, System.Windows.Controls.Button.ClickEvent,
-                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
-            AddHandler(DrawingFibExtensionButton, System.Windows.Controls.Button.ClickEvent,
-                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
-            AddHandler(DrawingTextButton, System.Windows.Controls.Button.ClickEvent,
-                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
+            DrawingSelectButton.Click += DrawingButtonVisualFix_Click;
+            DrawingTrendLineButton.Click += DrawingButtonVisualFix_Click;
+            DrawingHorizontalLineButton.Click += DrawingButtonVisualFix_Click;
+            DrawingVerticalLineButton.Click += DrawingButtonVisualFix_Click;
+            DrawingRayButton.Click += DrawingButtonVisualFix_Click;
+            DrawingParallelChannelButton.Click += DrawingButtonVisualFix_Click;
+            DrawingRectangleButton.Click += DrawingButtonVisualFix_Click;
+            DrawingPitchforkButton.Click += DrawingButtonVisualFix_Click;
+            DrawingFibRetracementButton.Click += DrawingButtonVisualFix_Click;
+            DrawingFibExtensionButton.Click += DrawingButtonVisualFix_Click;
+            DrawingTextButton.Click += DrawingButtonVisualFix_Click;
 
             AddHandler(Keyboard.PreviewKeyDownEvent,
                 new System.Windows.Input.KeyEventHandler(DrawingButtonVisualFix_KeyDown), true);
