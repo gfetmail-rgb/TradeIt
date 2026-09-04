@@ -33,41 +33,41 @@ namespace TradeIt.Charts
             Chart.PreviewMouseMove -= DrawingSelection_MouseMove;
             Chart.PreviewMouseLeftButtonUp -= DrawingSelection_MouseUp;
 
-            Chart.AddHandler(Mouse.PreviewMouseLeftButtonDownEvent,
-                new MouseButtonEventHandler(DrawingSelectionBehaviorFix_MouseDown), true);
+            Chart.AddHandler(UIElement.PreviewMouseLeftButtonDownEvent,
+                new System.Windows.Input.MouseButtonEventHandler(DrawingSelectionBehaviorFix_MouseDown), true);
             Chart.AddHandler(Mouse.PreviewMouseMoveEvent,
-                new MouseEventHandler(DrawingSelectionBehaviorFix_MouseMove), true);
-            Chart.AddHandler(Mouse.PreviewMouseLeftButtonUpEvent,
-                new MouseButtonEventHandler(DrawingSelectionBehaviorFix_MouseUp), true);
-            Chart.AddHandler(Mouse.PreviewMouseRightButtonDownEvent,
-                new MouseButtonEventHandler(DrawingSelectionBehaviorFix_RightMouseDown), true);
+                new System.Windows.Input.MouseEventHandler(DrawingSelectionBehaviorFix_MouseMove), true);
+            Chart.AddHandler(UIElement.PreviewMouseLeftButtonUpEvent,
+                new System.Windows.Input.MouseButtonEventHandler(DrawingSelectionBehaviorFix_MouseUp), true);
+            Chart.AddHandler(UIElement.PreviewMouseRightButtonDownEvent,
+                new System.Windows.Input.MouseButtonEventHandler(DrawingSelectionBehaviorFix_RightMouseDown), true);
         }
 
         private void DrawingSelectionBehaviorFix_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton != MouseButton.Left || _activeDrawingTool != TechnicalDrawingTool.Select)
                 return;
-            if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
+            if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates chartPoint)) return;
 
             // Text is a drawing too, but has its own model and handles.
             if (_textSelection != null)
             {
-                if (TryGetTextSelectionHandle(point, out _))
+                if (TryGetTextSelectionHandle(chartPoint, out _))
                 {
-                    BeginTextSelectionDrag(point);
+                    BeginTextSelectionDrag(chartPoint);
                     e.Handled = true;
                     return;
                 }
 
-                if (IsPointOnSelectedText(point))
+                if (IsPointOnSelectedText(chartPoint))
                 {
-                    BeginTextSelectionDrag(point);
+                    BeginTextSelectionDrag(chartPoint);
                     e.Handled = true;
                     return;
                 }
             }
 
-            if (TrySelectTextDrawing(point))
+            if (TrySelectTextDrawing(chartPoint))
             {
                 _selectionDragging = false;
                 _activeDrawingHandle = null;
@@ -78,10 +78,10 @@ namespace TradeIt.Charts
             }
 
             // A visible anchor always wins over body hit-testing.
-            if (_selectedDrawing != null && TryGetHandleAtPoint(point, out DrawingHandleKind handleKind))
+            if (_selectedDrawing != null && TryGetHandleAtPoint(chartPoint, out DrawingHandleKind handleKind))
             {
                 _activeDrawingHandle = handleKind;
-                _selectionDragStart = point;
+                _selectionDragStart = chartPoint;
                 _selectionMouseMoved = false;
                 _selectionDragging = true;
                 Chart.CaptureMouse();
@@ -92,7 +92,7 @@ namespace TradeIt.Charts
 
             // Use the stricter hit-test implementation. In particular, Fibonacci
             // levels are tested only inside their actual X range.
-            if (TrySelectDrawingAccurate(point))
+            if (TrySelectDrawingAccurate(chartPoint))
             {
                 _selectionDragging = false;
                 _selectionMouseMoved = false;
@@ -125,15 +125,15 @@ namespace TradeIt.Charts
 
             if (!_selectionDragging || _selectedDrawing == null || _activeDrawingHandle == null || e.LeftButton != MouseButtonState.Pressed)
                 return;
-            if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
+            if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates point2)) return;
 
-            if (Math.Abs(point.X - _selectionDragStart.X) < 1e-15 && Math.Abs(point.Y - _selectionDragStart.Y) < 1e-15)
+            if (Math.Abs(point2.X - _selectionDragStart.X) < 1e-15 && Math.Abs(point2.Y - _selectionDragStart.Y) < 1e-15)
                 return;
 
             _selectionMouseMoved = true;
-            if (MoveSelectedHandle(_activeDrawingHandle.Value, point))
+            if (MoveSelectedHandle(_activeDrawingHandle.Value, point2))
             {
-                _selectionDragStart = point;
+                _selectionDragStart = point2;
                 e.Handled = true;
                 Chart.Refresh();
             }
