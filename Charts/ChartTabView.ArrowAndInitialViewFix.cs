@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using Brushes = System.Windows.Media.Brushes;
 
 namespace TradeIt.Charts
 {
