@@ -63,6 +63,12 @@ namespace TradeIt.Charts
             _measurementStart = null;
             _measurementLastPoint = null;
 
+            // ChartTabView.xaml.cs has a general PreviewMouseLeftButtonDown handler.
+            // When a drawing tool is active that handler routes the click to the
+            // generic drawing engine before the measurement handler can consume it.
+            // Temporarily detach that general mouse-down handler while the ruler is active.
+            Chart.PreviewMouseLeftButtonDown -= Chart_PreviewMouseLeftButtonDown;
+
             _activeDrawingTool = (TechnicalDrawingTool)MeasurementToolValue;
             _textDrawingActive = false;
             Chart.UserInputProcessor.IsEnabled = false;
@@ -242,6 +248,10 @@ namespace TradeIt.Charts
         private void DeactivateMeasurementTool(bool refresh)
         {
             RemoveMeasurementPreview();
+
+            // Restore the normal chart mouse-down pipeline after the ruler is off.
+            Chart.PreviewMouseLeftButtonDown -= Chart_PreviewMouseLeftButtonDown;
+            Chart.PreviewMouseLeftButtonDown += Chart_PreviewMouseLeftButtonDown;
 
             if (_measurementLine == null)
             {
