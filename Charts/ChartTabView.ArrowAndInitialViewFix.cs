@@ -118,7 +118,7 @@ namespace TradeIt.Charts
             arrow.ArrowheadLength = 12;
             arrow.ArrowheadAxisLength = 12;
             arrow.ArrowheadWidth = 8;
-            arrow.LinePattern = style.LineStyle == "Dash"
+            arrow.ArrowStyle.LineStyle.Pattern = style.LineStyle == "Dash"
                 ? ScottPlot.LinePattern.Dashed
                 : style.LineStyle == "Dot"
                     ? ScottPlot.LinePattern.Dotted
