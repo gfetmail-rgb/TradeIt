@@ -448,10 +448,10 @@ namespace TradeIt.Charts
 
         private void ArrowHideAll_Click(object? sender, RoutedEventArgs e)
         {
-            _arrowsVisible = false;
+            _arrowsVisible = _allDrawingsVisible;
             foreach (var drawing in _arrowDrawings)
-                if (drawing.PlotArrow != null) drawing.PlotArrow.IsVisible = false;
-            ClearArrowSelection();
+                if (drawing.PlotArrow != null) drawing.PlotArrow.IsVisible = _arrowsVisible;
+            if (!_arrowsVisible) ClearArrowSelection();
             RemoveArrowPreview();
             Chart.Refresh();
         }
