@@ -88,7 +88,7 @@ namespace TradeIt
             stack.Children.Add(LabeledControl("فاقد معامله در X روز گذشته:", Inline(_daysWithoutTradeCheckBox, _daysWithoutTradeTextBox)));
 
             _daysWithTradeCheckBox = new WpfCheckBox { Content = "فعال", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) };
-            _daysWithTradeTextBox = new WpfTextBox { Width = 55, Height = 27, Text = "5", HorizontalContentContentAlignment = WpfHorizontalAlignment.Center };
+            _daysWithTradeTextBox = new WpfTextBox { Width = 55, Height = 27, Text = "5", HorizontalContentAlignment = WpfHorizontalAlignment.Center };
             _daysWithTradeCheckBox.Checked += SymbolFilterInputChanged; _daysWithTradeCheckBox.Unchecked += SymbolFilterInputChanged; _daysWithTradeTextBox.TextChanged += SymbolFilterInputChanged;
             stack.Children.Add(LabeledControl("دارای معامله در X روز گذشته:", Inline(_daysWithTradeCheckBox, _daysWithTradeTextBox)));
 
