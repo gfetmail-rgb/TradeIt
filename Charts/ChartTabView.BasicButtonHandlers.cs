@@ -1,4 +1,3 @@
-using System;
 using System.Windows;
 
 namespace TradeIt.Charts
@@ -44,31 +43,6 @@ namespace TradeIt.Charts
         private void ZoomOutButton_Click(object sender, RoutedEventArgs e)
         {
             ZoomXAxis(1.25);
-        }
-
-        private void ResetZoomButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (!_hasInitialView)
-                return;
-
-            Chart.Plot.Axes.SetLimits(
-                _initialXMin,
-                _initialXMax,
-                _initialYMin,
-                _initialYMax);
-
-            RenderAllFibonacciDrawings();
-            Chart.Refresh();
-        }
-
-        private void ScreenshotChartOnlyButton_Click(object sender, RoutedEventArgs e)
-        {
-            ScreenshotButton_Click(sender, e);
-        }
-
-        private void PrintChartOnlyButton_Click(object sender, RoutedEventArgs e)
-        {
-            PrintButton_Click(sender, e);
         }
     }
 }
