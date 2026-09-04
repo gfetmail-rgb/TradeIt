@@ -24,6 +24,7 @@ namespace TradeIt.Charts
             chart.InitializeTextDrawingHandling();
             chart.AttachDrawingCancelFix();
             chart.AttachAdvancedDrawingTools();
+            chart.AttachDrawingEventRouterFix();
         }
     }
 }
