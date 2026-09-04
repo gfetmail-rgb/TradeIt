@@ -46,15 +46,12 @@ namespace TradeIt.Charts
         {
             if (_unifiedDrawingInputAttached) return;
             _unifiedDrawingInputAttached = true;
-
             InputManager.Current.PreProcessInput += UnifiedDrawing_PreProcessInput;
             DrawingFibRetracementButton.Click += UnifiedDrawing_FibRetracementClick;
             DrawingFibExtensionButton.Click += UnifiedDrawing_FibExtensionClick;
             Chart.PreviewMouseLeftButtonDown += UnifiedDrawing_ChartLeftMouseDown;
             Chart.PreviewMouseMove += UnifiedDrawing_ChartMouseMove;
-
-            AddHandler(Keyboard.PreviewKeyDownEvent,
-                new System.Windows.Input.KeyEventHandler(UnifiedDrawing_ControlKeyDown), true);
+            AddHandler(Keyboard.PreviewKeyDownEvent, new System.Windows.Input.KeyEventHandler(UnifiedDrawing_ControlKeyDown), true);
             Chart.PreviewMouseRightButtonDown += UnifiedDrawing_ChartRightMouseDown;
             Loaded += UnifiedDrawing_Loaded;
             Unloaded += UnifiedDrawing_Unloaded;
@@ -72,8 +69,7 @@ namespace TradeIt.Charts
 
         private void UnifiedDrawing_Unloaded(object sender, RoutedEventArgs e)
         {
-            if (_unifiedDrawingWindow != null)
-                _unifiedDrawingWindow.PreviewKeyDown -= UnifiedDrawing_WindowKeyDown;
+            if (_unifiedDrawingWindow != null) _unifiedDrawingWindow.PreviewKeyDown -= UnifiedDrawing_WindowKeyDown;
             _unifiedDrawingWindow = null;
         }
 
@@ -90,16 +86,14 @@ namespace TradeIt.Charts
 
         private void UnifiedDrawing_ChartLeftMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            if (e.ChangedButton != MouseButton.Left || _textDrawingActive) return;
-            if (!IsUnifiedFibonacciActive()) return;
+            if (e.ChangedButton != MouseButton.Left || _textDrawingActive || !IsUnifiedFibonacciActive()) return;
             UnifiedFib_MouseDown(e);
             e.Handled = true;
         }
 
         private void UnifiedDrawing_ChartMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            if (_textDrawingActive || !IsUnifiedFibonacciActive()) return;
-            if (_unifiedFibP1 == null) return;
+            if (_textDrawingActive || !IsUnifiedFibonacciActive() || _unifiedFibP1 == null) return;
             UnifiedFib_MouseMove(e);
             e.Handled = true;
         }
@@ -184,7 +178,6 @@ namespace TradeIt.Charts
         {
             if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
             point = SnapUnifiedFibPoint(point);
-
             if (_unifiedFibP1 == null)
             {
                 _unifiedFibP1 = point;
@@ -193,7 +186,6 @@ namespace TradeIt.Charts
                     : $"{_symbol.Symbol} | فیبوناچی اکستنشن: نقطه B را کلیک کنید";
                 return;
             }
-
             if (_unifiedFibP2 == null)
             {
                 _unifiedFibP2 = point;
@@ -210,7 +202,6 @@ namespace TradeIt.Charts
                 Chart.Refresh();
                 return;
             }
-
             DrawUnifiedFibExtension(point);
             ResetUnifiedFibPoints();
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | فیبوناچی اکستنشن رسم شد";
@@ -222,7 +213,6 @@ namespace TradeIt.Charts
             if (_unifiedFibP1 == null || !TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
             RemoveUnifiedFibPreview();
             point = SnapUnifiedFibPoint(point);
-
             if ((int)_activeDrawingTool == UnifiedFibRetracement)
             {
                 double range = point.Y - _unifiedFibP1.Value.Y;
@@ -253,25 +243,14 @@ namespace TradeIt.Charts
 
         private void DrawUnifiedFibRetracement()
         {
-            var drawing = new FibonacciDrawing
-            {
-                IsExtension = false,
-                A = _unifiedFibP1!.Value,
-                B = _unifiedFibP2!.Value
-            };
+            var drawing = new FibonacciDrawing { IsExtension = false, A = _unifiedFibP1!.Value, B = _unifiedFibP2!.Value };
             _fibonacciDrawings.Add(drawing);
             RenderFibonacciDrawing(drawing);
         }
 
         private void DrawUnifiedFibExtension(ScottPlot.Coordinates c)
         {
-            var drawing = new FibonacciDrawing
-            {
-                IsExtension = true,
-                A = _unifiedFibP1!.Value,
-                B = _unifiedFibP2!.Value,
-                C = c
-            };
+            var drawing = new FibonacciDrawing { IsExtension = true, A = _unifiedFibP1!.Value, B = _unifiedFibP2!.Value, C = c };
             _fibonacciDrawings.Add(drawing);
             RenderFibonacciDrawing(drawing);
         }
@@ -279,30 +258,28 @@ namespace TradeIt.Charts
         private void RenderFibonacciDrawing(FibonacciDrawing drawing)
         {
             RemoveFibonacciLines(drawing);
+            var style = GetDrawingToolStyle(drawing.IsExtension ? "FibonacciExtension" : "FibonacciRetracement");
             double ab = drawing.B.Y - drawing.A.Y;
-            double[] ratios = drawing.IsExtension
-                ? new[] { 0.0, 0.382, 0.618, 1.0, 1.618, 2.618 }
-                : new[] { 0.0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0 };
+            string[] levels = drawing.IsExtension
+                ? new[] { "0.0", "38.2", "61.8", "100.0", "127.2", "161.8", "261.8" }
+                : new[] { "0.0", "23.6", "38.2", "50.0", "61.8", "78.6", "100.0" };
 
             double endX = drawing.IsExtension ? drawing.C.X : drawing.B.X;
             double left = Math.Min(drawing.A.X, endX);
             double right = Math.Max(drawing.A.X, endX);
 
-            for (int i = 0; i < ratios.Length; i++)
+            foreach (string levelText in levels)
             {
-                double ratio = ratios[i];
-                double y = drawing.IsExtension
-                    ? drawing.C.Y + ab * ratio
-                    : drawing.B.Y - ab * ratio;
-
+                if (style.FibonacciLevels.TryGetValue(levelText, out bool visible) && !visible) continue;
+                double ratio = double.Parse(levelText, System.Globalization.CultureInfo.InvariantCulture) / 100.0;
+                double y = drawing.IsExtension ? drawing.C.Y + ab * ratio : drawing.B.Y - ab * ratio;
                 drawing.Lines.Add(AddScatterLine(left, y, right, y));
 
-                string percentText = $"{ratio * 100:0.0}%";
-                var label = Chart.Plot.Add.Text(percentText, right, y);
+                var label = Chart.Plot.Add.Text($"{levelText}%", right, y);
                 label.LabelFontSize = 11;
-                label.LabelFontColor = ScottPlot.Color.FromHtml(_settings.LineColor);
+                label.LabelFontColor = ScottPlot.Color.FromHtml(style.Color);
                 label.LabelBackgroundColor = ScottPlot.Colors.White.WithAlpha(0.85);
-                label.LabelBorderColor = ScottPlot.Color.FromHtml(_settings.LineColor);
+                label.LabelBorderColor = ScottPlot.Color.FromHtml(style.Color);
                 label.LabelBorderWidth = 1;
                 label.LabelPadding = 3;
                 label.LabelAlignment = ScottPlot.Alignment.MiddleLeft;
@@ -312,8 +289,7 @@ namespace TradeIt.Charts
 
         private void RenderAllFibonacciDrawings()
         {
-            foreach (var drawing in _fibonacciDrawings)
-                RenderFibonacciDrawing(drawing);
+            foreach (var drawing in _fibonacciDrawings) RenderFibonacciDrawing(drawing);
         }
 
         private void RemoveFibonacciLines(FibonacciDrawing drawing)
