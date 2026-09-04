@@ -155,7 +155,7 @@ namespace TradeIt.Charts
             AddTrendLineToChart(trendDrawing);
             RemoveTrendLinePreview();
             _trendLineStart = null;
-            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند رسم شد؛ برای خط بعدی دوباره کلیک کنید";
+            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند رسم شد؛ برای خط بعدی دوباره کلیک کنید.";
             Chart.Refresh();
             e.Handled = true;
         }
