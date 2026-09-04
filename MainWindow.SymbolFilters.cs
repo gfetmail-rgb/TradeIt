@@ -77,7 +77,7 @@ namespace TradeIt
             stack.Children.Add(LabeledControl("وضعیت معامله امروز:", _tradeStatusFilterComboBox));
 
             _nameFilterComboBox = new WpfComboBox { Width = 115, Height = 27, Margin = new Thickness(0, 1, 4, 0) };
-            AddComboItems(_nameFilterComboBox, (SymbolNameFilter.All, "همه"), (SymbolNameFilter.Contains, "دارای عبارت"), (SymbolNameFilter.StartsWith, "شروع با"), (SymbolNameFilter.EndsWith, "ختم با"), (SymbolNameFilter.Middle, "عبارت در وسط"), (SymbolNameFilter.DoesNotContain, "فاقد عبارت"));
+            AddComboItems(_nameFilterComboBox, (SymbolNameFilter.All, "همه"), (SymbolNameFilter.Contains, "دارای عبارت"), (SymbolNameFilter.StartsWith, "شروع با"), (SymbolNameFilter.EndsWith, "ختم با"), (SymbolNameFilter.Middle, "عبارت در وسط"), (SymbolNameFilter.DoesNotContain, "فاقد عبارت"), (SymbolNameFilter.ContainsAny, "شامل یکی از عبارات"), (SymbolNameFilter.DoesNotContainAny, "شامل هیچ‌یک از عبارات"));
             _nameFilterTextBox = new WpfTextBox { Height = 27, MinWidth = 70, Padding = new Thickness(5, 1, 5, 1) };
             _nameFilterTextBox.TextChanged += SymbolFilterInputChanged; _nameFilterComboBox.SelectionChanged += SymbolFilterInputChanged;
             stack.Children.Add(LabeledControl("نام سهم:", Inline(_nameFilterComboBox, _nameFilterTextBox)));
@@ -190,7 +190,19 @@ namespace TradeIt
 
         private static bool MatchName(string value, string text, SymbolNameFilter filter)
         {
-            if (filter == SymbolNameFilter.All) return true; if (filter == SymbolNameFilter.Contains) return value.Contains(text, StringComparison.OrdinalIgnoreCase); if (filter == SymbolNameFilter.StartsWith) return value.StartsWith(text, StringComparison.OrdinalIgnoreCase); if (filter == SymbolNameFilter.EndsWith) return value.EndsWith(text, StringComparison.OrdinalIgnoreCase); if (filter == SymbolNameFilter.DoesNotContain) return !value.Contains(text, StringComparison.OrdinalIgnoreCase); int index = value.IndexOf(text, StringComparison.OrdinalIgnoreCase); return index > 0 && index + text.Length < value.Length;
+            if (filter == SymbolNameFilter.All) return true;
+            if (filter == SymbolNameFilter.Contains) return value.Contains(text, StringComparison.OrdinalIgnoreCase);
+            if (filter == SymbolNameFilter.StartsWith) return value.StartsWith(text, StringComparison.OrdinalIgnoreCase);
+            if (filter == SymbolNameFilter.EndsWith) return value.EndsWith(text, StringComparison.OrdinalIgnoreCase);
+            if (filter == SymbolNameFilter.DoesNotContain) return !value.Contains(text, StringComparison.OrdinalIgnoreCase);
+
+            string[] terms = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (terms.Length == 0) return true;
+            if (filter == SymbolNameFilter.ContainsAny) return terms.Any(term => value.Contains(term, StringComparison.OrdinalIgnoreCase));
+            if (filter == SymbolNameFilter.DoesNotContainAny) return terms.All(term => !value.Contains(term, StringComparison.OrdinalIgnoreCase));
+
+            int index = value.IndexOf(text, StringComparison.OrdinalIgnoreCase);
+            return index > 0 && index + text.Length < value.Length;
         }
 
         private async Task EnsureBarsLoadedAsync(List<SymbolInfo> symbols, CancellationToken token)
