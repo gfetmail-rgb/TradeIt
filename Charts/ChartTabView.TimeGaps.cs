@@ -249,7 +249,6 @@ namespace TradeIt.Charts
             UpdateCrosshairAxisLabel(index);
             UpdateOHLCVInfo(index);
             Chart.Refresh();
-            e.Handled = true;
         }
 
         private void TimeGaps_ChartMouseMove(object sender, WpfMouseEventArgs e)
