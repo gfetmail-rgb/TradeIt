@@ -247,7 +247,8 @@ namespace TradeIt.Charts
                         foreach (var pair in levelChecks) saved.FibonacciLevels[pair.Key] = pair.Value.IsChecked == true;
                     }
                     ChartSettingsManager.SaveDrawingToolStyles(_settings);
-                    ApplyDrawingToolStyle(key);
+                    // The saved style is intentionally not applied to existing drawings.
+                    // Existing drawings keep the style they had when they were created.
                     window.DialogResult = true;
                 };
                 window.ShowDialog();
@@ -291,8 +292,8 @@ namespace TradeIt.Charts
                 saved.FontFamily = current.FontFamily;
                 saved.FontSize = current.FontSize;
                 ChartSettingsManager.SaveDrawingToolStyles(_settings);
-                ApplyDrawingToolStyle("Text");
-                RenderTextDrawings();
+                // Text already drawn on the chart is intentionally left unchanged.
+                // The new style will be used only for text created after this point.
                 Chart.Refresh();
                 window.DialogResult = true;
             };
@@ -387,20 +388,8 @@ namespace TradeIt.Charts
 
         private void ApplyDrawingToolStyle(string key)
         {
-            DrawingToolStyle style = GetDrawingToolStyle(key);
-            ScottPlot.Color color = ScottPlot.Color.FromHtml(style.Color);
-            ScottPlot.LinePattern pattern = GetDrawingLinePattern(style.LineStyle);
-
-            switch (key)
-            {
-                case "TrendLine": foreach (var d in _trendLines) if (d.PlotLine != null) { d.PlotLine.LineColor = color; d.PlotLine.LineWidth = (float)style.LineWidth; d.PlotLine.LinePattern = pattern; } break;
-                case "HorizontalLine": foreach (var d in _horizontalLines) if (d.PlotLine != null) { d.PlotLine.LineColor = color; d.PlotLine.LineWidth = (float)style.LineWidth; d.PlotLine.LinePattern = pattern; } break;
-                case "VerticalLine": foreach (var d in _verticalLines) if (d.PlotLine != null) { d.PlotLine.LineColor = color; d.PlotLine.LineWidth = (float)style.LineWidth; d.PlotLine.LinePattern = pattern; } break;
-                case "HorizontalRay": foreach (var d in _rays) if (d.PlotLine != null) { d.PlotLine.LineColor = color; d.PlotLine.LineWidth = (float)style.LineWidth; d.PlotLine.LinePattern = pattern; } break;
-                case "ParallelChannel": foreach (var d in _parallelChannels) { if (d.BaseLine != null) { d.BaseLine.LineColor = color; d.BaseLine.LineWidth = (float)style.LineWidth; d.BaseLine.LinePattern = pattern; } if (d.ParallelLine != null) { d.ParallelLine.LineColor = color; d.ParallelLine.LineWidth = (float)style.LineWidth; d.ParallelLine.LinePattern = pattern; } } break;
-                case "Rectangle": foreach (var d in _drawingRectangles) foreach (var line in d.Lines) { line.LineColor = color; line.LineWidth = (float)style.LineWidth; line.LinePattern = pattern; } break;
-                case "Pitchfork": foreach (var d in _pitchforks) { if (d.MedianLine != null) { d.MedianLine.LineColor = color; d.MedianLine.LineWidth = (float)style.LineWidth; d.MedianLine.LinePattern = pattern; } if (d.UpperLine != null) { d.UpperLine.LineColor = color; d.UpperLine.LineWidth = (float)style.LineWidth; d.UpperLine.LinePattern = pattern; } if (d.LowerLine != null) { d.LowerLine.LineColor = color; d.LowerLine.LineWidth = (float)style.LineWidth; d.LowerLine.LinePattern = pattern; } } break;
-            }
+            // Kept for compatibility with existing callers. Drawing-tool settings are
+            // now intentionally prospective: existing drawings are never restyled.
             Chart.Refresh();
         }
     }
