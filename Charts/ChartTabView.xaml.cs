@@ -194,13 +194,32 @@ namespace TradeIt.Charts
 
         private void Chart_PreviewMouseLeftButtonDown(object sender, WpfMouseButtonEventArgs e)
         {
+            // Drawing tools must be handled here because this preview event is known to
+            // reach ChartTabView, while ScottPlot's internal WpfPlot mouse event path may
+            // consume the corresponding bubbling event before the drawing handler sees it.
+            if (_activeDrawingTool != TechnicalDrawingTool.Select)
+            {
+                TechnicalDrawing_MouseDown(sender, e);
+                return;
+            }
+
+            if (_textDrawingActive)
+            {
+                TextDrawing_MouseDown(sender, e);
+                return;
+            }
+
             WpfPoint p = e.GetPosition(Chart); AxisDragMode mode = GetAxisDragMode(p.X, p.Y);
             if (e.ClickCount == 2 && mode == AxisDragMode.PriceAxis) { AutoFitVisiblePriceRange(); e.Handled = true; return; }
             if (mode == AxisDragMode.None) return;
             _axisDragMode = mode; _axisDragStartX = p.X; _axisDragStartY = p.Y; Chart.CaptureMouse(); e.Handled = true;
         }
+
         private void Chart_PreviewMouseMove(object sender, WpfMouseEventArgs e)
         {
+            if (_activeDrawingTool == TechnicalDrawingTool.TrendLine)
+                TechnicalDrawing_MouseMove(sender, e);
+
             WpfPoint p = e.GetPosition(Chart); UpdateCrosshair(p);
             if (_axisDragMode == AxisDragMode.None) return;
             if (e.LeftButton != WpfMouseButtonState.Pressed) { EndAxisDrag(); return; }
@@ -245,26 +264,14 @@ namespace TradeIt.Charts
         private void DrawChart()
         {
             if (_bars.Count == 0) { ClearMainChart(); _hasInitialView = false; ApplySettings(); Chart.Refresh(); return; }
-
-            // ShowTimeGaps is authoritative. Continuous mode must be selected here,
-            // before any date-based plot is created, so later redraws cannot restore gaps.
-            if (!ChartSettingsManager.Current.ShowTimeGaps)
-            {
-                ApplyContinuousTimeAxis();
-                return;
-            }
-
+            if (!ChartSettingsManager.Current.ShowTimeGaps) { ApplyContinuousTimeAxis(); return; }
             bool preserveCurrentView = _hasInitialView && Chart.ActualWidth > 0 && Chart.ActualHeight > 0;
             ScottPlot.AxisLimits currentLimits = default;
             if (preserveCurrentView) currentLimits = Chart.Plot.Axes.GetLimits();
             ClearMainChart();
             switch (_chartType) { case ChartDisplayType.Candlestick: DrawCandlestick(); break; case ChartDisplayType.Line: DrawLine(); break; case ChartDisplayType.Bar: DrawBar(); break; }
             ApplySettings();
-            if (!preserveCurrentView)
-            {
-                Chart.Plot.Axes.AutoScale();
-                ApplyInitial365ViewAfterAutoScale();
-            }
+            if (!preserveCurrentView) { Chart.Plot.Axes.AutoScale(); ApplyInitial365ViewAfterAutoScale(); }
             else Chart.Plot.Axes.SetLimits(currentLimits.Left, currentLimits.Right, currentLimits.Bottom, currentLimits.Top);
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | {_bars.Count:N0} داده";
             if (_crosshair != null) _crosshair.IsVisible = _crosshairVisible && _chartVisible && (_crosshairMouseInside || !_hasInitialView);
