@@ -15,10 +15,10 @@ namespace TradeIt.Charts
     {
         private enum TechnicalDrawingTool { Select, TrendLine, HorizontalLine, VerticalLine, Ray }
 
-        private sealed class TrendLineDrawing { public double X1 { get; init; } public double Y1 { get; init; } public double X2 { get; init; } public double Y2 { get; init; } public ScottPlot.Plottables.Scatter? PlotLine { get; set; } }
-        private sealed class HorizontalLineDrawing { public double Y { get; init; } public ScottPlot.Plottables.HorizontalLine? PlotLine { get; set; } }
-        private sealed class VerticalLineDrawing { public double X { get; init; } public ScottPlot.Plottables.VerticalLine? PlotLine { get; set; } }
-        private sealed class RayDrawing { public double X1 { get; init; } public double Y1 { get; init; } public double X2 { get; init; } public double Y2 { get; init; } public ScottPlot.Plottables.Scatter? PlotLine { get; set; } }
+        private sealed class TrendLineDrawing { public double X1 { get; set; } public double Y1 { get; set; } public double X2 { get; set; } public double Y2 { get; set; } public ScottPlot.Plottables.Scatter? PlotLine { get; set; } }
+        private sealed class HorizontalLineDrawing { public double Y { get; set; } public ScottPlot.Plottables.HorizontalLine? PlotLine { get; set; } }
+        private sealed class VerticalLineDrawing { public double X { get; set; } public ScottPlot.Plottables.VerticalLine? PlotLine { get; set; } }
+        private sealed class RayDrawing { public double X1 { get; set; } public double Y1 { get; set; } public double X2 { get; set; } public double Y2 { get; set; } public ScottPlot.Plottables.Scatter? PlotLine { get; set; } }
 
         private readonly List<TrendLineDrawing> _trendLines = new();
         private readonly List<HorizontalLineDrawing> _horizontalLines = new();
@@ -279,6 +279,7 @@ namespace TradeIt.Charts
                 if (!IsLoaded) return;
                 RenderTechnicalDrawings();
                 RenderTextDrawings();
+                RenderDrawingSelectionOverlay();
                 Chart.Refresh();
             }), DispatcherPriority.ApplicationIdle);
         }
