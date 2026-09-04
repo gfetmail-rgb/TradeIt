@@ -8,7 +8,7 @@ namespace TradeIt.Charts
     {
         private enum DrawingSelectionKind
         {
-            None, TrendLine, HorizontalLine, VerticalLine, Ray, ParallelChannel, Rectangle, Pitchfork
+            None, TrendLine, HorizontalLine, VerticalLine, Ray, ParallelChannel, Rectangle, Pitchfork, Fibonacci
         }
 
         private DrawingSelectionKind _selectedDrawingKind;
@@ -101,6 +101,15 @@ namespace TradeIt.Charts
             ClearDrawingSelection();
             double tolerance = GetDrawingHitTolerance();
 
+            for (int i = _fibonacciDrawings.Count - 1; i >= 0; i--)
+            {
+                var d = _fibonacciDrawings[i];
+                foreach (var line in d.Lines)
+                {
+                    if (DistancePointToSegment(point, new ScottPlot.Coordinates(line.Xs[0], line.Ys[0]), new ScottPlot.Coordinates(line.Xs[1], line.Ys[1])) <= tolerance)
+                        return SelectDrawing(DrawingSelectionKind.Fibonacci, d);
+                }
+            }
             for (int i = _pitchforks.Count - 1; i >= 0; i--)
             {
                 var d = _pitchforks[i];
@@ -199,6 +208,15 @@ namespace TradeIt.Charts
         {
             switch (_selectedDrawingKind)
             {
+                case DrawingSelectionKind.Fibonacci:
+                    {
+                        var d = (FibonacciDrawing)_selectedDrawing!;
+                        d.A = Offset(d.A, dx, dy);
+                        d.B = Offset(d.B, dx, dy);
+                        if (d.IsExtension) d.C = Offset(d.C, dx, dy);
+                        RenderFibonacciDrawing(d);
+                        break;
+                    }
                 case DrawingSelectionKind.HorizontalLine:
                     {
                         var old = (HorizontalLineDrawing)_selectedDrawing!;
@@ -282,6 +300,8 @@ namespace TradeIt.Charts
             if (_selectedDrawing == null) return;
             switch (_selectedDrawingKind)
             {
+                case DrawingSelectionKind.Fibonacci:
+                    { var d = (FibonacciDrawing)_selectedDrawing; RemoveFibonacciLines(d); _fibonacciDrawings.Remove(d); break; }
                 case DrawingSelectionKind.HorizontalLine:
                     { var d = (HorizontalLineDrawing)_selectedDrawing; RemovePlotLine(d.PlotLine); _horizontalLines.Remove(d); break; }
                 case DrawingSelectionKind.VerticalLine:
