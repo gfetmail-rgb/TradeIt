@@ -8,8 +8,27 @@ namespace TradeIt.Charts
 {
     public partial class ChartTabView
     {
+        private static readonly bool _drawingToolSettingsRegistered = RegisterDrawingToolSettingsHandling();
+
+        private static bool RegisterDrawingToolSettingsHandling()
+        {
+            EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.LoadedEvent,
+                new RoutedEventHandler(DrawingToolSettings_Loaded));
+            return true;
+        }
+
+        private static void DrawingToolSettings_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is ChartTabView chart)
+                chart.AttachDrawingToolSettingsMenus();
+        }
+
+        private bool _drawingToolSettingsMenusAttached;
+
         private void AttachDrawingToolSettingsMenus()
         {
+            if (_drawingToolSettingsMenusAttached) return;
+            _drawingToolSettingsMenusAttached = true;
             AttachDrawingToolSettingsMenu(DrawingTrendLineButton, "TrendLine", "خط روند");
             AttachDrawingToolSettingsMenu(DrawingHorizontalLineButton, "HorizontalLine", "خط افقی");
             AttachDrawingToolSettingsMenu(DrawingVerticalLineButton, "VerticalLine", "خط عمودی");
@@ -24,11 +43,12 @@ namespace TradeIt.Charts
 
         private void AttachDrawingToolSettingsMenu(Button button, string key, string title)
         {
-            button.PreviewMouseRightButtonDown += (_, e) =>
-            {
-                ShowDrawingToolSettings(key, title);
-                e.Handled = true;
-            };
+            button.AddHandler(UIElement.PreviewMouseRightButtonDownEvent,
+                new MouseButtonEventHandler((_, e) =>
+                {
+                    ShowDrawingToolSettings(key, title);
+                    e.Handled = true;
+                }), true);
         }
 
         private DrawingToolStyle GetDrawingToolStyle(string key)
@@ -112,8 +132,7 @@ namespace TradeIt.Charts
                     return;
                 }
 
-                double width;
-                if (!double.TryParse(widthBox.Text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out width) || width < 0.5 || width > 10)
+                if (!double.TryParse(widthBox.Text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double width) || width < 0.5 || width > 10)
                 {
                     MessageBox.Show(window, "ضخامت باید عددی بین 0.5 و 10 باشد.", "تنظیمات ابزار", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
