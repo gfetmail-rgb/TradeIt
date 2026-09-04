@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -12,6 +11,7 @@ using WpfTextBlock = System.Windows.Controls.TextBlock;
 using WpfGrid = System.Windows.Controls.Grid;
 using WpfStackPanel = System.Windows.Controls.StackPanel;
 using WinFormsColorDialog = System.Windows.Forms.ColorDialog;
+using WinFormsFontDialog = System.Windows.Forms.FontDialog;
 
 namespace TradeIt.Charts
 {
@@ -80,10 +80,22 @@ namespace TradeIt.Charts
 
         private static void EnsureFibonacciLevelDefaults(string key, DrawingToolStyle style)
         {
-            if (key == "FibonacciRetracement" && style.FibonacciLevels.Count == 0)
-                style.FibonacciLevels = ChartSettings.CreateDefaultRetracementLevels();
-            else if (key == "FibonacciExtension" && style.FibonacciLevels.Count == 0)
-                style.FibonacciLevels = ChartSettings.CreateDefaultExtensionLevels();
+            style.FibonacciLevels ??= new Dictionary<string, bool>();
+
+            if (key == "FibonacciRetracement")
+            {
+                var defaults = ChartSettings.CreateDefaultRetracementLevels();
+                foreach (var pair in defaults)
+                    if (!style.FibonacciLevels.ContainsKey(pair.Key))
+                        style.FibonacciLevels[pair.Key] = pair.Value;
+            }
+            else if (key == "FibonacciExtension")
+            {
+                var defaults = ChartSettings.CreateDefaultExtensionLevels();
+                foreach (var pair in defaults)
+                    if (!style.FibonacciLevels.ContainsKey(pair.Key))
+                        style.FibonacciLevels[pair.Key] = pair.Value;
+            }
         }
 
         private static ScottPlot.LinePattern GetDrawingLinePattern(string style) => style switch
@@ -105,7 +117,7 @@ namespace TradeIt.Charts
             {
                 Title = $"تنظیمات {title}",
                 Width = 390,
-                Height = isFib ? 510 : isText ? 300 : 285,
+                Height = isFib ? 560 : isText ? 300 : 285,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 ResizeMode = ResizeMode.NoResize,
                 FlowDirection = System.Windows.FlowDirection.RightToLeft,
@@ -121,11 +133,11 @@ namespace TradeIt.Charts
 
             WpfComboBox? widthBox = null;
             WpfComboBox? styleBox = null;
-            WpfComboBox? fontBox = null;
-            WpfComboBox? fontSizeBox = null;
+            WpfButton? fontButton = null;
 
             if (!isText)
             {
+                // ALL line-based tools, including both Fibonacci tools, have color + width + style.
                 widthBox = CreateWidthCombo(current.LineWidth);
                 AddSettingRow(form, row++, "ضخامت", widthBox);
                 styleBox = CreateStyleCombo(current.LineStyle);
@@ -133,27 +145,46 @@ namespace TradeIt.Charts
             }
             else
             {
-                fontBox = CreateFontCombo(current.FontFamily);
-                AddSettingRow(form, row++, "فونت", fontBox);
-                fontSizeBox = CreateFontSizeCombo(current.FontSize);
-                AddSettingRow(form, row++, "سایز", fontSizeBox);
+                // Text uses the native Windows FontDialog rather than a font-family ComboBox.
+                fontButton = CreateFontButton(current.FontFamily, current.FontSize);
+                AddSettingRow(form, row++, "فونت", fontButton);
             }
 
             var levelChecks = new Dictionary<string, System.Windows.Controls.CheckBox>();
             if (isFib)
             {
                 var levelPanel = new WpfStackPanel { Margin = new Thickness(4, 8, 4, 4) };
-                levelPanel.Children.Add(new WpfTextBlock { Text = "سطوح فیبوناچی رایج", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 5) });
+                levelPanel.Children.Add(new WpfTextBlock
+                {
+                    Text = "سطوح فیبوناچی رایج",
+                    FontWeight = FontWeights.Bold,
+                    Margin = new Thickness(0, 0, 0, 5)
+                });
+
                 string[] levels = key == "FibonacciRetracement"
-                    ? new[] { "0.0", "23.6", "38.2", "50.0", "61.8", "78.6", "100.0" }
-                    : new[] { "0.0", "38.2", "61.8", "100.0", "127.2", "161.8", "261.8" };
+                    ? new[] { "0.0", "23.6", "38.2", "50.0", "61.8", "78.6", "100.0", "127.2", "161.8", "200.0" }
+                    : new[] { "0.0", "38.2", "61.8", "100.0", "127.2", "161.8", "200.0", "261.8" };
+
                 foreach (string level in levels)
                 {
-                    bool isChecked = current.FibonacciLevels.TryGetValue(level, out bool value) ? value : true;
-                    var check = new System.Windows.Controls.CheckBox { Content = $"{level}%", IsChecked = isChecked, Margin = new Thickness(2) };
+                    bool isChecked = current.FibonacciLevels.TryGetValue(level, out bool value) && value;
+                    var check = new System.Windows.Controls.CheckBox
+                    {
+                        Content = level switch
+                        {
+                            "127.2" => "1.272 (127.2%)",
+                            "161.8" => "1.618 (161.8%)",
+                            "200.0" => "2 (200%)",
+                            "261.8" => "2.618 (261.8%)",
+                            _ => $"{level}%"
+                        },
+                        IsChecked = isChecked,
+                        Margin = new Thickness(2)
+                    };
                     levelChecks[level] = check;
                     levelPanel.Children.Add(check);
                 }
+
                 Grid.SetRow(levelPanel, row++);
                 form.Children.Add(levelPanel);
             }
@@ -176,10 +207,31 @@ namespace TradeIt.Charts
 
             colorButton.Click += (_, _) =>
             {
-                using var dialog = new WinFormsColorDialog { FullOpen = true, Color = System.Drawing.ColorTranslator.FromHtml(current.Color) };
+                using var dialog = new WinFormsColorDialog
+                {
+                    FullOpen = true,
+                    Color = System.Drawing.ColorTranslator.FromHtml(GetColorButtonValue(colorButton))
+                };
                 if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                     SetColorButton(colorButton, System.Drawing.ColorTranslator.ToHtml(dialog.Color));
             };
+
+            if (fontButton != null)
+            {
+                fontButton.Click += (_, _) =>
+                {
+                    using var dialog = new WinFormsFontDialog
+                    {
+                        ShowColor = false,
+                        Font = CreateSystemDrawingFont(current.FontFamily, current.FontSize)
+                    };
+
+                    if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                    {
+                        SetFontButton(fontButton, dialog.Font.FontFamily.Name, dialog.Font.Size);
+                    }
+                };
+            }
 
             defaultButton.Click += (_, _) =>
             {
@@ -191,11 +243,11 @@ namespace TradeIt.Charts
                 }
                 else
                 {
-                    fontBox!.SelectedItem = defaults.FontFamily;
-                    fontSizeBox!.SelectedItem = FindNumericComboItem(fontSizeBox, defaults.FontSize);
+                    SetFontButton(fontButton!, defaults.FontFamily, defaults.FontSize);
                 }
+
                 foreach (var pair in levelChecks)
-                    pair.Value.IsChecked = defaults.FibonacciLevels.TryGetValue(pair.Key, out bool value) ? value : true;
+                    pair.Value.IsChecked = defaults.FibonacciLevels.TryGetValue(pair.Key, out bool value) && value;
             };
 
             applyButton.Click += (_, _) =>
@@ -219,8 +271,8 @@ namespace TradeIt.Charts
                 }
                 else
                 {
-                    saved.FontFamily = fontBox?.SelectedItem?.ToString() ?? "Segoe UI";
-                    if (fontSizeBox?.SelectedItem is double fontSize)
+                    saved.FontFamily = fontButton?.Tag?.ToString() ?? "Segoe UI";
+                    if (fontButton?.ToolTip is double fontSize)
                         saved.FontSize = fontSize;
                 }
 
@@ -240,9 +292,47 @@ namespace TradeIt.Charts
             window.ShowDialog();
         }
 
+        private static System.Drawing.Font CreateSystemDrawingFont(string family, double size)
+        {
+            try
+            {
+                return new System.Drawing.Font(family, (float)size, System.Drawing.FontStyle.Regular);
+            }
+            catch
+            {
+                return new System.Drawing.Font("Segoe UI", (float)Math.Max(8, size), System.Drawing.FontStyle.Regular);
+            }
+        }
+
+        private static WpfButton CreateFontButton(string family, double size)
+        {
+            var button = new WpfButton
+            {
+                Width = 150,
+                Height = 30,
+                Margin = new Thickness(6),
+                HorizontalContentAlignment = HorizontalAlignment.Stretch
+            };
+            SetFontButton(button, family, size);
+            return button;
+        }
+
+        private static void SetFontButton(WpfButton button, string family, double size)
+        {
+            button.Tag = family;
+            button.ToolTip = size;
+            button.Content = $"{family}  ({size:0.#})";
+        }
+
         private static WpfButton CreateColorButton(string color)
         {
-            var button = new WpfButton { Width = 150, Height = 30, HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch, Margin = new Thickness(6) };
+            var button = new WpfButton
+            {
+                Width = 150,
+                Height = 30,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                Margin = new Thickness(6)
+            };
             SetColorButton(button, color);
             return button;
         }
@@ -273,27 +363,12 @@ namespace TradeIt.Charts
         private static WpfComboBox CreateStyleCombo(string value)
         {
             var combo = new WpfComboBox { Width = 150, Height = 30, Margin = new Thickness(6) };
-            combo.Items.Add("Solid"); combo.Items.Add("Dash"); combo.Items.Add("Dot"); combo.Items.Add("DashDot");
+            combo.Items.Add("Solid");
+            combo.Items.Add("Dash");
+            combo.Items.Add("Dot");
+            combo.Items.Add("DashDot");
             combo.SelectedItem = value;
             if (combo.SelectedIndex < 0) combo.SelectedIndex = 0;
-            return combo;
-        }
-
-        private static WpfComboBox CreateFontCombo(string value)
-        {
-            var combo = new WpfComboBox { Width = 150, Height = 30, Margin = new Thickness(6), IsEditable = false };
-            foreach (System.Windows.Media.FontFamily family in Fonts.SystemFontFamilies)
-                combo.Items.Add(family.Source);
-            combo.SelectedItem = value;
-            if (combo.SelectedIndex < 0) combo.SelectedItem = "Segoe UI";
-            return combo;
-        }
-
-        private static WpfComboBox CreateFontSizeCombo(double value)
-        {
-            var combo = new WpfComboBox { Width = 150, Height = 30, Margin = new Thickness(6) };
-            for (int size = 8; size <= 32; size++) combo.Items.Add((double)size);
-            combo.SelectedItem = FindNumericComboItem(combo, value) ?? 14.0;
             return combo;
         }
 
@@ -308,7 +383,13 @@ namespace TradeIt.Charts
         private static void AddSettingRow(WpfGrid grid, int row, string label, WpfControl control)
         {
             var panel = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 2, 0, 2) };
-            var text = new WpfTextBlock { Text = label, Width = 95, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4) };
+            var text = new WpfTextBlock
+            {
+                Text = label,
+                Width = 95,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(4)
+            };
             DockPanel.SetDock(text, Dock.Left);
             panel.Children.Add(text);
             panel.Children.Add(control);
