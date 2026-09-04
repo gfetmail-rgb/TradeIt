@@ -9,6 +9,7 @@ namespace TradeIt.Charts
         private bool _horizontalRayFixActive;
         private bool _horizontalRayFixAttached;
         private bool _drawingCursorAttached;
+        private bool _advancedDirectInputAttached;
 
         private void InitializeDrawingCursorHandling()
         {
@@ -17,8 +18,10 @@ namespace TradeIt.Charts
 
             DrawingSelectButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.Arrow);
             DrawingTrendLineButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.Cross);
-            DrawingHorizontalLineButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.SizeNS);
-            DrawingVerticalLineButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.SizeWE);
+            // Horizontal and vertical cursor shapes are intentionally swapped:
+            // horizontal tool -> horizontal resize cursor, vertical tool -> vertical resize cursor.
+            DrawingHorizontalLineButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.SizeWE);
+            DrawingVerticalLineButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.SizeNS);
             DrawingRayButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.Cross);
             DrawingParallelChannelButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.Cross);
             DrawingRectangleButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.Cross);
@@ -27,10 +30,36 @@ namespace TradeIt.Charts
             DrawingFibExtensionButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.Cross);
             DrawingTextButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.IBeam);
 
+            // Advanced tools must receive chart clicks directly. The normal ChartTabView
+            // preview handler and ScottPlot input path can otherwise consume the event
+            // before UnifiedDrawing_PreProcessInput reaches the advanced tool state.
+            if (!_advancedDirectInputAttached)
+            {
+                _advancedDirectInputAttached = true;
+                Chart.PreviewMouseLeftButtonDown += AdvancedDirectMouseDown;
+                Chart.PreviewMouseMove += AdvancedDirectMouseMove;
+            }
+
             AddHandler(Keyboard.PreviewKeyDownEvent,
                 new System.Windows.Input.KeyEventHandler(DrawingCursor_KeyDown), true);
             AddHandler(UIElement.PreviewMouseRightButtonDownEvent,
                 new System.Windows.Input.MouseButtonEventHandler(DrawingCursor_RightMouseDown), true);
+        }
+
+        private void AdvancedDirectMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton != MouseButton.Left || _textDrawingActive || !IsAdvancedDrawingTool)
+                return;
+
+            AdvancedDrawing_MouseDown(sender, e);
+        }
+
+        private void AdvancedDirectMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (_textDrawingActive || !IsAdvancedDrawingTool)
+                return;
+
+            AdvancedDrawing_MouseMove(sender, e);
         }
 
         private void SetDrawingCursor(System.Windows.Input.Cursor cursor)
