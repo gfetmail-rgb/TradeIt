@@ -3,7 +3,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Threading;
 
 namespace TradeIt.Charts
 {
@@ -34,7 +33,6 @@ namespace TradeIt.Charts
         {
             if (_drawingInteractionOverrideAttached) return;
             _drawingInteractionOverrideAttached = true;
-
             InputManager.Current.PreProcessInput += DrawingInteractionOverride_PreProcessInput;
             SetAllDrawingButtonVisuals();
         }
@@ -45,33 +43,26 @@ namespace TradeIt.Charts
             {
                 if (!SourceBelongsToThisChart(button.OriginalSource as DependencyObject)) return;
 
+                // Left mouse DOWN: select, or start a drag of the already selected object.
                 if (button.ChangedButton == MouseButton.Left &&
+                    button.ButtonState == MouseButtonState.Pressed &&
                     _activeDrawingTool == TechnicalDrawingTool.Select &&
                     !_textDrawingActive)
                 {
                     if (!TryGetRawChartPoint(button, out ScottPlot.Coordinates point)) return;
 
                     object? oldSelection = _selectedDrawing;
-                    bool hadSelection = oldSelection != null;
                     bool hit = TrySelectDrawing(point);
-
                     if (!hit)
                     {
                         ClearDrawingSelection();
                         return;
                     }
 
-                    if (hadSelection && ReferenceEquals(oldSelection, _selectedDrawing))
-                    {
-                        _drawingSelectionAtMouseDown = _selectedDrawing;
-                        _drawingSelectionMoved = false;
-                    }
-                    else
-                    {
-                        _drawingSelectionAtMouseDown = null;
-                        _drawingSelectionMoved = false;
-                    }
-
+                    _drawingSelectionAtMouseDown = oldSelection != null && ReferenceEquals(oldSelection, _selectedDrawing)
+                        ? _selectedDrawing
+                        : null;
+                    _drawingSelectionMoved = false;
                     _selectionDragStart = point;
                     _selectionDragging = true;
                     Chart.CaptureMouse();
@@ -80,7 +71,30 @@ namespace TradeIt.Charts
                     return;
                 }
 
+                // Left mouse UP: a second click on the selected object toggles it off;
+                // a drag leaves the object selected.
+                if (button.ChangedButton == MouseButton.Left &&
+                    button.ButtonState == MouseButtonState.Released &&
+                    _selectionDragging)
+                {
+                    _selectionDragging = false;
+                    Chart.ReleaseMouseCapture();
+                    Chart.UserInputProcessor.IsEnabled = true;
+
+                    if (!_drawingSelectionMoved && _drawingSelectionAtMouseDown != null &&
+                        ReferenceEquals(_drawingSelectionAtMouseDown, _selectedDrawing))
+                    {
+                        ClearDrawingSelection();
+                    }
+
+                    button.Handled = true;
+                    Chart.Refresh();
+                    return;
+                }
+
+                // Right click on a selected object opens its drawing settings.
                 if (button.ChangedButton == MouseButton.Right &&
+                    button.ButtonState == MouseButtonState.Pressed &&
                     _activeDrawingTool == TechnicalDrawingTool.Select &&
                     !_textDrawingActive &&
                     _selectedDrawing != null)
@@ -92,21 +106,6 @@ namespace TradeIt.Charts
                     button.Handled = true;
                     return;
                 }
-
-                if (button.ChangedButton == MouseButton.Left &&
-                    _activeDrawingTool != TechnicalDrawingTool.Select &&
-                    IsUnifiedDrawingActive())
-                {
-                    return;
-                }
-
-                if (button.ChangedButton == MouseButton.Left && _selectionDragging)
-                {
-                    _selectionDragging = false;
-                    Chart.ReleaseMouseCapture();
-                    Chart.UserInputProcessor.IsEnabled = true;
-                }
-                return;
             }
 
             if (e.StagingItem.Input is MouseEventArgs mouse &&
@@ -126,7 +125,6 @@ namespace TradeIt.Charts
                 _drawingSelectionMoved = true;
                 mouse.Handled = true;
                 Chart.Refresh();
-                return;
             }
         }
 
