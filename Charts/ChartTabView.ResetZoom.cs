@@ -6,9 +6,18 @@ namespace TradeIt.Charts
     {
         private void ResetZoomButton_Click(object sender, RoutedEventArgs e)
         {
-            // Reset must restore the same canonical initial view used when the
-            // chart was opened. Do not redraw/remove plottables here.
-            ApplyInitialCandleRange();
+            // Reset only changes axis limits. It must never redraw or remove plottables.
+            if (!_hasInitialView)
+            {
+                ApplyInitialCandleRange();
+                return;
+            }
+
+            Chart.Plot.Axes.SetLimits(
+                _initialXMin,
+                _initialXMax,
+                _initialYMin,
+                _initialYMax);
             Chart.Refresh();
         }
     }
