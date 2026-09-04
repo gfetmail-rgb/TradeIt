@@ -1,5 +1,21 @@
+using System.Collections.Generic;
+
 namespace TradeIt.Charts
 {
+    public sealed class DrawingToolStyle
+    {
+        public string Color { get; set; } = "#1976D2";
+        public double LineWidth { get; set; } = 1.5;
+        public string LineStyle { get; set; } = "Solid";
+
+        public DrawingToolStyle Clone() => new()
+        {
+            Color = Color,
+            LineWidth = LineWidth,
+            LineStyle = LineStyle
+        };
+    }
+
     public class ChartSettings
     {
         public string RisingColor { get; set; } = "#00A86B";
@@ -28,9 +44,25 @@ namespace TradeIt.Charts
         public bool ShowTimeGaps { get; set; } = true;
         public bool HasUserSavedSettings { get; set; } = false;
 
+        public Dictionary<string, DrawingToolStyle> DrawingToolStyles { get; set; } = CreateDefaultDrawingToolStyles();
+
+        public static Dictionary<string, DrawingToolStyle> CreateDefaultDrawingToolStyles() => new()
+        {
+            ["TrendLine"] = new DrawingToolStyle { Color = "#1976D2", LineWidth = 1.5, LineStyle = "Solid" },
+            ["HorizontalLine"] = new DrawingToolStyle { Color = "#1976D2", LineWidth = 1.5, LineStyle = "Solid" },
+            ["VerticalLine"] = new DrawingToolStyle { Color = "#1976D2", LineWidth = 1.5, LineStyle = "Solid" },
+            ["HorizontalRay"] = new DrawingToolStyle { Color = "#8E44AD", LineWidth = 1.5, LineStyle = "Solid" },
+            ["ParallelChannel"] = new DrawingToolStyle { Color = "#D35400", LineWidth = 1.5, LineStyle = "Solid" },
+            ["Rectangle"] = new DrawingToolStyle { Color = "#16A085", LineWidth = 1.5, LineStyle = "Solid" },
+            ["Pitchfork"] = new DrawingToolStyle { Color = "#C0392B", LineWidth = 1.5, LineStyle = "Dash" },
+            ["FibonacciRetracement"] = new DrawingToolStyle { Color = "#8E44AD", LineWidth = 1.25, LineStyle = "Dash" },
+            ["FibonacciExtension"] = new DrawingToolStyle { Color = "#2C3E50", LineWidth = 1.25, LineStyle = "Dash" },
+            ["Text"] = new DrawingToolStyle { Color = "#1976D2", LineWidth = 1, LineStyle = "Solid" }
+        };
+
         public ChartSettings Clone()
         {
-            return new ChartSettings
+            var clone = new ChartSettings
             {
                 RisingColor = RisingColor,
                 FallingColor = FallingColor,
@@ -56,8 +88,18 @@ namespace TradeIt.Charts
                 CrosshairPattern = CrosshairPattern,
                 ChartType = ChartType,
                 ShowTimeGaps = ShowTimeGaps,
-                HasUserSavedSettings = HasUserSavedSettings
+                HasUserSavedSettings = HasUserSavedSettings,
+                DrawingToolStyles = new Dictionary<string, DrawingToolStyle>()
             };
+
+            foreach (var pair in DrawingToolStyles)
+                clone.DrawingToolStyles[pair.Key] = pair.Value.Clone();
+
+            foreach (var pair in CreateDefaultDrawingToolStyles())
+                if (!clone.DrawingToolStyles.ContainsKey(pair.Key))
+                    clone.DrawingToolStyles[pair.Key] = pair.Value;
+
+            return clone;
         }
     }
 }
