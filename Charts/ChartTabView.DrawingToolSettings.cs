@@ -50,7 +50,8 @@ namespace TradeIt.Charts
 
         private void AttachDrawingToolSettingsMenu(WpfButton button, string key, string title)
         {
-            button.Click += (_, _) => ActivateDrawingToolStyle(key);
+            // Left-click is handled by the drawing-tool handlers themselves.
+            // Settings are opened only with right-click so the tool activation cannot be disturbed.
             button.AddHandler(UIElement.PreviewMouseRightButtonDownEvent,
                 new System.Windows.Input.MouseButtonEventHandler((_, e) =>
                 {
@@ -79,17 +80,24 @@ namespace TradeIt.Charts
 
         private static void EnsureFibonacciLevelDefaults(string key, DrawingToolStyle style)
         {
-            if (style.FibonacciLevels == null)
-                style.FibonacciLevels = new Dictionary<string, bool>();
+            style.FibonacciLevels ??= new Dictionary<string, bool>();
+            Dictionary<string, bool> defaults = key == "FibonacciRetracement"
+                ? ChartSettings.CreateDefaultRetracementLevels()
+                : key == "FibonacciExtension"
+                    ? ChartSettings.CreateDefaultExtensionLevels()
+                    : new Dictionary<string, bool>();
+            foreach (var pair in defaults)
+                if (!style.FibonacciLevels.ContainsKey(pair.Key)) style.FibonacciLevels[pair.Key] = pair.Value;
+
             if (key == "FibonacciRetracement")
             {
-                var defaults = ChartSettings.CreateDefaultRetracementLevels();
-                foreach (var pair in defaults) if (!style.FibonacciLevels.ContainsKey(pair.Key)) style.FibonacciLevels[pair.Key] = pair.Value;
+                style.FibonacciLevels.TryAdd("127.2", true);
+                style.FibonacciLevels.TryAdd("161.8", true);
+                style.FibonacciLevels.TryAdd("200.0", true);
             }
             else if (key == "FibonacciExtension")
             {
-                var defaults = ChartSettings.CreateDefaultExtensionLevels();
-                foreach (var pair in defaults) if (!style.FibonacciLevels.ContainsKey(pair.Key)) style.FibonacciLevels[pair.Key] = pair.Value;
+                style.FibonacciLevels.TryAdd("200.0", true);
             }
         }
 
@@ -112,7 +120,7 @@ namespace TradeIt.Charts
             {
                 Title = $"تنظیمات {title}",
                 Width = 400,
-                Height = isFib ? 540 : isText ? 250 : 285,
+                Height = isFib ? 540 : isText ? 280 : 285,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 ResizeMode = ResizeMode.NoResize,
                 FlowDirection = System.Windows.FlowDirection.RightToLeft,
@@ -121,49 +129,22 @@ namespace TradeIt.Charts
 
             var form = new WpfGrid { Margin = new Thickness(10) };
             int row = 0;
-
-            form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            var colorButton = CreateColorButton(current.Color);
-            AddSettingRow(form, row++, "رنگ", colorButton);
-
-            WpfComboBox? widthBox = null;
-            WpfComboBox? styleBox = null;
-
-            if (!isText)
-            {
-                form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                widthBox = CreateWidthCombo(current.LineWidth);
-                AddSettingRow(form, row++, "ضخامت", widthBox);
-
-                form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                styleBox = CreateStyleCombo(current.LineStyle);
-                AddSettingRow(form, row++, "استایل", styleBox);
-            }
-
-            var levelChecks = new Dictionary<string, System.Windows.Controls.CheckBox>();
-            if (isFib)
-            {
-                form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                var levelPanel = new WpfStackPanel { Margin = new Thickness(4, 8, 4, 4) };
-                levelPanel.Children.Add(new WpfTextBlock { Text = "سطوح فیبوناچی رایج", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 5) });
-                string[] levels = key == "FibonacciRetracement"
-                    ? new[] { "0.0", "23.6", "38.2", "50.0", "61.8", "78.6", "100.0", "127.2", "161.8", "200.0" }
-                    : new[] { "0.0", "38.2", "61.8", "100.0", "127.2", "161.8", "200.0", "261.8" };
-                foreach (string level in levels)
-                {
-                    bool isChecked = current.FibonacciLevels.TryGetValue(level, out bool value) ? value : true;
-                    var check = new System.Windows.Controls.CheckBox { Content = $"{level}%", IsChecked = isChecked, Margin = new Thickness(2) };
-                    levelChecks[level] = check;
-                    levelPanel.Children.Add(check);
-                }
-                Grid.SetRow(levelPanel, row++);
-                form.Children.Add(levelPanel);
-            }
+            WpfButton? backgroundButton = null;
+            WpfButton? textColorButton = null;
+            WpfButton? fontButton = null;
 
             if (isText)
             {
                 form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                var fontButton = new WpfButton { Content = $"{current.FontFamily}  /  {current.FontSize:0}", Width = 190, Height = 30, Margin = new Thickness(6) };
+                backgroundButton = CreateColorButton(current.BackgroundColor);
+                AddSettingRow(form, row++, "رنگ زمینه", backgroundButton);
+
+                form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                fontButton = new WpfButton
+                {
+                    Content = $"{current.FontFamily}  /  {current.FontSize:0}",
+                    Width = 190, Height = 30, Margin = new Thickness(6)
+                };
                 AddSettingRow(form, row++, "فونت", fontButton);
 
                 fontButton.Click += (_, _) =>
@@ -182,13 +163,146 @@ namespace TradeIt.Charts
                 };
 
                 form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                var textColorButton = CreateColorButton(current.Color);
+                textColorButton = CreateColorButton(current.Color);
                 AddSettingRow(form, row++, "رنگ متن", textColorButton);
-                colorButton = textColorButton;
+            }
+            else
+            {
+                form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                var colorButton = CreateColorButton(current.Color);
+                AddSettingRow(form, row++, "رنگ", colorButton);
+
+                form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                var widthBox = CreateWidthCombo(current.LineWidth);
+                AddSettingRow(form, row++, "ضخامت", widthBox);
+
+                form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                var styleBox = CreateStyleCombo(current.LineStyle);
+                AddSettingRow(form, row++, "استایل", styleBox);
+
+                var levelChecks = new Dictionary<string, System.Windows.Controls.CheckBox>();
+                if (isFib)
+                {
+                    form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                    var levelPanel = new WpfStackPanel { Margin = new Thickness(4, 8, 4, 4) };
+                    levelPanel.Children.Add(new WpfTextBlock { Text = "سطوح فیبوناچی رایج", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 5) });
+                    string[] levels = key == "FibonacciRetracement"
+                        ? new[] { "0.0", "23.6", "38.2", "50.0", "61.8", "78.6", "100.0", "127.2", "161.8", "200.0" }
+                        : new[] { "0.0", "38.2", "61.8", "100.0", "127.2", "161.8", "200.0", "261.8" };
+                    foreach (string level in levels)
+                    {
+                        bool checkedValue = current.FibonacciLevels.TryGetValue(level, out bool value) ? value : true;
+                        var check = new System.Windows.Controls.CheckBox
+                        {
+                            Content = level switch
+                            {
+                                "127.2" => "1.272 (127.2%)",
+                                "161.8" => "1.618 (161.8%)",
+                                "200.0" => "2 (200%)",
+                                "261.8" => "2.618 (261.8%)",
+                                _ => $"{level}%"
+                            },
+                            IsChecked = checkedValue,
+                            Margin = new Thickness(2)
+                        };
+                        levelChecks[level] = check;
+                        levelPanel.Children.Add(check);
+                    }
+                    Grid.SetRow(levelPanel, row++);
+                    form.Children.Add(levelPanel);
+                }
+
+                form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                var buttons = CreateDialogButtons();
+                Grid.SetRow(buttons.panel, row++);
+                form.Children.Add(buttons.panel);
+                window.Content = form;
+
+                colorButton.Click += (_, _) =>
+                {
+                    using var dialog = new WinFormsColorDialog { FullOpen = true, Color = System.Drawing.ColorTranslator.FromHtml(current.Color) };
+                    if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                        SetColorButton(colorButton, System.Drawing.ColorTranslator.ToHtml(dialog.Color));
+                };
+
+                buttons.defaultButton.Click += (_, _) =>
+                {
+                    SetColorButton(colorButton, defaults.Color);
+                    widthBox.SelectedItem = FindNumericComboItem(widthBox, defaults.LineWidth);
+                    styleBox.SelectedItem = defaults.LineStyle;
+                    foreach (var pair in levelChecks)
+                        pair.Value.IsChecked = defaults.FibonacciLevels.TryGetValue(pair.Key, out bool value) ? value : true;
+                };
+
+                buttons.applyButton.Click += (_, _) =>
+                {
+                    string color = GetColorButtonValue(colorButton);
+                    DrawingToolStyle saved = GetDrawingToolStyle(key);
+                    saved.Color = color;
+                    if (widthBox.SelectedItem is double width) saved.LineWidth = width;
+                    saved.LineStyle = styleBox.SelectedItem?.ToString() ?? "Solid";
+                    if (isFib)
+                    {
+                        saved.FibonacciLevels = new Dictionary<string, bool>();
+                        foreach (var pair in levelChecks) saved.FibonacciLevels[pair.Key] = pair.Value.IsChecked == true;
+                    }
+                    ChartSettingsManager.SaveDrawingToolStyles(_settings);
+                    ApplyDrawingToolStyle(key);
+                    window.DialogResult = true;
+                };
+                window.ShowDialog();
+                return;
             }
 
             form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            var buttons = new WpfStackPanel
+            var textButtons = CreateDialogButtons();
+            Grid.SetRow(textButtons.panel, row++);
+            form.Children.Add(textButtons.panel);
+            window.Content = form;
+
+            backgroundButton!.Click += (_, _) =>
+            {
+                using var dialog = new WinFormsColorDialog { FullOpen = true, Color = System.Drawing.ColorTranslator.FromHtml(current.BackgroundColor) };
+                if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                    SetColorButton(backgroundButton, System.Drawing.ColorTranslator.ToHtml(dialog.Color));
+            };
+
+            textColorButton!.Click += (_, _) =>
+            {
+                using var dialog = new WinFormsColorDialog { FullOpen = true, Color = System.Drawing.ColorTranslator.FromHtml(current.Color) };
+                if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                    SetColorButton(textColorButton, System.Drawing.ColorTranslator.ToHtml(dialog.Color));
+            };
+
+            textButtons.defaultButton.Click += (_, _) =>
+            {
+                SetColorButton(backgroundButton, defaults.BackgroundColor);
+                SetColorButton(textColorButton, defaults.Color);
+                current.FontFamily = defaults.FontFamily;
+                current.FontSize = defaults.FontSize;
+                fontButton!.Content = $"{current.FontFamily}  /  {current.FontSize:0}";
+            };
+
+            textButtons.applyButton.Click += (_, _) =>
+            {
+                DrawingToolStyle saved = GetDrawingToolStyle("Text");
+                saved.BackgroundColor = GetColorButtonValue(backgroundButton);
+                saved.Color = GetColorButtonValue(textColorButton);
+                saved.FontFamily = current.FontFamily;
+                saved.FontSize = current.FontSize;
+                ChartSettingsManager.SaveDrawingToolStyles(_settings);
+                ApplyDrawingToolStyle("Text");
+                RenderTextDrawings();
+                Chart.Refresh();
+                window.DialogResult = true;
+            };
+
+            window.ShowDialog();
+        }
+
+        private static (WpfStackPanel panel, WpfButton defaultButton, WpfButton cancelButton, WpfButton applyButton) CreateDialogButtons()
+        {
+            var panel = new WpfStackPanel
             {
                 Orientation = System.Windows.Controls.Orientation.Horizontal,
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
@@ -197,76 +311,10 @@ namespace TradeIt.Charts
             var defaultButton = new WpfButton { Content = "پیش‌فرض", Width = 85, Height = 30, Margin = new Thickness(4) };
             var cancelButton = new WpfButton { Content = "لغو", Width = 75, Height = 30, Margin = new Thickness(4), IsCancel = true };
             var applyButton = new WpfButton { Content = "اعمال", Width = 75, Height = 30, Margin = new Thickness(4), IsDefault = true };
-            buttons.Children.Add(defaultButton);
-            buttons.Children.Add(cancelButton);
-            buttons.Children.Add(applyButton);
-            Grid.SetRow(buttons, row++);
-            form.Children.Add(buttons);
-            window.Content = form;
-
-            colorButton.Click += (_, _) =>
-            {
-                using var dialog = new WinFormsColorDialog { FullOpen = true, Color = System.Drawing.ColorTranslator.FromHtml(current.Color) };
-                if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-                    SetColorButton(colorButton, System.Drawing.ColorTranslator.ToHtml(dialog.Color));
-            };
-
-            defaultButton.Click += (_, _) =>
-            {
-                SetColorButton(colorButton, defaults.Color);
-                if (!isText)
-                {
-                    widthBox!.SelectedItem = FindNumericComboItem(widthBox, defaults.LineWidth);
-                    styleBox!.SelectedItem = defaults.LineStyle;
-                }
-                else
-                {
-                    current.FontFamily = defaults.FontFamily;
-                    current.FontSize = defaults.FontSize;
-                }
-                foreach (var pair in levelChecks)
-                    pair.Value.IsChecked = defaults.FibonacciLevels.TryGetValue(pair.Key, out bool value) ? value : true;
-            };
-
-            applyButton.Click += (_, _) =>
-            {
-                string color = GetColorButtonValue(colorButton);
-                try { ScottPlot.Color.FromHtml(color); }
-                catch
-                {
-                    System.Windows.MessageBox.Show(window, "رنگ انتخاب‌شده معتبر نیست.", "تنظیمات ابزار", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                DrawingToolStyle saved = GetDrawingToolStyle(key);
-                saved.Color = color;
-
-                if (!isText)
-                {
-                    if (widthBox?.SelectedItem is not double width) return;
-                    saved.LineWidth = width;
-                    saved.LineStyle = styleBox?.SelectedItem?.ToString() ?? "Solid";
-                }
-                else
-                {
-                    saved.FontFamily = current.FontFamily;
-                    saved.FontSize = current.FontSize;
-                }
-
-                if (isFib)
-                {
-                    saved.FibonacciLevels = new Dictionary<string, bool>();
-                    foreach (var pair in levelChecks)
-                        saved.FibonacciLevels[pair.Key] = pair.Value.IsChecked == true;
-                }
-
-                ChartSettingsManager.SaveDrawingToolStyles(_settings);
-                ActivateDrawingToolStyle(key);
-                ApplyDrawingToolStyle(key);
-                window.DialogResult = true;
-            };
-
-            window.ShowDialog();
+            panel.Children.Add(defaultButton);
+            panel.Children.Add(cancelButton);
+            panel.Children.Add(applyButton);
+            return (panel, defaultButton, cancelButton, applyButton);
         }
 
         private static System.Drawing.Font CreateWinFormsFont(string family, double size)
@@ -277,7 +325,12 @@ namespace TradeIt.Charts
 
         private static WpfButton CreateColorButton(string color)
         {
-            var button = new WpfButton { Width = 150, Height = 30, HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch, Margin = new Thickness(6) };
+            var button = new WpfButton
+            {
+                Width = 150, Height = 30,
+                HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch,
+                Margin = new Thickness(6)
+            };
             SetColorButton(button, color);
             return button;
         }
@@ -317,8 +370,7 @@ namespace TradeIt.Charts
         private static object? FindNumericComboItem(WpfComboBox combo, double value)
         {
             foreach (object item in combo.Items)
-                if (item is double number && Math.Abs(number - value) < 0.0001)
-                    return item;
+                if (item is double number && Math.Abs(number - value) < 0.0001) return item;
             return null;
         }
 
