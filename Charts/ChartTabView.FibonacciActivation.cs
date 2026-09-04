@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media;
 
 namespace TradeIt.Charts
@@ -35,7 +34,7 @@ namespace TradeIt.Charts
             SetDrawingToolButtonState(DrawingFibExtensionButton, extensionActive);
         }
 
-        private static void SetDrawingToolButtonState(Button button, bool active)
+        private static void SetDrawingToolButtonState(System.Windows.Controls.Button button, bool active)
         {
             button.Opacity = active ? 1.0 : 0.55;
             button.BorderThickness = active ? new Thickness(2) : new Thickness(1);
