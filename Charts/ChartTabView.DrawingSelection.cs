@@ -205,50 +205,39 @@ namespace TradeIt.Charts
             return candidates;
         }
 
-        private double DistanceToFibonacci(ScottPlot.Coordinates point, FibonacciDrawing drawing)
+        private bool IsPointOnFibonacciDrawing(ScottPlot.Coordinates point, FibonacciDrawing drawing, double tolerance)
         {
             double ab = drawing.B.Y - drawing.A.Y;
+            double left = drawing.IsExtension ? Math.Min(drawing.A.X, drawing.C.X) : Math.Min(drawing.A.X, drawing.B.X);
+            double right = drawing.IsExtension ? Math.Max(drawing.A.X, drawing.C.X) : Math.Max(drawing.A.X, drawing.B.X);
+            if (point.X < left || point.X > right) return false;
+
             double[] ratios = drawing.IsExtension
                 ? new[] { 0.0, 0.382, 0.618, 1.0, 1.618, 2.618 }
                 : new[] { 0.0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0 };
 
-            double minDistance = double.MaxValue;
             foreach (double ratio in ratios)
             {
-                double y = drawing.IsExtension
-                    ? drawing.C.Y + ab * ratio
-                    : drawing.B.Y - ab * ratio;
-                double distance = DistancePointToSegment(point,
-                    new ScottPlot.Coordinates(drawing.IsExtension ? Math.Min(drawing.A.X, drawing.C.X) : Math.Min(drawing.A.X, drawing.B.X), y),
-                    new ScottPlot.Coordinates(drawing.IsExtension ? Math.Max(drawing.A.X, drawing.C.X) : Math.Max(drawing.A.X, drawing.B.X), y));
-                if (distance < minDistance) minDistance = distance;
+                double y = drawing.IsExtension ? drawing.C.Y + ab * ratio : drawing.B.Y - ab * ratio;
+                if (DistancePointToSegment(point, new ScottPlot.Coordinates(left, y), new ScottPlot.Coordinates(right, y)) <= tolerance)
+                    return true;
             }
-            return minDistance;
+            return false;
         }
 
         private static bool IsPointOnRectangle(ScottPlot.Coordinates point, RectangleDrawing d, double tolerance)
         {
             GetRectangleCorners(d, out var tl, out var tr, out var br, out var bl);
-            // Rectangle interior is selectable, but only inside the actual pixel
-            // bounds. The tolerance applies to its border, not to its entire area.
             if (DistancePointToSegment(point, tl, tr) <= tolerance ||
                 DistancePointToSegment(point, tr, br) <= tolerance ||
                 DistancePointToSegment(point, br, bl) <= tolerance ||
                 DistancePointToSegment(point, bl, tl) <= tolerance)
                 return true;
 
-            ScottPlot.Pixel p = Chart.Plot.GetPixel(point);
-            ScottPlot.Pixel p1 = Chart.Plot.GetPixel(tl);
-            ScottPlot.Pixel p2 = Chart.Plot.GetPixel(br);
-            double left = Math.Min(p1.X, p2.X);
-            double right = Math.Max(p1.X, p2.X);
-            double top = Math.Min(p1.Y, p2.Y);
-            double bottom = Math.Max(p1.Y, p2.Y);
-            return p.X >= left && p.X <= right && p.Y >= top && p.Y <= bottom;
+            return false;
         }
 
         private double GetDrawingHitTolerance() => 9.0;
-        private double GetHandleHitTolerance() => 11.0;
 
         private double DistancePointToHorizontalLine(ScottPlot.Coordinates point, double y)
         {
@@ -262,6 +251,51 @@ namespace TradeIt.Charts
             ScottPlot.Pixel p = Chart.Plot.GetPixel(point);
             ScottPlot.Pixel q = Chart.Plot.GetPixel(new ScottPlot.Coordinates(x, point.Y));
             return Math.Abs(p.X - q.X);
+        }
+
+        private double DistancePointToSegment(ScottPlot.Coordinates p, ScottPlot.Coordinates a, ScottPlot.Coordinates b)
+        {
+            ScottPlot.Pixel pp = Chart.Plot.GetPixel(p);
+            ScottPlot.Pixel pa = Chart.Plot.GetPixel(a);
+            ScottPlot.Pixel pb = Chart.Plot.GetPixel(b);
+
+            double dx = pb.X - pa.X;
+            double dy = pb.Y - pa.Y;
+            double length2 = dx * dx + dy * dy;
+            if (length2 < 1e-12)
+                return Math.Sqrt((pp.X - pa.X) * (pp.X - pa.X) + (pp.Y - pa.Y) * (pp.Y - pa.Y));
+
+            double t = ((pp.X - pa.X) * dx + (pp.Y - pa.Y) * dy) / length2;
+            t = Math.Max(0, Math.Min(1, t));
+            double x = pa.X + t * dx;
+            double y = pa.Y + t * dy;
+            return Math.Sqrt((pp.X - x) * (pp.X - x) + (pp.Y - y) * (pp.Y - y));
+        }
+
+        private double DistanceToRay(ScottPlot.Coordinates p, double x1, double y1, double x2, double y2)
+        {
+            var limits = Chart.Plot.Axes.GetLimits();
+            double dx = x2 - x1;
+            double dy = y2 - y1;
+            if (Math.Abs(dx) < 1e-12)
+            {
+                double endY = dy >= 0 ? limits.Top : limits.Bottom;
+                return DistancePointToSegment(p, new ScottPlot.Coordinates(x1, y1), new ScottPlot.Coordinates(x1, endY));
+            }
+
+            double endX = dx >= 0 ? limits.Right : limits.Left;
+            double endY2 = y1 + dy / dx * (endX - x1);
+            return DistancePointToSegment(p, new ScottPlot.Coordinates(x1, y1), new ScottPlot.Coordinates(endX, endY2));
+        }
+
+        private double DistanceToPitchfork(ScottPlot.Coordinates p, PitchforkDrawing d)
+        {
+            var target = Midpoint(d.B, d.C);
+            return Math.Min(
+                DistanceToRay(p, d.A.X, d.A.Y, target.X, target.Y),
+                Math.Min(
+                    DistanceToRay(p, d.B.X, d.B.Y, target.X, target.Y),
+                    DistanceToRay(p, d.C.X, d.C.Y, target.X, target.Y)));
         }
 
         private void SelectDrawing(DrawingSelectionKind kind, object drawing)
