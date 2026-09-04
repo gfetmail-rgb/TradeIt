@@ -68,6 +68,7 @@ namespace TradeIt.Charts
         public static Dictionary<string, DrawingToolStyle> CreateDefaultDrawingToolStyles() => new()
         {
             ["TrendLine"] = new DrawingToolStyle { Color = "#1976D2", LineWidth = 1.5, LineStyle = "Solid" },
+            ["Arrow"] = new DrawingToolStyle { Color = "#1976D2", LineWidth = 1.5, LineStyle = "Solid" },
             ["HorizontalLine"] = new DrawingToolStyle { Color = "#1976D2", LineWidth = 1.5, LineStyle = "Solid" },
             ["VerticalLine"] = new DrawingToolStyle { Color = "#1976D2", LineWidth = 1.5, LineStyle = "Solid" },
             ["HorizontalRay"] = new DrawingToolStyle { Color = "#8E44AD", LineWidth = 1.5, LineStyle = "Solid" },
