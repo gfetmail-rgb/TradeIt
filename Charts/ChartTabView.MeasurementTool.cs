@@ -127,7 +127,7 @@ namespace TradeIt.Charts
             e.Handled = true;
         }
 
-        private void MeasurementTool_MouseMove(object sender, MouseEventArgs e)
+        private void MeasurementTool_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             if ((int)_activeDrawingTool != MeasurementToolValue || _measurementStart == null)
                 return;
