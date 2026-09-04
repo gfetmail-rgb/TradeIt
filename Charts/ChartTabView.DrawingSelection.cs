@@ -45,7 +45,7 @@ namespace TradeIt.Charts
                 new System.Windows.Input.KeyEventHandler(DrawingSelection_KeyDown), true);
         }
 
-        private void DrawingSelection_MouseDown(object sender, MouseButtonEventArgs e)
+        private void DrawingSelection_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (e.ChangedButton != MouseButton.Left || _textDrawingActive || _activeDrawingTool != TechnicalDrawingTool.Select) return;
             if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
@@ -63,7 +63,7 @@ namespace TradeIt.Charts
             Chart.Refresh();
         }
 
-        private void DrawingSelection_MouseMove(object sender, MouseEventArgs e)
+        private void DrawingSelection_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             if (!_selectionDragging || _selectedDrawing == null || e.LeftButton != MouseButtonState.Pressed) return;
             if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
@@ -78,7 +78,7 @@ namespace TradeIt.Charts
             Chart.Refresh();
         }
 
-        private void DrawingSelection_MouseUp(object sender, MouseButtonEventArgs e)
+        private void DrawingSelection_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (e.ChangedButton != MouseButton.Left || !_selectionDragging) return;
             _selectionDragging = false;
