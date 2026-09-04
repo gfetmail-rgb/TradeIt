@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 
@@ -16,6 +17,7 @@ namespace TradeIt.Charts
         {
             public DrawingSelectionKind Kind { get; init; }
             public object Drawing { get; init; }
+            public double Distance { get; init; }
         }
 
         private DrawingSelectionKind _selectedDrawingKind;
@@ -25,6 +27,8 @@ namespace TradeIt.Charts
         private bool _drawingSelectionAttached;
         private double _lastSelectionX = double.NaN;
         private double _lastSelectionY = double.NaN;
+        private double _lastSelectionPixelX = double.NaN;
+        private double _lastSelectionPixelY = double.NaN;
         private int _selectionCycleIndex = -1;
         private int _selectionCycleCount;
 
@@ -32,9 +36,7 @@ namespace TradeIt.Charts
 
         private static bool RegisterDrawingSelectionHandling()
         {
-            EventManager.RegisterClassHandler(
-                typeof(ChartTabView),
-                FrameworkElement.LoadedEvent,
+            EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.LoadedEvent,
                 new RoutedEventHandler(DrawingSelection_Loaded));
             return true;
         }
@@ -130,10 +132,11 @@ namespace TradeIt.Charts
             var candidates = GetDrawingCandidates(point);
             if (candidates.Count == 0) return false;
 
-            double cycleTolerance = GetHandleHitTolerance();
-            bool sameLocation = !double.IsNaN(_lastSelectionX) &&
-                Math.Abs(point.X - _lastSelectionX) <= cycleTolerance &&
-                Math.Abs(point.Y - _lastSelectionY) <= cycleTolerance &&
+            ScottPlot.Pixel mousePixel = Chart.Plot.GetPixel(point);
+            const double cycleTolerancePixels = 12.0;
+            bool sameLocation = !double.IsNaN(_lastSelectionPixelX) &&
+                Math.Abs(mousePixel.X - _lastSelectionPixelX) <= cycleTolerancePixels &&
+                Math.Abs(mousePixel.Y - _lastSelectionPixelY) <= cycleTolerancePixels &&
                 _selectionCycleCount == candidates.Count;
 
             _selectionCycleIndex = sameLocation
@@ -142,6 +145,8 @@ namespace TradeIt.Charts
 
             _lastSelectionX = point.X;
             _lastSelectionY = point.Y;
+            _lastSelectionPixelX = mousePixel.X;
+            _lastSelectionPixelY = mousePixel.Y;
             _selectionCycleCount = candidates.Count;
 
             var candidate = candidates[_selectionCycleIndex];
@@ -155,89 +160,104 @@ namespace TradeIt.Charts
             var candidates = new List<DrawingCandidate>();
 
             for (int i = _fibonacciDrawings.Count - 1; i >= 0; i--)
-                if (IsPointOnFibonacciDrawing(point, _fibonacciDrawings[i], tolerance))
-                    candidates.Add(new DrawingCandidate { Kind = DrawingSelectionKind.Fibonacci, Drawing = _fibonacciDrawings[i] });
+            {
+                double distance = DistanceToFibonacci(point, _fibonacciDrawings[i]);
+                if (distance <= tolerance)
+                    candidates.Add(new DrawingCandidate { Kind = DrawingSelectionKind.Fibonacci, Drawing = _fibonacciDrawings[i], Distance = distance });
+            }
 
             for (int i = _pitchforks.Count - 1; i >= 0; i--)
-                if (DistanceToPitchfork(point, _pitchforks[i]) <= tolerance)
-                    candidates.Add(new DrawingCandidate { Kind = DrawingSelectionKind.Pitchfork, Drawing = _pitchforks[i] });
+            {
+                double distance = DistanceToPitchfork(point, _pitchforks[i]);
+                if (distance <= tolerance)
+                    candidates.Add(new DrawingCandidate { Kind = DrawingSelectionKind.Pitchfork, Drawing = _pitchforks[i], Distance = distance });
+            }
 
             for (int i = _parallelChannels.Count - 1; i >= 0; i--)
             {
                 var d = _parallelChannels[i];
                 var parallelEnd = new ScottPlot.Coordinates(d.C.X + d.B.X - d.A.X, d.C.Y + d.B.Y - d.A.Y);
-                if (DistancePointToSegment(point, d.A, d.B) <= tolerance ||
-                    DistancePointToSegment(point, d.C, parallelEnd) <= tolerance)
-                    candidates.Add(new DrawingCandidate { Kind = DrawingSelectionKind.ParallelChannel, Drawing = d });
+                double distance = Math.Min(DistancePointToSegment(point, d.A, d.B), DistancePointToSegment(point, d.C, parallelEnd));
+                if (distance <= tolerance)
+                    candidates.Add(new DrawingCandidate { Kind = DrawingSelectionKind.ParallelChannel, Drawing = d, Distance = distance });
             }
 
             for (int i = _drawingRectangles.Count - 1; i >= 0; i--)
             {
-                var d = _drawingRectangles[i];
-                if (IsPointOnRectangle(point, d, tolerance))
-                    candidates.Add(new DrawingCandidate { Kind = DrawingSelectionKind.Rectangle, Drawing = d });
+                double distance = DistanceToRectangle(point, _drawingRectangles[i]);
+                if (distance <= tolerance)
+                    candidates.Add(new DrawingCandidate { Kind = DrawingSelectionKind.Rectangle, Drawing = _drawingRectangles[i], Distance = distance });
             }
 
             for (int i = _rays.Count - 1; i >= 0; i--)
             {
                 var d = _rays[i];
-                if (DistanceToRay(point, d.X1, d.Y1, d.X2, d.Y2) <= tolerance)
-                    candidates.Add(new DrawingCandidate { Kind = DrawingSelectionKind.Ray, Drawing = d });
+                double distance = DistanceToRay(point, d.X1, d.Y1, d.X2, d.Y2);
+                if (distance <= tolerance)
+                    candidates.Add(new DrawingCandidate { Kind = DrawingSelectionKind.Ray, Drawing = d, Distance = distance });
             }
 
             for (int i = _trendLines.Count - 1; i >= 0; i--)
             {
                 var d = _trendLines[i];
-                if (DistancePointToSegment(point,
-                    new ScottPlot.Coordinates(d.X1, d.Y1),
-                    new ScottPlot.Coordinates(d.X2, d.Y2)) <= tolerance)
-                    candidates.Add(new DrawingCandidate { Kind = DrawingSelectionKind.TrendLine, Drawing = d });
+                double distance = DistancePointToSegment(point,
+                    new ScottPlot.Coordinates(d.X1, d.Y1), new ScottPlot.Coordinates(d.X2, d.Y2));
+                if (distance <= tolerance)
+                    candidates.Add(new DrawingCandidate { Kind = DrawingSelectionKind.TrendLine, Drawing = d, Distance = distance });
             }
 
             for (int i = _horizontalLines.Count - 1; i >= 0; i--)
-                if (DistancePointToHorizontalLine(point, _horizontalLines[i].Y) <= tolerance)
-                    candidates.Add(new DrawingCandidate { Kind = DrawingSelectionKind.HorizontalLine, Drawing = _horizontalLines[i] });
+            {
+                double distance = DistancePointToHorizontalLine(point, _horizontalLines[i].Y);
+                if (distance <= tolerance)
+                    candidates.Add(new DrawingCandidate { Kind = DrawingSelectionKind.HorizontalLine, Drawing = _horizontalLines[i], Distance = distance });
+            }
 
             for (int i = _verticalLines.Count - 1; i >= 0; i--)
-                if (DistancePointToVerticalLine(point, _verticalLines[i].X) <= tolerance)
-                    candidates.Add(new DrawingCandidate { Kind = DrawingSelectionKind.VerticalLine, Drawing = _verticalLines[i] });
+            {
+                double distance = DistancePointToVerticalLine(point, _verticalLines[i].X);
+                if (distance <= tolerance)
+                    candidates.Add(new DrawingCandidate { Kind = DrawingSelectionKind.VerticalLine, Drawing = _verticalLines[i], Distance = distance });
+            }
 
-            return candidates;
+            return candidates.OrderBy(c => c.Distance).ToList();
         }
 
-        private bool IsPointOnFibonacciDrawing(ScottPlot.Coordinates point, FibonacciDrawing drawing, double tolerance)
+        private double DistanceToFibonacci(ScottPlot.Coordinates point, FibonacciDrawing drawing)
         {
             double ab = drawing.B.Y - drawing.A.Y;
             double left = drawing.IsExtension ? Math.Min(drawing.A.X, drawing.C.X) : Math.Min(drawing.A.X, drawing.B.X);
             double right = drawing.IsExtension ? Math.Max(drawing.A.X, drawing.C.X) : Math.Max(drawing.A.X, drawing.B.X);
-            if (point.X < left || point.X > right) return false;
+            if (point.X < left || point.X > right) return double.MaxValue;
 
             double[] ratios = drawing.IsExtension
                 ? new[] { 0.0, 0.382, 0.618, 1.0, 1.618, 2.618 }
                 : new[] { 0.0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0 };
-
+            double nearest = double.MaxValue;
             foreach (double ratio in ratios)
             {
                 double y = drawing.IsExtension ? drawing.C.Y + ab * ratio : drawing.B.Y - ab * ratio;
-                if (DistancePointToSegment(point, new ScottPlot.Coordinates(left, y), new ScottPlot.Coordinates(right, y)) <= tolerance)
-                    return true;
+                nearest = Math.Min(nearest, DistancePointToSegment(point,
+                    new ScottPlot.Coordinates(left, y), new ScottPlot.Coordinates(right, y)));
             }
-            return false;
+            return nearest;
+        }
+
+        private bool IsPointOnFibonacciDrawing(ScottPlot.Coordinates point, FibonacciDrawing drawing, double tolerance)
+            => DistanceToFibonacci(point, drawing) <= tolerance;
+
+        private double DistanceToRectangle(ScottPlot.Coordinates point, RectangleDrawing d)
+        {
+            GetRectangleCorners(d, out var tl, out var tr, out var br, out var bl);
+            return Math.Min(DistancePointToSegment(point, tl, tr),
+                Math.Min(DistancePointToSegment(point, tr, br),
+                    Math.Min(DistancePointToSegment(point, br, bl), DistancePointToSegment(point, bl, tl))));
         }
 
         private bool IsPointOnRectangle(ScottPlot.Coordinates point, RectangleDrawing d, double tolerance)
-        {
-            GetRectangleCorners(d, out var tl, out var tr, out var br, out var bl);
-            if (DistancePointToSegment(point, tl, tr) <= tolerance ||
-                DistancePointToSegment(point, tr, br) <= tolerance ||
-                DistancePointToSegment(point, br, bl) <= tolerance ||
-                DistancePointToSegment(point, bl, tl) <= tolerance)
-                return true;
+            => DistanceToRectangle(point, d) <= tolerance;
 
-            return false;
-        }
-
-        private double GetDrawingHitTolerance() => 9.0;
+        private double GetDrawingHitTolerance() => 8.0;
 
         private double DistancePointToHorizontalLine(ScottPlot.Coordinates point, double y)
         {
@@ -258,13 +278,11 @@ namespace TradeIt.Charts
             ScottPlot.Pixel pp = Chart.Plot.GetPixel(p);
             ScottPlot.Pixel pa = Chart.Plot.GetPixel(a);
             ScottPlot.Pixel pb = Chart.Plot.GetPixel(b);
-
             double dx = pb.X - pa.X;
             double dy = pb.Y - pa.Y;
             double length2 = dx * dx + dy * dy;
             if (length2 < 1e-12)
                 return Math.Sqrt((pp.X - pa.X) * (pp.X - pa.X) + (pp.Y - pa.Y) * (pp.Y - pa.Y));
-
             double t = ((pp.X - pa.X) * dx + (pp.Y - pa.Y) * dy) / length2;
             t = Math.Max(0, Math.Min(1, t));
             double x = pa.X + t * dx;
@@ -282,7 +300,6 @@ namespace TradeIt.Charts
                 double endY = dy >= 0 ? limits.Top : limits.Bottom;
                 return DistancePointToSegment(p, new ScottPlot.Coordinates(x1, y1), new ScottPlot.Coordinates(x1, endY));
             }
-
             double endX = dx >= 0 ? limits.Right : limits.Left;
             double endY2 = y1 + dy / dx * (endX - x1);
             return DistancePointToSegment(p, new ScottPlot.Coordinates(x1, y1), new ScottPlot.Coordinates(endX, endY2));
@@ -291,10 +308,8 @@ namespace TradeIt.Charts
         private double DistanceToPitchfork(ScottPlot.Coordinates p, PitchforkDrawing d)
         {
             var target = Midpoint(d.B, d.C);
-            return Math.Min(
-                DistanceToRay(p, d.A.X, d.A.Y, target.X, target.Y),
-                Math.Min(
-                    DistanceToRay(p, d.B.X, d.B.Y, target.X, target.Y),
+            return Math.Min(DistanceToRay(p, d.A.X, d.A.Y, target.X, target.Y),
+                Math.Min(DistanceToRay(p, d.B.X, d.B.Y, target.X, target.Y),
                     DistanceToRay(p, d.C.X, d.C.Y, target.X, target.Y)));
         }
 
@@ -312,7 +327,6 @@ namespace TradeIt.Charts
         {
             if (_selectedDrawing == null) return;
             ClearDrawingSelectionVisuals();
-
             switch (_selectedDrawingKind)
             {
                 case DrawingSelectionKind.Fibonacci:
@@ -374,6 +388,8 @@ namespace TradeIt.Charts
             _selectionCycleCount = 0;
             _lastSelectionX = double.NaN;
             _lastSelectionY = double.NaN;
+            _lastSelectionPixelX = double.NaN;
+            _lastSelectionPixelY = double.NaN;
             _activeDrawingHandle = null;
             Chart.ReleaseMouseCapture();
             Chart.UserInputProcessor.IsEnabled = true;
