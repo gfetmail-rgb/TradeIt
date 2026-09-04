@@ -8,7 +8,6 @@ using WpfOrientation = System.Windows.Controls.Orientation;
 using WpfStackPanel = System.Windows.Controls.StackPanel;
 using WpfTextBox = System.Windows.Controls.TextBox;
 using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
-using WpfMouseButtonEventHandler = System.Windows.Input.MouseButtonEventHandler;
 
 namespace TradeIt.Charts
 {
@@ -32,11 +31,8 @@ namespace TradeIt.Charts
             _textDrawingEventsAttached = true;
             DrawingTextButton.Click += DrawingTextButton_Click;
 
-            // Use the normal WPF bubbling event and still receive it when ScottPlot handles it.
-            Chart.AddHandler(
-                UIElement.MouseLeftButtonDownEvent,
-                new WpfMouseButtonEventHandler(TextDrawing_MouseDown),
-                true);
+            // Use the WPF preview event path already known to reach ChartTabView.
+            Chart.PreviewMouseLeftButtonDown += TextDrawing_MouseDown;
         }
 
         private void DrawingTextButton_Click(object? sender, RoutedEventArgs e)
