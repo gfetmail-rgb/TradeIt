@@ -41,7 +41,6 @@ namespace TradeIt.Charts
             AddHandler(Keyboard.PreviewKeyDownEvent, new WpfKeyEventHandler(TechnicalDrawing_KeyDown), true);
             Focusable = true;
             ChartTypeComboBox.SelectionChanged += TechnicalDrawing_ChartTypeChanged;
-            ChartSettingsManager.SettingsChanged += TechnicalDrawing_SettingsChanged;
             UpdateTechnicalDrawingButtons();
         }
 
@@ -165,7 +164,6 @@ namespace TradeIt.Charts
 
         private void RemoveTrendLinePreview() { if (_trendLinePreview == null) return; Chart.Plot.Remove(_trendLinePreview); _trendLinePreview = null; }
         private void TechnicalDrawing_ChartTypeChanged(object? sender, System.Windows.Controls.SelectionChangedEventArgs e) => QueueTechnicalDrawingRender();
-        private void TechnicalDrawing_SettingsChanged(object? sender, EventArgs e) => QueueTechnicalDrawingRender();
 
         private void QueueTechnicalDrawingRender()
         {
