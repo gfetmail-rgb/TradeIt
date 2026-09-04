@@ -5,6 +5,7 @@ namespace TradeIt.Charts
     public sealed class DrawingToolStyle
     {
         public string Color { get; set; } = "#1976D2";
+        public string BackgroundColor { get; set; } = "#FFFFFF";
         public double LineWidth { get; set; } = 1.5;
         public string LineStyle { get; set; } = "Solid";
         public string FontFamily { get; set; } = "Segoe UI";
@@ -14,6 +15,7 @@ namespace TradeIt.Charts
         public DrawingToolStyle Clone() => new()
         {
             Color = Color,
+            BackgroundColor = BackgroundColor,
             LineWidth = LineWidth,
             LineStyle = LineStyle,
             FontFamily = FontFamily,
@@ -74,7 +76,7 @@ namespace TradeIt.Charts
             ["Pitchfork"] = new DrawingToolStyle { Color = "#C0392B", LineWidth = 1.5, LineStyle = "Dash" },
             ["FibonacciRetracement"] = new DrawingToolStyle { Color = "#8E44AD", LineWidth = 1.25, LineStyle = "Dash", FibonacciLevels = CreateDefaultRetracementLevels() },
             ["FibonacciExtension"] = new DrawingToolStyle { Color = "#2C3E50", LineWidth = 1.25, LineStyle = "Dash", FibonacciLevels = CreateDefaultExtensionLevels() },
-            ["Text"] = new DrawingToolStyle { Color = "#1976D2", FontFamily = "Segoe UI", FontSize = 14 }
+            ["Text"] = new DrawingToolStyle { Color = "#1976D2", BackgroundColor = "#FFFFFF", FontFamily = "Segoe UI", FontSize = 14 }
         };
 
         public ChartSettings Clone()
