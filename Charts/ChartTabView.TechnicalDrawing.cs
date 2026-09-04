@@ -5,7 +5,9 @@ using System.Windows.Input;
 using System.Windows.Threading;
 
 using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
+using WpfKeyEventHandler = System.Windows.Input.KeyEventHandler;
 using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
+using WpfMouseButtonEventHandler = System.Windows.Input.MouseButtonEventHandler;
 using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
 using WpfPoint = System.Windows.Point;
 
@@ -50,18 +52,14 @@ namespace TradeIt.Charts
             Chart.PreviewMouseLeftButtonDown += TechnicalDrawing_MouseDown;
             Chart.PreviewMouseMove += TechnicalDrawing_MouseMove;
 
-            // Register with handledEventsToo so ScottPlot's own right-click handling
-            // cannot prevent the drawing tool from being cancelled.
             Chart.AddHandler(
                 UIElement.PreviewMouseRightButtonDownEvent,
-                new MouseButtonEventHandler(TechnicalDrawing_RightMouseDown),
+                new WpfMouseButtonEventHandler(TechnicalDrawing_RightMouseDown),
                 true);
 
-            // ESC must be handled at the chart level (not only on the parent UserControl)
-            // because the WpfPlot receives keyboard focus after a drawing tool is selected.
             Chart.AddHandler(
                 UIElement.PreviewKeyDownEvent,
-                new KeyEventHandler(TechnicalDrawing_KeyDown),
+                new WpfKeyEventHandler(TechnicalDrawing_KeyDown),
                 true);
 
             ChartTypeComboBox.SelectionChanged += TechnicalDrawing_ChartTypeChanged;
