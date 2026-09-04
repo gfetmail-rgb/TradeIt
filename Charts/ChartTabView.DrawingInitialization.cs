@@ -22,6 +22,7 @@ namespace TradeIt.Charts
 
             chart.InitializeTechnicalDrawingHandling();
             chart.InitializeTextDrawingHandling();
+            chart.AttachDrawingCancelFix();
         }
     }
 }
