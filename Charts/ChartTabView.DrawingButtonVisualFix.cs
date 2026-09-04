@@ -12,9 +12,7 @@ namespace TradeIt.Charts
 
         private static bool RegisterDrawingButtonVisualFix()
         {
-            EventManager.RegisterClassHandler(
-                typeof(ChartTabView),
-                FrameworkElement.LoadedEvent,
+            EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.LoadedEvent,
                 new RoutedEventHandler(DrawingButtonVisualFix_Loaded));
             return true;
         }
@@ -32,17 +30,28 @@ namespace TradeIt.Charts
 
             _drawingButtonVisualFixAttached = true;
 
-            DrawingSelectButton.Click += DrawingButtonVisualFix_Click;
-            DrawingTrendLineButton.Click += DrawingButtonVisualFix_Click;
-            DrawingHorizontalLineButton.Click += DrawingButtonVisualFix_Click;
-            DrawingVerticalLineButton.Click += DrawingButtonVisualFix_Click;
-            DrawingRayButton.Click += DrawingButtonVisualFix_Click;
-            DrawingParallelChannelButton.Click += DrawingButtonVisualFix_Click;
-            DrawingRectangleButton.Click += DrawingButtonVisualFix_Click;
-            DrawingPitchforkButton.Click += DrawingButtonVisualFix_Click;
-            DrawingFibRetracementButton.Click += DrawingButtonVisualFix_Click;
-            DrawingFibExtensionButton.Click += DrawingButtonVisualFix_Click;
-            DrawingTextButton.Click += DrawingButtonVisualFix_Click;
+            AddHandler(DrawingSelectButton, System.Windows.Controls.Button.ClickEvent,
+                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
+            AddHandler(DrawingTrendLineButton, System.Windows.Controls.Button.ClickEvent,
+                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
+            AddHandler(DrawingHorizontalLineButton, System.Windows.Controls.Button.ClickEvent,
+                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
+            AddHandler(DrawingVerticalLineButton, System.Windows.Controls.Button.ClickEvent,
+                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
+            AddHandler(DrawingRayButton, System.Windows.Controls.Button.ClickEvent,
+                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
+            AddHandler(DrawingParallelChannelButton, System.Windows.Controls.Button.ClickEvent,
+                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
+            AddHandler(DrawingRectangleButton, System.Windows.Controls.Button.ClickEvent,
+                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
+            AddHandler(DrawingPitchforkButton, System.Windows.Controls.Button.ClickEvent,
+                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
+            AddHandler(DrawingFibRetracementButton, System.Windows.Controls.Button.ClickEvent,
+                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
+            AddHandler(DrawingFibExtensionButton, System.Windows.Controls.Button.ClickEvent,
+                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
+            AddHandler(DrawingTextButton, System.Windows.Controls.Button.ClickEvent,
+                new RoutedEventHandler(DrawingButtonVisualFix_Click), true);
 
             AddHandler(Keyboard.PreviewKeyDownEvent,
                 new System.Windows.Input.KeyEventHandler(DrawingButtonVisualFix_KeyDown), true);
@@ -54,7 +63,6 @@ namespace TradeIt.Charts
 
         private void DrawingButtonVisualFix_Click(object sender, RoutedEventArgs e)
         {
-            // Run after the tool's own Click handler has changed the active state.
             Dispatcher.BeginInvoke(new Action(ApplyDrawingButtonVisualFix), DispatcherPriority.ContextIdle);
         }
 
@@ -62,8 +70,6 @@ namespace TradeIt.Charts
         {
             SetAllDrawingButtonVisuals();
 
-            // The horizontal-ray compatibility path intentionally keeps
-            // _activeDrawingTool == Select, so it needs an explicit active state.
             if (_horizontalRayFixActive)
             {
                 RestoreAllDrawingButtonVisuals();
@@ -84,8 +90,6 @@ namespace TradeIt.Charts
             if (e.ChangedButton != MouseButton.Right)
                 return;
 
-            // If a drawing tool is being cancelled before its first point, restore
-            // the original toolbar appearance after the cancellation handler runs.
             if (_activeDrawingTool != TechnicalDrawingTool.Select ||
                 _textDrawingActive || _horizontalRayFixActive)
             {
