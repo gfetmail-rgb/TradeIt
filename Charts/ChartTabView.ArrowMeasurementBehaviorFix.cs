@@ -41,7 +41,7 @@ namespace TradeIt.Charts
             // ESC cancels the active arrow drawing.
             AddHandler(
                 Keyboard.PreviewKeyDownEvent,
-                new KeyEventHandler(ArrowMeasurementBehaviorFix_KeyDown),
+                new System.Windows.Input.KeyEventHandler(ArrowMeasurementBehaviorFix_KeyDown),
                 true);
         }
 
