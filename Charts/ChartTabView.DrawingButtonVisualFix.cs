@@ -31,9 +31,6 @@ namespace TradeIt.Charts
 
             _drawingButtonVisualFixAttached = true;
 
-            // Some drawing buttons handle Click themselves. Register directly on each
-            // Button with handledEventsToo=true so the visual synchronizer always runs,
-            // regardless of which XAML/code-behind handler consumed the Click event.
             AttachDrawingButton(DrawingSelectButton);
             AttachDrawingButton(DrawingTrendLineButton);
             AttachDrawingButton(DrawingHorizontalLineButton);
@@ -54,18 +51,16 @@ namespace TradeIt.Charts
             Dispatcher.BeginInvoke(new Action(SetAllDrawingButtonVisuals), DispatcherPriority.ContextIdle);
         }
 
-        private void AttachDrawingButton(Button button)
+        private void AttachDrawingButton(System.Windows.Controls.Button button)
         {
             button.AddHandler(
-                Button.ClickEvent,
+                System.Windows.Controls.Button.ClickEvent,
                 new RoutedEventHandler(DrawingButtonVisualFix_Click),
                 true);
         }
 
         private void DrawingButtonVisualFix_Click(object sender, RoutedEventArgs e)
         {
-            // ContextIdle is deliberate: it lets the actual drawing-tool Click handler
-            // finish changing _activeDrawingTool/_textDrawingActive first.
             Dispatcher.BeginInvoke(new Action(ApplyDrawingButtonVisualFix), DispatcherPriority.ContextIdle);
         }
 
@@ -73,8 +68,6 @@ namespace TradeIt.Charts
         {
             SetAllDrawingButtonVisuals();
 
-            // Ray uses a separate state flag and therefore needs explicit visual
-            // activation even though _activeDrawingTool remains Select.
             if (_horizontalRayFixActive)
             {
                 RestoreAllDrawingButtonVisuals();
