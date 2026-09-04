@@ -58,7 +58,7 @@ namespace TradeIt.Charts
             }
         }
 
-        private void ArrowMeasurementBehaviorFix_KeyDown(object sender, KeyEventArgs e)
+        private void ArrowMeasurementBehaviorFix_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
             if (e.Key != Key.Escape)
                 return;
