@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace TradeIt.Charts
 {
@@ -16,17 +17,14 @@ namespace TradeIt.Charts
 
         private static bool RegisterDrawingInteractionOverride()
         {
-            EventManager.RegisterClassHandler(
-                typeof(ChartTabView),
-                FrameworkElement.LoadedEvent,
+            EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.LoadedEvent,
                 new RoutedEventHandler(DrawingInteractionOverride_Loaded));
             return true;
         }
 
         private static void DrawingInteractionOverride_Loaded(object sender, RoutedEventArgs e)
         {
-            if (sender is ChartTabView chart)
-                chart.AttachDrawingInteractionOverride();
+            if (sender is ChartTabView chart) chart.AttachDrawingInteractionOverride();
         }
 
         private void AttachDrawingInteractionOverride()
@@ -34,20 +32,47 @@ namespace TradeIt.Charts
             if (_drawingInteractionOverrideAttached) return;
             _drawingInteractionOverrideAttached = true;
             InputManager.Current.PreProcessInput += DrawingInteractionOverride_PreProcessInput;
+
+            DrawingSelectButton.Click += DrawingToolButtonVisual_Click;
+            DrawingTrendLineButton.Click += DrawingToolButtonVisual_Click;
+            DrawingHorizontalLineButton.Click += DrawingToolButtonVisual_Click;
+            DrawingVerticalLineButton.Click += DrawingToolButtonVisual_Click;
+            DrawingRayButton.Click += DrawingToolButtonVisual_Click;
+            DrawingTextButton.Click += DrawingToolButtonVisual_Click;
+            DrawingFibRetracementButton.Click += DrawingToolButtonVisual_Click;
+            DrawingFibExtensionButton.Click += DrawingToolButtonVisual_Click;
+            DrawingParallelChannelButton.Click += DrawingToolButtonVisual_Click;
+            DrawingRectangleButton.Click += DrawingToolButtonVisual_Click;
+            DrawingPitchforkButton.Click += DrawingToolButtonVisual_Click;
+
             SetAllDrawingButtonVisuals();
+        }
+
+        private void DrawingToolButtonVisual_Click(object sender, RoutedEventArgs e)
+        {
+            Dispatcher.BeginInvoke(new Action(SetAllDrawingButtonVisuals), DispatcherPriority.Input);
         }
 
         private void DrawingInteractionOverride_PreProcessInput(object sender, PreProcessInputEventArgs e)
         {
+            if (e.StagingItem.Input is System.Windows.Input.KeyEventArgs key)
+            {
+                if ((key.Key == Key.Escape || key.Key == Key.Cancel) &&
+                    (_activeDrawingTool != TechnicalDrawingTool.Select || _textDrawingActive))
+                {
+                    Dispatcher.BeginInvoke(new Action(SetAllDrawingButtonVisuals), DispatcherPriority.Input);
+                }
+                return;
+            }
+
             if (e.StagingItem.Input is MouseButtonEventArgs button)
             {
                 if (!SourceBelongsToThisChart(button.OriginalSource as DependencyObject)) return;
 
-                // Left mouse DOWN: select, or start a drag of the already selected object.
+                // Left mouse DOWN: select, or start dragging the already selected object.
                 if (button.ChangedButton == MouseButton.Left &&
                     button.ButtonState == MouseButtonState.Pressed &&
-                    _activeDrawingTool == TechnicalDrawingTool.Select &&
-                    !_textDrawingActive)
+                    _activeDrawingTool == TechnicalDrawingTool.Select && !_textDrawingActive)
                 {
                     if (!TryGetRawChartPoint(button, out ScottPlot.Coordinates point)) return;
 
@@ -60,8 +85,7 @@ namespace TradeIt.Charts
                     }
 
                     _drawingSelectionAtMouseDown = oldSelection != null && ReferenceEquals(oldSelection, _selectedDrawing)
-                        ? _selectedDrawing
-                        : null;
+                        ? _selectedDrawing : null;
                     _drawingSelectionMoved = false;
                     _selectionDragStart = point;
                     _selectionDragging = true;
@@ -71,11 +95,10 @@ namespace TradeIt.Charts
                     return;
                 }
 
-                // Left mouse UP: a second click on the selected object toggles it off;
-                // a drag leaves the object selected.
+                // Left mouse UP: second simple click on the selected object deselects it.
+                // A real drag leaves it selected.
                 if (button.ChangedButton == MouseButton.Left &&
-                    button.ButtonState == MouseButtonState.Released &&
-                    _selectionDragging)
+                    button.ButtonState == MouseButtonState.Released && _selectionDragging)
                 {
                     _selectionDragging = false;
                     Chart.ReleaseMouseCapture();
@@ -83,34 +106,36 @@ namespace TradeIt.Charts
 
                     if (!_drawingSelectionMoved && _drawingSelectionAtMouseDown != null &&
                         ReferenceEquals(_drawingSelectionAtMouseDown, _selectedDrawing))
-                    {
                         ClearDrawingSelection();
-                    }
 
                     button.Handled = true;
                     Chart.Refresh();
                     return;
                 }
 
-                // Right click on a selected object opens its drawing settings.
+                // Right click on a selected object opens its settings instead of cancelling drawing mode.
                 if (button.ChangedButton == MouseButton.Right &&
                     button.ButtonState == MouseButtonState.Pressed &&
-                    _activeDrawingTool == TechnicalDrawingTool.Select &&
-                    !_textDrawingActive &&
+                    _activeDrawingTool == TechnicalDrawingTool.Select && !_textDrawingActive &&
                     _selectedDrawing != null)
                 {
                     if (!TryGetRawChartPoint(button, out ScottPlot.Coordinates point)) return;
                     if (!IsPointOnSelectedDrawing(point)) return;
-
                     ShowSelectedDrawingSettings();
                     button.Handled = true;
                     return;
                 }
+
+                if (button.ChangedButton == MouseButton.Right &&
+                    button.ButtonState == MouseButtonState.Pressed &&
+                    (_activeDrawingTool != TechnicalDrawingTool.Select || _textDrawingActive))
+                {
+                    Dispatcher.BeginInvoke(new Action(SetAllDrawingButtonVisuals), DispatcherPriority.Input);
+                }
             }
 
             if (e.StagingItem.Input is MouseEventArgs mouse &&
-                _selectionDragging &&
-                _selectedDrawing != null &&
+                _selectionDragging && _selectedDrawing != null &&
                 mouse.LeftButton == MouseButtonState.Pressed)
             {
                 if (!SourceBelongsToThisChart(mouse.OriginalSource as DependencyObject)) return;
@@ -137,10 +162,11 @@ namespace TradeIt.Charts
             {
                 DrawingSelectionKind.Fibonacci => DistanceToFibonacci(point, (FibonacciDrawing)_selectedDrawing) <= tolerance,
                 DrawingSelectionKind.Pitchfork => DistanceToPitchfork(point, (PitchforkDrawing)_selectedDrawing) <= tolerance,
-                DrawingSelectionKind.ParallelChannel =>
-                    DistancePointToSegment(point, ((ParallelChannelDrawing)_selectedDrawing).A, ((ParallelChannelDrawing)_selectedDrawing).B) <= tolerance,
+                DrawingSelectionKind.ParallelChannel => DistancePointToSegment(point,
+                    ((ParallelChannelDrawing)_selectedDrawing).A, ((ParallelChannelDrawing)_selectedDrawing).B) <= tolerance,
                 DrawingSelectionKind.Rectangle => IsPointOnRectangle(point, (RectangleDrawing)_selectedDrawing, tolerance),
-                DrawingSelectionKind.Ray => DistanceToRay(point, ((RayDrawing)_selectedDrawing).X1, ((RayDrawing)_selectedDrawing).Y1, ((RayDrawing)_selectedDrawing).X2, ((RayDrawing)_selectedDrawing).Y2) <= tolerance,
+                DrawingSelectionKind.Ray => DistanceToRay(point, ((RayDrawing)_selectedDrawing).X1, ((RayDrawing)_selectedDrawing).Y1,
+                    ((RayDrawing)_selectedDrawing).X2, ((RayDrawing)_selectedDrawing).Y2) <= tolerance,
                 DrawingSelectionKind.TrendLine => DistancePointToSegment(point,
                     new ScottPlot.Coordinates(((TrendLineDrawing)_selectedDrawing).X1, ((TrendLineDrawing)_selectedDrawing).Y1),
                     new ScottPlot.Coordinates(((TrendLineDrawing)_selectedDrawing).X2, ((TrendLineDrawing)_selectedDrawing).Y2)) <= tolerance,
