@@ -6,6 +6,7 @@ using System.Windows.Threading;
 
 using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
 using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
+using WpfMouseButtonEventHandler = System.Windows.Input.MouseButtonEventHandler;
 using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
 using WpfPoint = System.Windows.Point;
 
@@ -64,7 +65,7 @@ namespace TradeIt.Charts
             chart.Chart.PreviewMouseMove += chart.TechnicalDrawing_MouseMove;
             chart.Chart.AddHandler(
                 UIElement.PreviewMouseRightButtonDownEvent,
-                new MouseButtonEventHandler(chart.TechnicalDrawing_RightMouseDown),
+                new WpfMouseButtonEventHandler(chart.TechnicalDrawing_RightMouseDown),
                 true);
             chart.KeyDown += chart.TechnicalDrawing_KeyDown;
             chart.ChartTypeComboBox.SelectionChanged += chart.TechnicalDrawing_ChartTypeChanged;
