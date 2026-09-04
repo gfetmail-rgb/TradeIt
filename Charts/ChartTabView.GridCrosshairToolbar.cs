@@ -47,7 +47,7 @@ namespace TradeIt.Charts
             }
         }
 
-        private void GridCrosshairToolbar_MouseMove(object sender, MouseEventArgs e)
+        private void GridCrosshairToolbar_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             CrosshairButton.IsChecked = _crosshairVisible;
             GridButton.IsChecked = _gridVisible;
