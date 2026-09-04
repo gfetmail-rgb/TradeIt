@@ -35,7 +35,7 @@ namespace TradeIt.Charts
 
             Chart.AddHandler(UIElement.PreviewMouseLeftButtonDownEvent,
                 new System.Windows.Input.MouseButtonEventHandler(DrawingSelectionBehaviorFix_MouseDown), true);
-            Chart.AddHandler(Mouse.PreviewMouseMoveEvent,
+            Chart.AddHandler(UIElement.PreviewMouseMoveEvent,
                 new System.Windows.Input.MouseEventHandler(DrawingSelectionBehaviorFix_MouseMove), true);
             Chart.AddHandler(UIElement.PreviewMouseLeftButtonUpEvent,
                 new System.Windows.Input.MouseButtonEventHandler(DrawingSelectionBehaviorFix_MouseUp), true);
@@ -49,7 +49,6 @@ namespace TradeIt.Charts
                 return;
             if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates chartPoint)) return;
 
-            // Text is a drawing too, but has its own model and handles.
             if (_textSelection != null)
             {
                 if (TryGetTextSelectionHandle(chartPoint, out _))
@@ -77,7 +76,6 @@ namespace TradeIt.Charts
                 return;
             }
 
-            // A visible anchor always wins over body hit-testing.
             if (_selectedDrawing != null && TryGetHandleAtPoint(chartPoint, out DrawingHandleKind handleKind))
             {
                 _activeDrawingHandle = handleKind;
@@ -90,8 +88,6 @@ namespace TradeIt.Charts
                 return;
             }
 
-            // Use the stricter hit-test implementation. In particular, Fibonacci
-            // levels are tested only inside their actual X range.
             if (TrySelectDrawingAccurate(chartPoint))
             {
                 _selectionDragging = false;
@@ -112,9 +108,9 @@ namespace TradeIt.Charts
         {
             if (_textSelectionDragging && e.LeftButton == MouseButtonState.Pressed)
             {
-                if (TryGetRawChartPoint(e, out ScottPlot.Coordinates point))
+                if (TryGetRawChartPoint(e, out ScottPlot.Coordinates textPoint))
                 {
-                    if (MoveSelectedText(point))
+                    if (MoveSelectedText(textPoint))
                     {
                         e.Handled = true;
                         Chart.Refresh();
@@ -125,15 +121,16 @@ namespace TradeIt.Charts
 
             if (!_selectionDragging || _selectedDrawing == null || _activeDrawingHandle == null || e.LeftButton != MouseButtonState.Pressed)
                 return;
-            if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates point2)) return;
+            if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates drawingPoint)) return;
 
-            if (Math.Abs(point2.X - _selectionDragStart.X) < 1e-15 && Math.Abs(point2.Y - _selectionDragStart.Y) < 1e-15)
+            if (Math.Abs(drawingPoint.X - _selectionDragStart.X) < 1e-15 &&
+                Math.Abs(drawingPoint.Y - _selectionDragStart.Y) < 1e-15)
                 return;
 
             _selectionMouseMoved = true;
-            if (MoveSelectedHandle(_activeDrawingHandle.Value, point2))
+            if (MoveSelectedHandle(_activeDrawingHandle.Value, drawingPoint))
             {
-                _selectionDragStart = point2;
+                _selectionDragStart = drawingPoint;
                 e.Handled = true;
                 Chart.Refresh();
             }
