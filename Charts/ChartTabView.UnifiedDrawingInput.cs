@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -10,6 +11,16 @@ namespace TradeIt.Charts
         private const int UnifiedFibRetracement = 8;
         private const int UnifiedFibExtension = 9;
 
+        private sealed class FibonacciDrawing
+        {
+            public bool IsExtension { get; init; }
+            public ScottPlot.Coordinates A { get; set; }
+            public ScottPlot.Coordinates B { get; set; }
+            public ScottPlot.Coordinates C { get; set; }
+            public List<ScottPlot.Plottables.Scatter> Lines { get; } = new();
+        }
+
+        private readonly List<FibonacciDrawing> _fibonacciDrawings = new();
         private bool _unifiedDrawingInputAttached;
         private Window? _unifiedDrawingWindow;
         private ScottPlot.Coordinates? _unifiedFibP1;
@@ -25,10 +36,6 @@ namespace TradeIt.Charts
             DrawingFibRetracementButton.Click += UnifiedDrawing_FibRetracementClick;
             DrawingFibExtensionButton.Click += UnifiedDrawing_FibExtensionClick;
 
-            // Use direct routed handlers as well as PreProcessInput. ScottPlot has its own
-            // input processor and can consume mouse/keyboard input before the normal
-            // drawing handlers see it. These handlers are intentionally limited to the
-            // cancellation actions.
             AddHandler(Keyboard.PreviewKeyDownEvent,
                 new System.Windows.Input.KeyEventHandler(UnifiedDrawing_ControlKeyDown), true);
             Chart.PreviewMouseRightButtonDown += UnifiedDrawing_ChartRightMouseDown;
@@ -263,26 +270,58 @@ namespace TradeIt.Charts
 
         private void DrawUnifiedFibRetracement()
         {
-            var limits = Chart.Plot.Axes.GetLimits();
-            double range = _unifiedFibP2!.Value.Y - _unifiedFibP1!.Value.Y;
-            double[] ratios = { 0.0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0 };
-            foreach (double ratio in ratios)
+            var drawing = new FibonacciDrawing
             {
-                double y = _unifiedFibP2.Value.Y - range * ratio;
-                AddScatterLine(limits.Left, y, limits.Right, y);
-            }
+                IsExtension = false,
+                A = _unifiedFibP1!.Value,
+                B = _unifiedFibP2!.Value
+            };
+            _fibonacciDrawings.Add(drawing);
+            RenderFibonacciDrawing(drawing);
         }
 
         private void DrawUnifiedFibExtension(ScottPlot.Coordinates c)
         {
+            var drawing = new FibonacciDrawing
+            {
+                IsExtension = true,
+                A = _unifiedFibP1!.Value,
+                B = _unifiedFibP2!.Value,
+                C = c
+            };
+            _fibonacciDrawings.Add(drawing);
+            RenderFibonacciDrawing(drawing);
+        }
+
+        private void RenderFibonacciDrawing(FibonacciDrawing drawing)
+        {
+            RemoveFibonacciLines(drawing);
             var limits = Chart.Plot.Axes.GetLimits();
-            double ab = _unifiedFibP2!.Value.Y - _unifiedFibP1!.Value.Y;
-            double[] ratios = { 0.0, 0.382, 0.618, 1.0, 1.618, 2.618 };
+            double ab = drawing.B.Y - drawing.A.Y;
+            double[] ratios = drawing.IsExtension
+                ? new[] { 0.0, 0.382, 0.618, 1.0, 1.618, 2.618 }
+                : new[] { 0.0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0 };
+
             foreach (double ratio in ratios)
             {
-                double y = c.Y + ab * ratio;
-                AddScatterLine(limits.Left, y, limits.Right, y);
+                double y = drawing.IsExtension
+                    ? drawing.C.Y + ab * ratio
+                    : drawing.B.Y - ab * ratio;
+                drawing.Lines.Add(AddScatterLine(limits.Left, y, limits.Right, y));
             }
+        }
+
+        private void RenderAllFibonacciDrawings()
+        {
+            foreach (var drawing in _fibonacciDrawings)
+                RenderFibonacciDrawing(drawing);
+        }
+
+        private void RemoveFibonacciLines(FibonacciDrawing drawing)
+        {
+            foreach (var line in drawing.Lines)
+                Chart.Plot.Remove(line);
+            drawing.Lines.Clear();
         }
 
         private void ResetUnifiedFibPoints()
