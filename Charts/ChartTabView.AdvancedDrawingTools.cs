@@ -57,7 +57,8 @@ namespace TradeIt.Charts
             _advancedDrawingToolsAttached = true;
             DrawingParallelChannelButton.Click += DrawingParallelChannelButton_Click_Advanced;
             DrawingRectangleButton.Click += DrawingRectangleButton_Click_Advanced;
-            DrawingPitchforkButton.Click += DrawingPitchforkButton_Click_Advanced;
+            // Pitchfork is handled by the XAML direct handler DrawingPitchforkButton_Click_Direct.
+            // Do not attach a second Click handler here because it would reset the first point.
         }
 
         private void DrawingParallelChannelButton_Click_Advanced(object sender, RoutedEventArgs e)
