@@ -66,7 +66,6 @@ namespace TradeIt.Charts
             var drawing = new TextDrawing { Text = text.Trim(), X = coordinates.X, Y = coordinates.Y };
             _textDrawings.Add(drawing);
             AddTextToChart(drawing);
-            // Text is a continuous drawing tool: remain active until Escape/right-click cancels it.
             _textDrawingActive = true;
             Chart.UserInputProcessor.IsEnabled = false;
             UpdateTechnicalDrawingButtons();
@@ -96,33 +95,17 @@ namespace TradeIt.Charts
                 FlowDirection = System.Windows.FlowDirection.RightToLeft
             };
 
-            var okButton = new WpfButton
-            {
-                Content = "تأیید", Width = 80, Height = 30, IsDefault = true,
-                Margin = new Thickness(4, 0, 4, 10)
-            };
-            var cancelButton = new WpfButton
-            {
-                Content = "لغو", Width = 80, Height = 30, IsCancel = true,
-                Margin = new Thickness(4, 0, 4, 10)
-            };
-
-            var buttons = new WpfStackPanel
-            {
-                Orientation = WpfOrientation.Horizontal,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center
-            };
+            var okButton = new WpfButton { Content = "تأیید", Width = 80, Height = 30, IsDefault = true, Margin = new Thickness(4, 0, 4, 10) };
+            var cancelButton = new WpfButton { Content = "لغو", Width = 80, Height = 30, IsCancel = true, Margin = new Thickness(4, 0, 4, 10) };
+            var buttons = new WpfStackPanel { Orientation = WpfOrientation.Horizontal, HorizontalAlignment = System.Windows.HorizontalAlignment.Center };
             buttons.Children.Add(cancelButton);
             buttons.Children.Add(okButton);
-
             var panel = new WpfStackPanel();
             panel.Children.Add(textBox);
             panel.Children.Add(buttons);
             window.Content = panel;
-
             okButton.Click += (_, _) => window.DialogResult = true;
             window.Loaded += (_, _) => { textBox.Focus(); Keyboard.Focus(textBox); };
-
             bool? result = window.ShowDialog();
             return result == true ? textBox.Text : null;
         }
@@ -131,7 +114,8 @@ namespace TradeIt.Charts
         {
             var style = GetDrawingToolStyle("Text");
             var text = Chart.Plot.Add.Text(drawing.Text, drawing.X, drawing.Y);
-            text.LabelFontSize = 14;
+            text.LabelFontSize = (float)style.FontSize;
+            text.LabelFontName = style.FontFamily;
             text.LabelFontColor = ScottPlot.Color.FromHtml(style.Color);
             text.LabelBackgroundColor = ScottPlot.Colors.White.WithAlpha(0.85);
             text.LabelBorderColor = ScottPlot.Color.FromHtml(style.Color);
