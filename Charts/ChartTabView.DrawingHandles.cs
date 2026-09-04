@@ -277,11 +277,14 @@ namespace TradeIt.Charts
             double tolerance = GetHandleHitTolerance();
             DrawingHandleInfo? nearest = null;
             double nearestDistance = double.MaxValue;
+            ScottPlot.Pixel mousePixel = Chart.Plot.GetPixel(point);
+
             foreach (DrawingHandleInfo handle in GetDrawingHandles())
             {
-                double distance = Math.Sqrt(
-                    Math.Pow(point.X - handle.Point.X, 2) +
-                    Math.Pow(point.Y - handle.Point.Y, 2));
+                ScottPlot.Pixel handlePixel = Chart.Plot.GetPixel(handle.Point);
+                double dx = mousePixel.X - handlePixel.X;
+                double dy = mousePixel.Y - handlePixel.Y;
+                double distance = Math.Sqrt(dx * dx + dy * dy);
                 if (distance <= tolerance && distance < nearestDistance)
                 {
                     nearest = handle;
@@ -294,15 +297,7 @@ namespace TradeIt.Charts
             return true;
         }
 
-        private double GetHandleHitTolerance()
-        {
-            var limits = Chart.Plot.Axes.GetLimits();
-            double width = Math.Max(1.0, Chart.ActualWidth);
-            double height = Math.Max(1.0, Chart.ActualHeight);
-            double tx = Math.Abs(limits.Right - limits.Left) * 9.0 / width;
-            double ty = Math.Abs(limits.Top - limits.Bottom) * 9.0 / height;
-            return Math.Max(tx, ty);
-        }
+        private double GetHandleHitTolerance() => 11.0;
 
         private bool MoveSelectedHandle(DrawingHandleKind handleKind, ScottPlot.Coordinates point)
         {
