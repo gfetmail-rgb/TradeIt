@@ -194,9 +194,6 @@ namespace TradeIt.Charts
 
         private void Chart_PreviewMouseLeftButtonDown(object sender, WpfMouseButtonEventArgs e)
         {
-            // Drawing tools must be handled here because this preview event is known to
-            // reach ChartTabView, while ScottPlot's internal WpfPlot mouse event path may
-            // consume the corresponding bubbling event before the drawing handler sees it.
             if (_activeDrawingTool != TechnicalDrawingTool.Select)
             {
                 TechnicalDrawing_MouseDown(sender, e);
@@ -273,6 +270,11 @@ namespace TradeIt.Charts
             ApplySettings();
             if (!preserveCurrentView) { Chart.Plot.Axes.AutoScale(); ApplyInitial365ViewAfterAutoScale(); }
             else Chart.Plot.Axes.SetLimits(currentLimits.Left, currentLimits.Right, currentLimits.Bottom, currentLimits.Top);
+
+            // ClearMainChart() removes drawing plottables too, so restore Fibonacci
+            // levels only after the final axis limits have been established.
+            RenderAllFibonacciDrawings();
+
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | {_bars.Count:N0} داده";
             if (_crosshair != null) _crosshair.IsVisible = _crosshairVisible && _chartVisible && (_crosshairMouseInside || !_hasInitialView);
             Chart.Refresh();
@@ -325,12 +327,6 @@ namespace TradeIt.Charts
         private void CrosshairButton_Click(object sender, RoutedEventArgs e) { _crosshairVisible = !_crosshairVisible; if (_crosshair != null) _crosshair.IsVisible = _crosshairVisible && _chartVisible && (_crosshairMouseInside || !_hasInitialView); CrosshairButton.Content = _crosshairVisible ? "Crosshair روشن" : "Crosshair خاموش"; Chart.Refresh(); }
         private void ScreenshotButton_Click(object sender, RoutedEventArgs e) { try { int width = (int)Math.Max(1, ActualWidth), height = (int)Math.Max(1, ActualHeight); var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(width, height, 96, 96, System.Windows.Media.PixelFormats.Pbgra32); bitmap.Render(this); var dialog = new Microsoft.Win32.SaveFileDialog { Title = "ذخیره تصویر نمودار", Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg", FileName = $"{_symbol.Symbol}_{DateTime.Now:yyyyMMdd_HHmmss}.png" }; if (dialog.ShowDialog() != true) return; System.Windows.Media.Imaging.BitmapEncoder encoder = Path.GetExtension(dialog.FileName).Equals(".jpg", StringComparison.OrdinalIgnoreCase) ? new System.Windows.Media.Imaging.JpegBitmapEncoder() : new System.Windows.Media.Imaging.PngBitmapEncoder(); encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap)); using FileStream stream = new FileStream(dialog.FileName, FileMode.Create); encoder.Save(stream); BottomInfoTextBlock.Text = $"تصویر ذخیره شد: {dialog.FileName}"; } catch (Exception ex) { WpfMessageBox.Show($"خطا در گرفتن تصویر نمودار:\n{ex.Message}", "Screenshot", WpfMessageBoxButton.OK, WpfMessageBoxImage.Error); } }
         private void PrintButton_Click(object sender, RoutedEventArgs e) { try { var dialog = new WpfPrintDialog(); if (dialog.ShowDialog() != true) return; dialog.PrintVisual(this, $"TradeIt - {_symbol.Symbol}"); BottomInfoTextBlock.Text = "نمودار برای چاپ ارسال شد."; } catch (Exception ex) { WpfMessageBox.Show($"خطا در چاپ نمودار:\n{ex.Message}", "Print", WpfMessageBoxButton.OK, WpfMessageBoxImage.Error); } }
-        private void ChartTypeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (ChartTypeComboBox.SelectedItem is not ComboBoxItem item) return; string type = item.Tag?.ToString() ?? ""; _chartType = type switch { "Line" => ChartDisplayType.Line, "Bar" => ChartDisplayType.Bar, _ => ChartDisplayType.Candlestick }; if (IsLoaded) DrawChart(); }
-        private void SettingsButton_Click(object sender, RoutedEventArgs e) => OpenSettings();
-        private void OpenSettings() { var window = new ChartSettingsWindow(ChartSettingsManager.Current) { Owner = Window.GetWindow(this) }; if (window.ShowDialog() == true) { _settings = ChartSettingsManager.Current; DrawChart(); } }
-        private void HideChartButton_Click(object sender, RoutedEventArgs e) { _chartVisible = !_chartVisible; foreach (var plottable in Chart.Plot.GetPlottables()) { if (ReferenceEquals(plottable, _crosshair)) continue; plottable.IsVisible = _chartVisible; } if (_crosshair != null) _crosshair.IsVisible = _chartVisible && _crosshairVisible && (_crosshairMouseInside || !_hasInitialView); HideChartButton.Content = _chartVisible ? "پنهان کردن نمودار" : "نمایش نمودار"; Chart.Refresh(); }
-        private void HideToolsButton_Click(object sender, RoutedEventArgs e) { _toolsVisible = !_toolsVisible; HideToolsButton.Content = _toolsVisible ? "پنهان کردن ابزارهای تکنیکال" : "نمایش ابزارهای تکنیکال"; }
-        private void ZoomInButton_Click(object sender, RoutedEventArgs e) => ZoomXAxis(0.80);
-        private void ZoomOutButton_Click(object sender, RoutedEventArgs e) => ZoomXAxis(1.25);
+        private void ChartTypeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (ChartTypeComboBox.SelectedItem is not ComboBoxItem item) return; string type = item.Tag?.ToString() ?? string.Empty; _chartType = type switch { "Line" => ChartDisplayType.Line, "Bar" => ChartDisplayType.Bar, _ => ChartDisplayType.Candlestick }; DrawChart(); }
     }
 }
