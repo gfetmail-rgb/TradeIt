@@ -1,13 +1,14 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
+using System.Windows.Controls.Primitives;
 
 namespace TradeIt.Charts
 {
     public partial class ChartTabView
     {
         private static readonly bool _gridCrosshairToolbarRegistered = RegisterGridCrosshairToolbar();
+        private bool _gridCrosshairToolbarHandlersAttached;
 
         private static bool RegisterGridCrosshairToolbar()
         {
@@ -25,12 +26,13 @@ namespace TradeIt.Charts
             chart.CrosshairButton.IsChecked = chart._crosshairVisible;
             chart.GridButton.IsChecked = chart._gridVisible;
 
-            chart.CrosshairButton.AddHandler(ButtonBase.ClickEvent,
-                new RoutedEventHandler(chart.GridCrosshairToolbar_Click), true);
-            chart.GridButton.AddHandler(ButtonBase.ClickEvent,
-                new RoutedEventHandler(chart.GridCrosshairToolbar_Click), true);
-
-            chart.Chart.PreviewMouseMove += chart.GridCrosshairToolbar_MouseMove;
+            if (!chart._gridCrosshairToolbarHandlersAttached)
+            {
+                chart._gridCrosshairToolbarHandlersAttached = true;
+                chart.CrosshairButton.Click += chart.GridCrosshairToolbar_Click;
+                chart.GridButton.Click += chart.GridCrosshairToolbar_Click;
+                chart.Chart.PreviewMouseMove += chart.GridCrosshairToolbar_MouseMove;
+            }
         }
 
         private void GridCrosshairToolbar_Click(object sender, RoutedEventArgs e)
