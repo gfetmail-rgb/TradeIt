@@ -42,24 +42,21 @@ namespace TradeIt.Charts
 
         private void InitializeTechnicalDrawingHandling()
         {
-            if (_technicalDrawingEventsAttached)
-                return;
-
+            if (_technicalDrawingEventsAttached) return;
             _technicalDrawingEventsAttached = true;
 
-            // The previous implementation initialized mouse/key handlers but did not
-            // connect the toolbar buttons to their handlers. Consequently clicking
-            // the horizontal-line button never changed the active drawing tool.
             DrawingSelectButton.Click += DrawingSelectButton_Click;
             DrawingTrendLineButton.Click += DrawingTrendLineButton_Click;
             DrawingHorizontalLineButton.Click += DrawingHorizontalLineButton_Click;
 
-            Chart.AddHandler(UIElement.PreviewMouseLeftButtonDownEvent,
+            // Use bubbling WPF mouse events and receive them even when ScottPlot handles them.
+            Chart.AddHandler(UIElement.MouseLeftButtonDownEvent,
                 new WpfMouseButtonEventHandler(TechnicalDrawing_MouseDown), true);
-            Chart.AddHandler(UIElement.PreviewMouseMoveEvent,
+            Chart.AddHandler(UIElement.MouseMoveEvent,
                 new WpfMouseEventHandler(TechnicalDrawing_MouseMove), true);
-            Chart.AddHandler(UIElement.PreviewMouseRightButtonDownEvent,
+            Chart.AddHandler(UIElement.MouseRightButtonDownEvent,
                 new WpfMouseButtonEventHandler(TechnicalDrawing_RightMouseDown), true);
+
             KeyDown += TechnicalDrawing_KeyDown;
             ChartTypeComboBox.SelectionChanged += TechnicalDrawing_ChartTypeChanged;
             ChartSettingsManager.SettingsChanged += TechnicalDrawing_SettingsChanged;
@@ -101,14 +98,11 @@ namespace TradeIt.Charts
 
         private void TechnicalDrawing_MouseDown(object sender, WpfMouseButtonEventArgs e)
         {
-            if (e.ChangedButton != MouseButton.Left)
-                return;
+            if (e.ChangedButton != MouseButton.Left) return;
 
             if (_activeDrawingTool == TechnicalDrawingTool.HorizontalLine)
             {
-                if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates))
-                    return;
-
+                if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates)) return;
                 var drawing = new HorizontalLineDrawing { Y = coordinates.Y };
                 _horizontalLines.Add(drawing);
                 AddHorizontalLineToChart(drawing);
@@ -118,17 +112,13 @@ namespace TradeIt.Charts
                 return;
             }
 
-            if (_activeDrawingTool != TechnicalDrawingTool.TrendLine)
-                return;
-
-            if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates trendCoordinates))
-                return;
+            if (_activeDrawingTool != TechnicalDrawingTool.TrendLine) return;
+            if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates trendCoordinates)) return;
 
             int index = FindNearestDrawingBarIndex(trendCoordinates.X);
-            if (index < 0)
-                return;
-
+            if (index < 0) return;
             var point = new ScottPlot.Coordinates(GetDrawingX(index), trendCoordinates.Y);
+
             if (_trendLineStart == null)
             {
                 _trendLineStart = point;
@@ -137,8 +127,7 @@ namespace TradeIt.Charts
                 return;
             }
 
-            if (Math.Abs(point.X - _trendLineStart.Value.X) < 1e-12 && Math.Abs(point.Y - _trendLineStart.Value.Y) < 1e-12)
-                return;
+            if (Math.Abs(point.X - _trendLineStart.Value.X) < 1e-12 && Math.Abs(point.Y - _trendLineStart.Value.Y) < 1e-12) return;
 
             var drawing2 = new TrendLineDrawing
             {
@@ -158,24 +147,17 @@ namespace TradeIt.Charts
 
         private void TechnicalDrawing_MouseMove(object sender, WpfMouseEventArgs e)
         {
-            if (_activeDrawingTool != TechnicalDrawingTool.TrendLine || _trendLineStart == null)
-                return;
-            if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates))
-                return;
-
+            if (_activeDrawingTool != TechnicalDrawingTool.TrendLine || _trendLineStart == null) return;
+            if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates)) return;
             int index = FindNearestDrawingBarIndex(coordinates.X);
-            if (index < 0)
-                return;
-
-            var end = new ScottPlot.Coordinates(GetDrawingX(index), coordinates.Y);
-            RenderTrendLinePreview(end);
+            if (index < 0) return;
+            RenderTrendLinePreview(new ScottPlot.Coordinates(GetDrawingX(index), coordinates.Y));
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط روند: نقطه دوم را انتخاب کنید | قیمت: {coordinates.Y:N2}";
         }
 
         private void TechnicalDrawing_RightMouseDown(object sender, WpfMouseButtonEventArgs e)
         {
-            if (e.ChangedButton != MouseButton.Right)
-                return;
+            if (e.ChangedButton != MouseButton.Right) return;
 
             if (_activeDrawingTool != TechnicalDrawingTool.Select)
             {
@@ -206,8 +188,7 @@ namespace TradeIt.Charts
 
         private void RenderTrendLinePreview(ScottPlot.Coordinates end)
         {
-            if (_trendLineStart == null)
-                return;
+            if (_trendLineStart == null) return;
             RemoveTrendLinePreview();
             _trendLinePreview = Chart.Plot.Add.ScatterLine(
                 new[] { _trendLineStart.Value.X, end.X },
@@ -220,16 +201,14 @@ namespace TradeIt.Charts
 
         private void RemoveTrendLinePreview()
         {
-            if (_trendLinePreview == null)
-                return;
+            if (_trendLinePreview == null) return;
             Chart.Plot.Remove(_trendLinePreview);
             _trendLinePreview = null;
         }
 
         private void TechnicalDrawing_KeyDown(object sender, WpfKeyEventArgs e)
         {
-            if (e.Key != Key.Escape || _activeDrawingTool == TechnicalDrawingTool.Select)
-                return;
+            if (e.Key != Key.Escape || _activeDrawingTool == TechnicalDrawingTool.Select) return;
             RemoveTrendLinePreview();
             _trendLineStart = null;
             Chart.ReleaseMouseCapture();
@@ -244,12 +223,10 @@ namespace TradeIt.Charts
 
         private void QueueTechnicalDrawingRender()
         {
-            if (!IsLoaded || (_trendLines.Count == 0 && _horizontalLines.Count == 0))
-                return;
+            if (!IsLoaded || (_trendLines.Count == 0 && _horizontalLines.Count == 0)) return;
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                if (!IsLoaded || (_trendLines.Count == 0 && _horizontalLines.Count == 0))
-                    return;
+                if (!IsLoaded || (_trendLines.Count == 0 && _horizontalLines.Count == 0)) return;
                 RenderTechnicalDrawings();
                 RenderTextDrawings();
                 Chart.Refresh();
@@ -258,8 +235,7 @@ namespace TradeIt.Charts
 
         private int FindNearestDrawingBarIndex(double x)
         {
-            if (_bars.Count == 0)
-                return -1;
+            if (_bars.Count == 0) return -1;
             int bestIndex = -1;
             double bestDistance = double.MaxValue;
             for (int i = 0; i < _bars.Count; i++)
