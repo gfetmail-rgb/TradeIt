@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
+using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
 
 namespace TradeIt.Charts
 {
@@ -133,7 +135,7 @@ namespace TradeIt.Charts
             e.Handled = true;
         }
 
-        private void TechnicalDrawing_MouseMove(object sender, MouseEventArgs e)
+        private void TechnicalDrawing_MouseMove(object sender, WpfMouseEventArgs e)
         {
             if (_activeDrawingTool != TechnicalDrawingTool.TrendLine || _trendLineStart == null)
                 return;
@@ -209,7 +211,7 @@ namespace TradeIt.Charts
             _trendLinePreview = null;
         }
 
-        private void TechnicalDrawing_KeyDown(object sender, KeyEventArgs e)
+        private void TechnicalDrawing_KeyDown(object sender, WpfKeyEventArgs e)
         {
             if (e.Key == Key.Escape && _activeDrawingTool == TechnicalDrawingTool.TrendLine)
             {
