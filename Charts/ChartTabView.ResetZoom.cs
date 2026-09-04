@@ -14,6 +14,7 @@ namespace TradeIt.Charts
                 _initialYMin,
                 _initialYMax);
 
+            RenderAllFibonacciDrawings();
             Chart.Refresh();
         }
     }
