@@ -8,6 +8,54 @@ namespace TradeIt.Charts
     {
         private bool _horizontalRayFixActive;
         private bool _horizontalRayFixAttached;
+        private bool _drawingCursorAttached;
+
+        private void InitializeDrawingCursorHandling()
+        {
+            if (_drawingCursorAttached) return;
+            _drawingCursorAttached = true;
+
+            DrawingSelectButton.Click += (_, _) => SetDrawingCursor(Cursors.Arrow);
+            DrawingTrendLineButton.Click += (_, _) => SetDrawingCursor(Cursors.Cross);
+            DrawingHorizontalLineButton.Click += (_, _) => SetDrawingCursor(Cursors.SizeNS);
+            DrawingVerticalLineButton.Click += (_, _) => SetDrawingCursor(Cursors.SizeWE);
+            DrawingRayButton.Click += (_, _) => SetDrawingCursor(Cursors.Cross);
+            DrawingParallelChannelButton.Click += (_, _) => SetDrawingCursor(Cursors.Cross);
+            DrawingRectangleButton.Click += (_, _) => SetDrawingCursor(Cursors.Cross);
+            DrawingPitchforkButton.Click += (_, _) => SetDrawingCursor(Cursors.Cross);
+            DrawingFibRetracementButton.Click += (_, _) => SetDrawingCursor(Cursors.Cross);
+            DrawingFibExtensionButton.Click += (_, _) => SetDrawingCursor(Cursors.Cross);
+            DrawingTextButton.Click += (_, _) => SetDrawingCursor(Cursors.IBeam);
+
+            AddHandler(Keyboard.PreviewKeyDownEvent,
+                new System.Windows.Input.KeyEventHandler(DrawingCursor_KeyDown), true);
+            AddHandler(UIElement.PreviewMouseRightButtonDownEvent,
+                new System.Windows.Input.MouseButtonEventHandler(DrawingCursor_RightMouseDown), true);
+        }
+
+        private void SetDrawingCursor(Cursor cursor)
+        {
+            Cursor = cursor;
+            Chart.Cursor = cursor;
+        }
+
+        private void RestoreDrawingCursor()
+        {
+            Cursor = Cursors.Arrow;
+            Chart.Cursor = Cursors.Arrow;
+        }
+
+        private void DrawingCursor_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key != Key.Escape && e.Key != Key.Cancel) return;
+            RestoreDrawingCursor();
+        }
+
+        private void DrawingCursor_RightMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton != MouseButton.Right) return;
+            RestoreDrawingCursor();
+        }
 
         private void DrawingRayButton_Click_Horizontal(object sender, RoutedEventArgs e)
         {
@@ -27,6 +75,7 @@ namespace TradeIt.Charts
             DrawingPitchforkButton.Opacity = 0.55;
             DrawingFibRetracementButton.Opacity = 0.55;
             DrawingFibExtensionButton.Opacity = 0.55;
+            SetDrawingCursor(Cursors.Cross);
             Chart.Focusable = true;
             Chart.Focus();
             Focus();
@@ -65,8 +114,6 @@ namespace TradeIt.Charts
             if (index < 0) return;
             point = new ScottPlot.Coordinates(GetDrawingX(index), point.Y);
 
-            // X2 is one unit to the right and Y2 is identical, so AddRayToChart()
-            // extends this stored ray horizontally to the visible right edge.
             var ray = new RayDrawing
             {
                 X1 = point.X,
@@ -78,7 +125,9 @@ namespace TradeIt.Charts
             AddRayToChart(ray);
 
             _horizontalRayFixActive = false;
+            DetachHorizontalRayFixHandlers();
             Chart.UserInputProcessor.IsEnabled = true;
+            RestoreDrawingCursor();
             DrawingRayButton.Opacity = 0.55;
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | نیم‌خط افقی رسم شد";
             Chart.Refresh();
@@ -104,6 +153,7 @@ namespace TradeIt.Charts
             _horizontalRayFixActive = false;
             DetachHorizontalRayFixHandlers();
             Chart.UserInputProcessor.IsEnabled = true;
+            RestoreDrawingCursor();
             UpdateTechnicalDrawingButtons();
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | رسم ابزار لغو شد";
             Chart.Refresh();
@@ -116,6 +166,7 @@ namespace TradeIt.Charts
             _horizontalRayFixActive = false;
             DetachHorizontalRayFixHandlers();
             SetAdvancedDrawingTool(AdvancedToolPitchfork);
+            SetDrawingCursor(Cursors.Cross);
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | چنگال اندروز: نقطه A را کلیک کنید";
         }
     }
