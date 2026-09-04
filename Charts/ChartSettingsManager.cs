@@ -27,14 +27,25 @@ namespace TradeIt.Charts
         public static void Save(ChartSettings settings)
         {
             if (settings == null) return;
-            lock (Sync)
-            {
-                _current = settings.Clone();
-                _current.HasUserSavedSettings = true;
-                Directory.CreateDirectory(SettingsDirectory);
-                File.WriteAllText(SettingsFile, JsonSerializer.Serialize(_current, new JsonSerializerOptions { WriteIndented = true }));
-            }
+            lock (Sync) _current = settings.Clone();
+            PersistCurrent();
             SettingsChanged?.Invoke(null, EventArgs.Empty);
+        }
+
+        // Drawing-tool preferences are global user preferences. Persist them without broadcasting
+        // a full chart-settings redraw to every open chart.
+        public static void SaveDrawingToolStyles(ChartSettings settings)
+        {
+            if (settings == null) return;
+            lock (Sync) _current = settings.Clone();
+            PersistCurrent();
+        }
+
+        private static void PersistCurrent()
+        {
+            Directory.CreateDirectory(SettingsDirectory);
+            _current.HasUserSavedSettings = true;
+            File.WriteAllText(SettingsFile, JsonSerializer.Serialize(_current, new JsonSerializerOptions { WriteIndented = true }));
         }
 
         public static void Save() => Save(_current);
