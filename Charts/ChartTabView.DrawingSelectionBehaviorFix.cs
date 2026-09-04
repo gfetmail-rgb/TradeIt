@@ -14,17 +14,14 @@ namespace TradeIt.Charts
 
         private static bool RegisterDrawingSelectionBehaviorFix()
         {
-            EventManager.RegisterClassHandler(
-                typeof(ChartTabView),
-                FrameworkElement.LoadedEvent,
+            EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.LoadedEvent,
                 new RoutedEventHandler(DrawingSelectionBehaviorFix_Loaded));
             return true;
         }
 
         private static void DrawingSelectionBehaviorFix_Loaded(object sender, RoutedEventArgs e)
         {
-            if (sender is ChartTabView chart)
-                chart.AttachDrawingSelectionBehaviorFix();
+            if (sender is ChartTabView chart) chart.AttachDrawingSelectionBehaviorFix();
         }
 
         private void AttachDrawingSelectionBehaviorFix()
@@ -36,20 +33,51 @@ namespace TradeIt.Charts
             Chart.PreviewMouseMove -= DrawingSelection_MouseMove;
             Chart.PreviewMouseLeftButtonUp -= DrawingSelection_MouseUp;
 
-            Chart.PreviewMouseLeftButtonDown += DrawingSelectionBehaviorFix_MouseDown;
-            Chart.PreviewMouseMove += DrawingSelectionBehaviorFix_MouseMove;
-            Chart.PreviewMouseLeftButtonUp += DrawingSelectionBehaviorFix_MouseUp;
-            Chart.PreviewMouseRightButtonDown += DrawingSelectionBehaviorFix_RightMouseDown;
+            Chart.AddHandler(Mouse.PreviewMouseLeftButtonDownEvent,
+                new MouseButtonEventHandler(DrawingSelectionBehaviorFix_MouseDown), true);
+            Chart.AddHandler(Mouse.PreviewMouseMoveEvent,
+                new MouseEventHandler(DrawingSelectionBehaviorFix_MouseMove), true);
+            Chart.AddHandler(Mouse.PreviewMouseLeftButtonUpEvent,
+                new MouseButtonEventHandler(DrawingSelectionBehaviorFix_MouseUp), true);
+            Chart.AddHandler(Mouse.PreviewMouseRightButtonDownEvent,
+                new MouseButtonEventHandler(DrawingSelectionBehaviorFix_RightMouseDown), true);
         }
 
-        private void DrawingSelectionBehaviorFix_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void DrawingSelectionBehaviorFix_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.ChangedButton != MouseButton.Left || _textDrawingActive || _activeDrawingTool != TechnicalDrawingTool.Select)
+            if (e.ChangedButton != MouseButton.Left || _activeDrawingTool != TechnicalDrawingTool.Select)
                 return;
             if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
 
-            // A visible anchor always wins over the drawing body. This is the key
-            // interaction rule that makes overlapping drawings predictable.
+            // Text is a drawing too, but has its own model and handles.
+            if (_textSelection != null)
+            {
+                if (TryGetTextSelectionHandle(point, out _))
+                {
+                    BeginTextSelectionDrag(point);
+                    e.Handled = true;
+                    return;
+                }
+
+                if (IsPointOnSelectedText(point))
+                {
+                    BeginTextSelectionDrag(point);
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            if (TrySelectTextDrawing(point))
+            {
+                _selectionDragging = false;
+                _activeDrawingHandle = null;
+                Chart.UserInputProcessor.IsEnabled = false;
+                e.Handled = true;
+                Chart.Refresh();
+                return;
+            }
+
+            // A visible anchor always wins over body hit-testing.
             if (_selectedDrawing != null && TryGetHandleAtPoint(point, out DrawingHandleKind handleKind))
             {
                 _activeDrawingHandle = handleKind;
@@ -62,9 +90,9 @@ namespace TradeIt.Charts
                 return;
             }
 
-            // Clicking a drawing selects it only. It never moves the whole drawing.
-            // If several drawings overlap, repeated clicks cycle through them.
-            if (TrySelectDrawing(point))
+            // Use the stricter hit-test implementation. In particular, Fibonacci
+            // levels are tested only inside their actual X range.
+            if (TrySelectDrawingAccurate(point))
             {
                 _selectionDragging = false;
                 _selectionMouseMoved = false;
@@ -75,12 +103,26 @@ namespace TradeIt.Charts
             }
             else
             {
+                ClearTextSelection();
                 ClearDrawingSelection();
             }
         }
 
-        private void DrawingSelectionBehaviorFix_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        private void DrawingSelectionBehaviorFix_MouseMove(object sender, MouseEventArgs e)
         {
+            if (_textSelectionDragging && e.LeftButton == MouseButtonState.Pressed)
+            {
+                if (TryGetRawChartPoint(e, out ScottPlot.Coordinates point))
+                {
+                    if (MoveSelectedText(point))
+                    {
+                        e.Handled = true;
+                        Chart.Refresh();
+                    }
+                }
+                return;
+            }
+
             if (!_selectionDragging || _selectedDrawing == null || _activeDrawingHandle == null || e.LeftButton != MouseButtonState.Pressed)
                 return;
             if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
@@ -97,11 +139,18 @@ namespace TradeIt.Charts
             }
         }
 
-        private void DrawingSelectionBehaviorFix_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void DrawingSelectionBehaviorFix_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            if (e.ChangedButton != MouseButton.Left || !_selectionDragging)
-                return;
+            if (e.ChangedButton != MouseButton.Left) return;
 
+            if (_textSelectionDragging)
+            {
+                EndTextSelectionDrag();
+                e.Handled = true;
+                return;
+            }
+
+            if (!_selectionDragging) return;
             _selectionDragging = false;
             _selectionMouseMoved = false;
             _activeDrawingHandle = null;
@@ -111,11 +160,19 @@ namespace TradeIt.Charts
             Chart.Refresh();
         }
 
-        private void DrawingSelectionBehaviorFix_RightMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void DrawingSelectionBehaviorFix_RightMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.ChangedButton != MouseButton.Right || _activeDrawingTool != TechnicalDrawingTool.Select || _textDrawingActive)
+            if (e.ChangedButton != MouseButton.Right || _activeDrawingTool != TechnicalDrawingTool.Select)
                 return;
             if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
+
+            if (_textSelection != null && IsPointOnSelectedText(point))
+            {
+                ShowTextSelectionContextMenu();
+                e.Handled = true;
+                return;
+            }
+
             if (_selectedDrawing == null || !IsPointOnSelectedDrawing(point)) return;
 
             var menu = new ContextMenu();
