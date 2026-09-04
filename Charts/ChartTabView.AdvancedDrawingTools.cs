@@ -58,7 +58,6 @@ namespace TradeIt.Charts
             DrawingParallelChannelButton.Click += DrawingParallelChannelButton_Click_Advanced;
             DrawingRectangleButton.Click += DrawingRectangleButton_Click_Advanced;
             DrawingPitchforkButton.Click += DrawingPitchforkButton_Click_Advanced;
-            // Mouse/keyboard routing is centralized in DrawingEventRouterFix.
         }
 
         private void DrawingParallelChannelButton_Click_Advanced(object sender, RoutedEventArgs e)
@@ -119,7 +118,7 @@ namespace TradeIt.Charts
         {
             if (e.ChangedButton != MouseButton.Left || _textDrawingActive) return;
 
-            // Ray is ONLY a horizontal half-line.
+            // Ray is a one-click horizontal half-line from the clicked bar to the right edge.
             if (_activeDrawingTool == TechnicalDrawingTool.Ray)
             {
                 if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates p)) return;
@@ -127,20 +126,8 @@ namespace TradeIt.Charts
                 if (index < 0) return;
                 p = new ScottPlot.Coordinates(GetDrawingX(index), p.Y);
 
-                if (_horizontalRayStart == null)
-                {
-                    _horizontalRayStart = p;
-                    ChartInfoTextBlock.Text = $"{_symbol.Symbol} | نیم‌خط افقی: نقطه شروع انتخاب شد؛ جهت را با کلیک دوم مشخص کنید";
-                }
-                else
-                {
-                    double dx = p.X - _horizontalRayStart.Value.X;
-                    if (Math.Abs(dx) < 1e-12) return;
-                    AddHorizontalRayToChart(_horizontalRayStart.Value, dx > 0);
-                    _horizontalRayStart = null;
-                    RemoveHorizontalRayPreview();
-                    ChartInfoTextBlock.Text = $"{_symbol.Symbol} | نیم‌خط افقی رسم شد";
-                }
+                AddHorizontalRayToChart(p);
+                ChartInfoTextBlock.Text = $"{_symbol.Symbol} | نیم‌خط افقی رسم شد";
                 e.Handled = true;
                 Chart.Refresh();
                 return;
@@ -172,6 +159,7 @@ namespace TradeIt.Charts
             }
 
             // Parallel channel: A-B is the base line, C defines the parallel.
+            // Andrews Pitchfork: A is the first pivot, B and C are the next two pivots.
             if (_advancedDrawingP1 == null)
             {
                 _advancedDrawingP1 = point;
@@ -218,17 +206,9 @@ namespace TradeIt.Charts
         {
             if (_textDrawingActive) return;
 
+            // Ray preview is always horizontal and starts at the first click.
             if (_activeDrawingTool == TechnicalDrawingTool.Ray)
             {
-                if (_horizontalRayStart == null || !TryGetRawChartPoint(e, out ScottPlot.Coordinates p)) return;
-                double dx = p.X - _horizontalRayStart.Value.X;
-                if (Math.Abs(dx) < 1e-12) return;
-                RemoveHorizontalRayPreview();
-                var limits = Chart.Plot.Axes.GetLimits();
-                double endX = dx > 0 ? limits.Right : limits.Left;
-                _horizontalRayPreview = AddScatterLine(_horizontalRayStart.Value.X, _horizontalRayStart.Value.Y, endX, _horizontalRayStart.Value.Y);
-                ChartInfoTextBlock.Text = $"{_symbol.Symbol} | نیم‌خط افقی: سمت {(dx > 0 ? "راست" : "چپ")}";
-                Chart.Refresh();
                 return;
             }
 
@@ -291,10 +271,10 @@ namespace TradeIt.Charts
             return line;
         }
 
-        private void AddHorizontalRayToChart(ScottPlot.Coordinates start, bool toRight)
+        private void AddHorizontalRayToChart(ScottPlot.Coordinates start)
         {
             var limits = Chart.Plot.Axes.GetLimits();
-            AddScatterLine(start.X, start.Y, toRight ? limits.Right : limits.Left, start.Y);
+            AddScatterLine(start.X, start.Y, limits.Right, start.Y);
         }
 
         private ScottPlot.Plottables.Scatter AddLineThroughPoints(ScottPlot.Coordinates a, ScottPlot.Coordinates b)
@@ -348,6 +328,8 @@ namespace TradeIt.Charts
 
         private void AddPitchforkToChart(PitchforkDrawing d)
         {
+            // Standard Andrews Pitchfork:
+            // median = A -> midpoint(B,C); upper/lower tines are parallel through B/C.
             var target = Midpoint(d.B, d.C);
             d.MedianLine = AddRayThroughPoints(d.A, target);
             d.UpperLine = AddRayThroughPoints(d.B, target);
