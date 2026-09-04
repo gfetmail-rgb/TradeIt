@@ -1,7 +1,7 @@
 ﻿namespace TradeIt.Models
 {
     public enum TradeStatusFilter { All, TradedToday, NotTradedToday }
-    public enum SymbolNameFilter { All, Contains, StartsWith, EndsWith, Middle, DoesNotContain }
+    public enum SymbolNameFilter { All, Contains, StartsWith, EndsWith, Middle, DoesNotContain, ContainsAny, DoesNotContainAny }
     public enum NumericComparison { GreaterThan, GreaterOrEqual, Equal, LessOrEqual, LessThan, NotEqual }
     public enum PriceField { Open, High, Low, Close, Volume, FinalFee }
 
