@@ -6,8 +6,8 @@ namespace TradeIt.Charts
 {
     public partial class ChartTabView
     {
-        private const int InitialVisibleCandleCount = 200;
-        private const double InitialRightMarginFraction = 0.20;
+        private const int InitialVisibleCandleCount = 50;
+        private const double InitialRightMarginFraction = 0.25;
         private bool _initialCandleRangeApplied;
         private static readonly bool _initialCandleRangeRegistered = RegisterInitialCandleRange();
 
