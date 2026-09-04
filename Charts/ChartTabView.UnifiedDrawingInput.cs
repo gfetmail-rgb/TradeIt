@@ -45,7 +45,7 @@ namespace TradeIt.Charts
 
         private void UnifiedDrawing_PreProcessInput(object sender, PreProcessInputEventArgs e)
         {
-            if (e.StagingItem.Input is KeyEventArgs key)
+            if (e.StagingItem.Input is System.Windows.Input.KeyEventArgs key)
             {
                 if (key.Key != Key.Escape && key.Key != Key.Cancel) return;
                 if (!IsUnifiedDrawingActive() && !_textDrawingActive) return;
@@ -55,7 +55,7 @@ namespace TradeIt.Charts
                 return;
             }
 
-            if (e.StagingItem.Input is MouseButtonEventArgs mouseButton)
+            if (e.StagingItem.Input is System.Windows.Input.MouseButtonEventArgs mouseButton)
             {
                 if (!SourceBelongsToThisChart(mouseButton.OriginalSource as DependencyObject)) return;
 
@@ -75,7 +75,7 @@ namespace TradeIt.Charts
                 return;
             }
 
-            if (e.StagingItem.Input is MouseEventArgs mouse)
+            if (e.StagingItem.Input is System.Windows.Input.MouseEventArgs mouse)
             {
                 if (!SourceBelongsToThisChart(mouse.OriginalSource as DependencyObject)) return;
                 if (_textDrawingActive || !IsUnifiedDrawingActive()) return;
@@ -84,7 +84,7 @@ namespace TradeIt.Charts
             }
         }
 
-        private void UnifiedDrawing_WindowKeyDown(object sender, KeyEventArgs e)
+        private void UnifiedDrawing_WindowKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
             if (e.Key != Key.Escape && e.Key != Key.Cancel) return;
             if (!IsUnifiedDrawingActive() && !_textDrawingActive) return;
@@ -118,7 +118,7 @@ namespace TradeIt.Charts
                    tool == UnifiedFibExtension;
         }
 
-        private void HandleUnifiedDrawingMouseDown(MouseButtonEventArgs e)
+        private void HandleUnifiedDrawingMouseDown(System.Windows.Input.MouseButtonEventArgs e)
         {
             int tool = (int)_activeDrawingTool;
             if (tool == UnifiedFibRetracement || tool == UnifiedFibExtension)
@@ -129,7 +129,7 @@ namespace TradeIt.Charts
             AdvancedDrawing_MouseDown(Chart, e);
         }
 
-        private void HandleUnifiedDrawingMouseMove(MouseEventArgs e)
+        private void HandleUnifiedDrawingMouseMove(System.Windows.Input.MouseEventArgs e)
         {
             int tool = (int)_activeDrawingTool;
             if (tool == UnifiedFibRetracement || tool == UnifiedFibExtension)
@@ -170,7 +170,7 @@ namespace TradeIt.Charts
             Chart.Refresh();
         }
 
-        private void UnifiedFib_MouseDown(MouseButtonEventArgs e)
+        private void UnifiedFib_MouseDown(System.Windows.Input.MouseButtonEventArgs e)
         {
             if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
             point = SnapUnifiedFibPoint(point);
@@ -205,7 +205,7 @@ namespace TradeIt.Charts
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | فیبوناچی اکستنشن رسم شد";
         }
 
-        private void UnifiedFib_MouseMove(MouseEventArgs e)
+        private void UnifiedFib_MouseMove(System.Windows.Input.MouseEventArgs e)
         {
             if (_unifiedFibP1 == null || !TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
             RemoveUnifiedFibPreview();
