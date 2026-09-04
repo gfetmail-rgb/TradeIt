@@ -28,9 +28,14 @@ namespace TradeIt.Charts
         {
             ScottPlot.Pixel mousePixel = Chart.Plot.GetPixel(point);
             ScottPlot.Pixel textPixel = Chart.Plot.GetPixel(new ScottPlot.Coordinates(drawing.X, drawing.Y));
-            double dx = mousePixel.X - textPixel.X;
-            double dy = mousePixel.Y - textPixel.Y;
-            return Math.Sqrt(dx * dx + dy * dy) <= GetTextHitTolerance();
+            double dx = Math.Abs(mousePixel.X - textPixel.X);
+            double dy = Math.Abs(mousePixel.Y - textPixel.Y);
+
+            // The text is centered on its anchor. Use a compact bounding box based on
+            // the rendered font size and character count instead of a large radial hit area.
+            double halfWidth = Math.Max(10.0, drawing.Text.Length * 4.2 + 4.0);
+            double halfHeight = 14.0;
+            return dx <= halfWidth && dy <= halfHeight;
         }
 
         private bool IsPointOnSelectedText(ScottPlot.Coordinates point)
@@ -72,7 +77,7 @@ namespace TradeIt.Charts
         {
             _textSelectionDragging = false;
             Chart.ReleaseMouseCapture();
-            Chart.UserInputProcessor.IsEnabled = false;
+            Chart.UserInputProcessor.IsEnabled = true;
         }
 
         private void RenderTextSelectionVisuals()
