@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 
+using WpfButton = System.Windows.Controls.Button;
+using WpfOrientation = System.Windows.Controls.Orientation;
+using WpfStackPanel = System.Windows.Controls.StackPanel;
+using WpfTextBox = System.Windows.Controls.TextBox;
 using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 using WpfMouseButtonEventHandler = System.Windows.Input.MouseButtonEventHandler;
 
@@ -84,21 +87,21 @@ namespace TradeIt.Charts
                 Height = 180,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 ResizeMode = ResizeMode.NoResize,
-                FlowDirection = FlowDirection.RightToLeft,
+                FlowDirection = System.Windows.FlowDirection.RightToLeft,
                 Owner = Window.GetWindow(this)
             };
 
-            var textBox = new TextBox
+            var textBox = new WpfTextBox
             {
                 Margin = new Thickness(12),
                 Height = 55,
-                VerticalContentAlignment = VerticalAlignment.Center,
+                VerticalContentAlignment = System.Windows.VerticalAlignment.Center,
                 AcceptsReturn = true,
-                TextWrapping = TextWrapping.Wrap,
-                FlowDirection = FlowDirection.RightToLeft
+                TextWrapping = System.Windows.TextWrapping.Wrap,
+                FlowDirection = System.Windows.FlowDirection.RightToLeft
             };
 
-            var okButton = new Button
+            var okButton = new WpfButton
             {
                 Content = "تأیید",
                 Width = 80,
@@ -107,7 +110,7 @@ namespace TradeIt.Charts
                 Margin = new Thickness(4, 0, 4, 10)
             };
 
-            var cancelButton = new Button
+            var cancelButton = new WpfButton
             {
                 Content = "لغو",
                 Width = 80,
@@ -116,15 +119,15 @@ namespace TradeIt.Charts
                 Margin = new Thickness(4, 0, 4, 10)
             };
 
-            var buttons = new StackPanel
+            var buttons = new WpfStackPanel
             {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Center
+                Orientation = WpfOrientation.Horizontal,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center
             };
             buttons.Children.Add(cancelButton);
             buttons.Children.Add(okButton);
 
-            var panel = new StackPanel();
+            var panel = new WpfStackPanel();
             panel.Children.Add(textBox);
             panel.Children.Add(buttons);
             window.Content = panel;
