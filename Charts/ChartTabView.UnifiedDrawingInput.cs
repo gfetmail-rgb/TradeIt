@@ -49,8 +49,6 @@ namespace TradeIt.Charts
             InputManager.Current.PreProcessInput += UnifiedDrawing_PreProcessInput;
             DrawingFibRetracementButton.Click += UnifiedDrawing_FibRetracementClick;
             DrawingFibExtensionButton.Click += UnifiedDrawing_FibExtensionClick;
-
-            // Fibonacci must receive chart clicks after TechnicalDrawing's preview handler.
             Chart.PreviewMouseLeftButtonDown += UnifiedDrawing_ChartLeftMouseDown;
             Chart.PreviewMouseMove += UnifiedDrawing_ChartMouseMove;
 
@@ -86,19 +84,13 @@ namespace TradeIt.Charts
                 if (!IsUnifiedDrawingActive() && !_textDrawingActive) return;
                 CancelUnifiedDrawing();
                 key.Handled = true;
-                return;
             }
-
-            // Do NOT consume left mouse input here. It is handled by the chart routed
-            // events below, which prevents the Fibonacci clicks from being swallowed
-            // before ChartTabView receives them.
         }
 
         private void UnifiedDrawing_ChartLeftMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (e.ChangedButton != MouseButton.Left || _textDrawingActive) return;
             if (!IsUnifiedFibonacciActive()) return;
-            if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
             UnifiedFib_MouseDown(e);
             e.Handled = true;
         }
@@ -178,11 +170,6 @@ namespace TradeIt.Charts
             _activeDrawingTool = (TechnicalDrawingTool)tool;
             Chart.UserInputProcessor.IsEnabled = false;
             UpdateTechnicalDrawingButtons();
-            DrawingFibRetracementButton.Opacity = tool == UnifiedFibRetracement ? 1.0 : 0.55;
-            DrawingFibExtensionButton.Opacity = tool == UnifiedFibExtension ? 1.0 : 0.55;
-            DrawingParallelChannelButton.Opacity = 0.55;
-            DrawingRectangleButton.Opacity = 0.55;
-            DrawingPitchforkButton.Opacity = 0.55;
             Chart.Focusable = true;
             Chart.Focus();
             Focus();
@@ -240,7 +227,9 @@ namespace TradeIt.Charts
             {
                 double range = point.Y - _unifiedFibP1.Value.Y;
                 double y = _unifiedFibP1.Value.Y + range * 0.618;
-                _unifiedFibPreview = AddScatterLine(limits.Left, y, limits.Right, y);
+                double left = Math.Min(_unifiedFibP1.Value.X, point.X);
+                double right = Math.Max(_unifiedFibP1.Value.X, point.X);
+                _unifiedFibPreview = AddScatterLine(left, y, right, y);
             }
             else if (_unifiedFibP2 == null)
             {
@@ -249,7 +238,9 @@ namespace TradeIt.Charts
             else
             {
                 double y = point.Y + (_unifiedFibP2.Value.Y - _unifiedFibP1.Value.Y);
-                _unifiedFibPreview = AddScatterLine(limits.Left, y, limits.Right, y);
+                double left = Math.Min(_unifiedFibP1.Value.X, point.X);
+                double right = Math.Max(_unifiedFibP1.Value.X, point.X);
+                _unifiedFibPreview = AddScatterLine(left, y, right, y);
             }
             Chart.Refresh();
         }
@@ -288,18 +279,23 @@ namespace TradeIt.Charts
         private void RenderFibonacciDrawing(FibonacciDrawing drawing)
         {
             RemoveFibonacciLines(drawing);
-            var limits = Chart.Plot.Axes.GetLimits();
             double ab = drawing.B.Y - drawing.A.Y;
             double[] ratios = drawing.IsExtension
                 ? new[] { 0.0, 0.382, 0.618, 1.0, 1.618, 2.618 }
                 : new[] { 0.0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0 };
+
+            // Fibonacci horizontal levels are finite: their X-span is the distance
+            // between the first and last defining clicks, not the whole chart.
+            double endX = drawing.IsExtension ? drawing.C.X : drawing.B.X;
+            double left = Math.Min(drawing.A.X, endX);
+            double right = Math.Max(drawing.A.X, endX);
 
             foreach (double ratio in ratios)
             {
                 double y = drawing.IsExtension
                     ? drawing.C.Y + ab * ratio
                     : drawing.B.Y - ab * ratio;
-                drawing.Lines.Add(AddScatterLine(limits.Left, y, limits.Right, y));
+                drawing.Lines.Add(AddScatterLine(left, y, right, y));
             }
         }
 
@@ -343,11 +339,6 @@ namespace TradeIt.Charts
             _activeDrawingTool = TechnicalDrawingTool.Select;
             Chart.UserInputProcessor.IsEnabled = true;
             UpdateTechnicalDrawingButtons();
-            DrawingParallelChannelButton.Opacity = 0.55;
-            DrawingRectangleButton.Opacity = 0.55;
-            DrawingPitchforkButton.Opacity = 0.55;
-            DrawingFibRetracementButton.Opacity = 0.55;
-            DrawingFibExtensionButton.Opacity = 0.55;
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | رسم ابزار لغو شد";
             if (refresh) Chart.Refresh();
         }
