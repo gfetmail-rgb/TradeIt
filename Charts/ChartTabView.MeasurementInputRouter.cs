@@ -17,13 +17,13 @@ namespace TradeIt.Charts
             EventManager.RegisterClassHandler(
                 typeof(WpfPlot),
                 UIElement.PreviewMouseLeftButtonDownEvent,
-                new MouseButtonEventHandler(MeasurementInputRouter_MouseDown),
+                new System.Windows.Input.MouseButtonEventHandler(MeasurementInputRouter_MouseDown),
                 true);
 
             EventManager.RegisterClassHandler(
                 typeof(WpfPlot),
                 UIElement.PreviewMouseMoveEvent,
-                new MouseEventHandler(MeasurementInputRouter_MouseMove),
+                new System.Windows.Input.MouseEventHandler(MeasurementInputRouter_MouseMove),
                 true);
 
             return true;
