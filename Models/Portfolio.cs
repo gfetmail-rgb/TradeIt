@@ -21,5 +21,11 @@ namespace TradeIt.Models
         // =========================================================
 
         public bool UseExplicitSymbolList { get; set; } = false;
+
+        // =========================================================
+        // قابلیت ساخت تایم‌فریم بالاتر
+        // =========================================================
+
+        public HigherTimeframeCapability HigherTimeframeCapability { get; set; } = HigherTimeframeCapability.None;
     }
 }
