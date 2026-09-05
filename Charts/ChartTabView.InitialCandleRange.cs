@@ -30,20 +30,9 @@ namespace TradeIt.Charts
 
         private void ApplyInitialCandleRange()
         {
-            if (_bars.Count == 0)
+            if (_bars.Count == 0 || _hasInitialView)
                 return;
 
-            // DrawChart() already establishes and saves the initial view before
-            // the Loaded/Idle event can run. Applying another range here after
-            // the first user zoom would silently overwrite that zoom, making the
-            // first zoom appear to jump violently while subsequent zooms work.
-            if (_hasInitialView)
-                return;
-
-            // When time gaps are hidden, the chart uses a continuous X coordinate
-            // system (2000 + candle index). Do not overwrite those limits with
-            // OADate values, otherwise _initialXMin/_initialXMax become inconsistent
-            // with the active chart coordinate system and all zoom operations break.
             if (!ChartSettingsManager.Current.ShowTimeGaps)
                 return;
 
@@ -69,6 +58,73 @@ namespace TradeIt.Charts
 
             SaveInitialView();
             _initialCandleRangeApplied = true;
+            Chart.Refresh();
+        }
+
+        private static readonly bool _initialRightMarginFixRegistered = RegisterInitialRightMarginFix();
+        private bool _initialRightMarginFixQueued;
+
+        private static bool RegisterInitialRightMarginFix()
+        {
+            EventManager.RegisterClassHandler(
+                typeof(ChartTabView),
+                FrameworkElement.LoadedEvent,
+                new RoutedEventHandler(InitialRightMarginFix_Loaded));
+            return true;
+        }
+
+        private static void InitialRightMarginFix_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is not ChartTabView chart || chart._initialRightMarginFixQueued)
+                return;
+
+            chart._initialRightMarginFixQueued = true;
+            chart.Dispatcher.BeginInvoke(
+                new Action(chart.ApplyInitialRightMarginFix),
+                DispatcherPriority.Render);
+        }
+
+        private void ApplyInitialRightMarginFix()
+        {
+            if (_bars.Count == 0 || !IsLoaded || _continuousTimeAxisApplied || !_hasInitialView)
+                return;
+
+            int visibleCount = Math.Min(365, _bars.Count);
+            int firstIndex = _bars.Count - visibleCount;
+            int lastIndex = _bars.Count - 1;
+
+            double firstX = GetBarDateTime(_bars[firstIndex], firstIndex).ToOADate();
+            double lastX = GetBarDateTime(_bars[lastIndex], lastIndex).ToOADate();
+            if (!double.IsFinite(firstX) || !double.IsFinite(lastX) || lastX < firstX)
+                return;
+
+            double candleRange = Math.Max(1.0, lastX - firstX);
+            double rightMargin = candleRange * InitialRightMarginFraction / (1.0 - InitialRightMarginFraction);
+            var limits = Chart.Plot.Axes.GetLimits();
+
+            Chart.Plot.Axes.SetLimits(
+                firstX - 0.5,
+                lastX + 0.5 + rightMargin,
+                limits.Bottom,
+                limits.Top);
+
+            SaveInitialView();
+            Chart.Refresh();
+        }
+
+        private void ResetZoomButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_hasInitialView)
+            {
+                ApplyInitialCandleRange();
+                return;
+            }
+
+            Chart.Plot.Axes.SetLimits(
+                _initialXMin,
+                _initialXMax,
+                _initialYMin,
+                _initialYMax);
             Chart.Refresh();
         }
     }
