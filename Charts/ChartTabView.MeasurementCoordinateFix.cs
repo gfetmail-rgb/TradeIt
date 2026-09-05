@@ -45,7 +45,7 @@ namespace TradeIt.Charts
             if ((int)_activeDrawingTool != MeasurementToolValue || e.ChangedButton != MouseButton.Left)
                 return;
 
-            Point mousePosition = e.GetPosition(Chart);
+            System.Windows.Point mousePosition = e.GetPosition(Chart);
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 if ((int)_activeDrawingTool != MeasurementToolValue)
