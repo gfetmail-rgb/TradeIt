@@ -8,6 +8,7 @@ namespace TradeIt.Charts
     public partial class ChartTabView
     {
         private bool _mouseOhlcvInfoFixAttached;
+        private int _mouseOhlcvInfoFixGeneration;
         private static readonly bool _mouseOhlcvInfoFixRegistered = RegisterMouseOhlcvInfoFix();
 
         private static bool RegisterMouseOhlcvInfoFix()
@@ -17,8 +18,6 @@ namespace TradeIt.Charts
                 System.Windows.FrameworkElement.LoadedEvent,
                 new System.Windows.RoutedEventHandler(MouseOhlcvInfoFix_Loaded));
 
-            // Use PreviewMouseMove with handledEventsToo so ScottPlot's internal
-            // mouse processing cannot prevent OHLCV information from updating.
             System.Windows.EventManager.RegisterClassHandler(
                 typeof(ChartTabView),
                 System.Windows.UIElement.PreviewMouseMoveEvent,
@@ -69,9 +68,21 @@ namespace TradeIt.Charts
             if (string.IsNullOrWhiteSpace(timeText))
                 timeText = GetBarDateTime(bar, barIndex).ToString("HH:mm:ss");
 
-            ChartInfoTextBlock.Text =
+            string infoText =
                 $"{_symbol.Symbol} | تاریخ: {dateText} | ساعت: {timeText} | " +
                 $"O: {bar.Open:N2} | H: {bar.High:N2} | L: {bar.Low:N2} | C: {bar.Close:N2} | V: {bar.Volume:N0}";
+
+            // Chart_PreviewMouseMove and ScottPlot can update the same TextBlock
+            // later in the routed event. Schedule the OHLCV text after the current
+            // input route so it is the final value visible to the user.
+            int generation = ++_mouseOhlcvInfoFixGeneration;
+            Dispatcher.BeginInvoke(
+                System.Windows.Threading.DispatcherPriority.Input,
+                new System.Action(() =>
+                {
+                    if (generation == _mouseOhlcvInfoFixGeneration && _chartVisible)
+                        ChartInfoTextBlock.Text = infoText;
+                }));
         }
     }
 }
