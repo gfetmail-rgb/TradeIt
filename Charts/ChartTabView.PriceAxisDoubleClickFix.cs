@@ -1,4 +1,3 @@
-using System;
 using System.Windows;
 using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 
@@ -7,6 +6,22 @@ namespace TradeIt.Charts
     public partial class ChartTabView
     {
         private bool _priceAxisDoubleClickFixAttached;
+        private static readonly bool _priceAxisDoubleClickFixRegistered = RegisterPriceAxisDoubleClickFix();
+
+        private static bool RegisterPriceAxisDoubleClickFix()
+        {
+            EventManager.RegisterClassHandler(
+                typeof(ChartTabView),
+                FrameworkElement.LoadedEvent,
+                new RoutedEventHandler(PriceAxisDoubleClickFix_Loaded));
+            return true;
+        }
+
+        private static void PriceAxisDoubleClickFix_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is ChartTabView chart)
+                chart.AttachPriceAxisDoubleClickFix();
+        }
 
         private void AttachPriceAxisDoubleClickFix()
         {
