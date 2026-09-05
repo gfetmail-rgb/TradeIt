@@ -178,5 +178,11 @@ namespace TradeIt.Charts
         }
 
         private void DeleteSelectedDrawingAndClearVisuals() => DeleteSelectedDrawing();
+
+        // These visual-state entry points belong to the drawing-handle subsystem.
+        // Keeping them here avoids a standalone compatibility partial while preserving behavior.
+        private void SetAllDrawingButtonVisuals() => UpdateTechnicalDrawingButtons();
+
+        private void UpdateFibonacciButtonVisualState() => UpdateTechnicalDrawingButtons();
     }
 }
