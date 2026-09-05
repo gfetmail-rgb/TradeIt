@@ -5,6 +5,8 @@ using System.Windows.Input;
 
 using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
+using WpfMouseButtonEventHandler = System.Windows.Input.MouseButtonEventHandler;
+using WpfMouseEventHandler = System.Windows.Input.MouseEventHandler;
 
 namespace TradeIt.Charts
 {
