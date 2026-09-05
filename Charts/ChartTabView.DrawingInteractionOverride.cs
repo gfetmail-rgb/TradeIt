@@ -57,7 +57,6 @@ namespace TradeIt.Charts
             DrawingParallelChannelButton.Click += DrawingToolButtonVisual_Click;
             DrawingRectangleButton.Click += DrawingToolButtonVisual_Click;
             DrawingPitchforkButton.Click += DrawingToolButtonVisual_Click;
-            DrawingMeasurementButton.Click += DrawingToolButtonVisual_Click;
 
             SetAllDrawingButtonVisuals();
         }
@@ -76,8 +75,7 @@ namespace TradeIt.Charts
                 DrawingFibExtensionButton,
                 DrawingParallelChannelButton,
                 DrawingRectangleButton,
-                DrawingPitchforkButton,
-                DrawingMeasurementButton
+                DrawingPitchforkButton
             };
 
             foreach (WpfButton button in buttons)
@@ -128,7 +126,6 @@ namespace TradeIt.Charts
             SetDrawingButtonVisual(DrawingParallelChannelButton, IsAdvancedDrawingTool && (int)_activeDrawingTool == 5);
             SetDrawingButtonVisual(DrawingRectangleButton, IsAdvancedDrawingTool && (int)_activeDrawingTool == 6);
             SetDrawingButtonVisual(DrawingPitchforkButton, IsAdvancedDrawingTool && (int)_activeDrawingTool == 7);
-            SetDrawingButtonVisual(DrawingMeasurementButton, (int)_activeDrawingTool == MeasurementToolValue);
         }
 
         private void RestoreAllDrawingButtonVisuals()
