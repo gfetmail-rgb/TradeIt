@@ -176,7 +176,7 @@ namespace TradeIt
             AddComboItems(rightField,
                 (PriceField.Open, "O"), (PriceField.High, "H"), (PriceField.Low, "L"),
                 (PriceField.Close, "C"), (PriceField.Volume, "V"), (PriceField.FinalFee, "FINAL FEE"));
-            var rightDays = new WpfTextBox { Width = 42, Height = 26, Text = "1", HorizontalContentContentAlignment = WpfHorizontalAlignment.Center };
+            var rightDays = new WpfTextBox { Width = 42, Height = 26, Text = "1", HorizontalContentAlignment = WpfHorizontalAlignment.Center };
 
             enabled.Checked += SymbolFilterInputChanged;
             enabled.Unchecked += SymbolFilterInputChanged;
