@@ -1,4 +1,5 @@
-using System.Windows;
+using System;
+using TradeIt.Models;
 using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 
 namespace TradeIt.Charts
@@ -10,14 +11,14 @@ namespace TradeIt.Charts
 
         private static bool RegisterPriceAxisDoubleClickFix()
         {
-            EventManager.RegisterClassHandler(
+            System.Windows.EventManager.RegisterClassHandler(
                 typeof(ChartTabView),
-                FrameworkElement.LoadedEvent,
-                new RoutedEventHandler(PriceAxisDoubleClickFix_Loaded));
+                System.Windows.FrameworkElement.LoadedEvent,
+                new System.Windows.RoutedEventHandler(PriceAxisDoubleClickFix_Loaded));
             return true;
         }
 
-        private static void PriceAxisDoubleClickFix_Loaded(object sender, RoutedEventArgs e)
+        private static void PriceAxisDoubleClickFix_Loaded(object sender, System.Windows.RoutedEventArgs e)
         {
             if (sender is ChartTabView chart)
                 chart.AttachPriceAxisDoubleClickFix();
@@ -30,7 +31,7 @@ namespace TradeIt.Charts
 
             _priceAxisDoubleClickFixAttached = true;
             Chart.AddHandler(
-                UIElement.PreviewMouseLeftButtonDownEvent,
+                System.Windows.UIElement.PreviewMouseLeftButtonDownEvent,
                 new System.Windows.Input.MouseButtonEventHandler(PriceAxisDoubleClickFix_MouseLeftButtonDown),
                 true);
         }
@@ -40,7 +41,7 @@ namespace TradeIt.Charts
             if (e.ChangedButton != System.Windows.Input.MouseButton.Left || e.ClickCount != 2)
                 return;
 
-            Point point = e.GetPosition(Chart);
+            System.Windows.Point point = e.GetPosition(Chart);
             if (!IsPriceAxisPoint(point.X, point.Y))
                 return;
 
@@ -59,6 +60,42 @@ namespace TradeIt.Charts
                 return false;
 
             return x <= 75.0 || x >= width - 30.0;
+        }
+
+        private void FitVisiblePriceRangeToPlot()
+        {
+            if (_bars.Count == 0)
+                return;
+
+            var limits = Chart.Plot.Axes.GetLimits();
+            double minPrice = double.MaxValue;
+            double maxPrice = double.MinValue;
+
+            for (int i = 0; i < _bars.Count; i++)
+            {
+                MarketBar bar = _bars[i];
+                double x = GetBarDateTime(bar, i).ToOADate();
+                if (!double.IsFinite(x) || x < limits.Left || x > limits.Right)
+                    continue;
+
+                minPrice = Math.Min(minPrice, bar.Low);
+                maxPrice = Math.Max(maxPrice, bar.High);
+            }
+
+            if (minPrice == double.MaxValue || maxPrice == double.MinValue)
+                return;
+
+            double range = maxPrice - minPrice;
+            double padding = range > 0
+                ? range * 0.05
+                : Math.Max(Math.Abs(maxPrice) * 0.01, 1.0);
+
+            Chart.Plot.Axes.SetLimits(
+                limits.Left,
+                limits.Right,
+                minPrice - padding,
+                maxPrice + padding);
+            Chart.Refresh();
         }
     }
 }
