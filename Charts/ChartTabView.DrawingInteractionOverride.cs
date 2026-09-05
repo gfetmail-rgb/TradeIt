@@ -57,6 +57,7 @@ namespace TradeIt.Charts
             DrawingParallelChannelButton.Click += DrawingToolButtonVisual_Click;
             DrawingRectangleButton.Click += DrawingToolButtonVisual_Click;
             DrawingPitchforkButton.Click += DrawingToolButtonVisual_Click;
+            DrawingMeasurementButton.Click += DrawingToolButtonVisual_Click;
 
             SetAllDrawingButtonVisuals();
         }
