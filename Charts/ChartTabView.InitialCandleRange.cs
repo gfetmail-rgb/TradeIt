@@ -33,6 +33,13 @@ namespace TradeIt.Charts
             if (_bars.Count == 0)
                 return;
 
+            // DrawChart() already establishes and saves the initial view before
+            // the Loaded/Idle event can run. Applying another range here after
+            // the first user zoom would silently overwrite that zoom, making the
+            // first zoom appear to jump violently while subsequent zooms work.
+            if (_hasInitialView)
+                return;
+
             // When time gaps are hidden, the chart uses a continuous X coordinate
             // system (2000 + candle index). Do not overwrite those limits with
             // OADate values, otherwise _initialXMin/_initialXMax become inconsistent
