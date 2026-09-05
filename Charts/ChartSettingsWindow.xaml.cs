@@ -83,7 +83,7 @@ namespace TradeIt.Charts
         private void FallingColorButton_Click(object sender, RoutedEventArgs e) => ChooseColor(c => Settings.FallingColor = c, Settings.FallingColor, FallingColorPreview);
         private void LineColorButton_Click(object sender, RoutedEventArgs e) => ChooseColor(c => Settings.LineColor = c, Settings.LineColor, LineColorPreview);
         private void FigureBackgroundButton_Click(object sender, RoutedEventArgs e) => ChooseColor(c => Settings.FigureBackground = c, Settings.FigureBackground, FigureBackgroundPreview);
-        private void DataBackgroundButton_Click(object sender, RoutedEventArgs e) => ChooseColor(c => Settings.DataBackground = c, Settings.DataBackground, DataBackgroundPreview);
+        private void DataBackgroundButton_Click(object sender, RoutedEventArgs e) => ChooseColor(c => Settings.DataBackground = c, Settings.DataBackground, GridColorPreview);
         private void AxisColorButton_Click(object sender, RoutedEventArgs e) => ChooseColor(c => Settings.AxisColor = c, Settings.AxisColor, AxisColorPreview);
         private void GridColorButton_Click(object sender, RoutedEventArgs e) => ChooseColor(c => Settings.GridColor = c, Settings.GridColor, GridColorPreview);
 
@@ -117,5 +117,188 @@ namespace TradeIt.Charts
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+
+        private static readonly bool _defaultsHandlerRegistered = RegisterDefaultsHandler();
+        private System.Windows.Controls.Button? _defaultSettingsButton;
+
+        private static bool RegisterDefaultsHandler()
+        {
+            EventManager.RegisterClassHandler(typeof(ChartSettingsWindow), FrameworkElement.LoadedEvent,
+                new RoutedEventHandler(ChartSettingsWindow_LoadedForDefaults));
+            return true;
+        }
+
+        private static void ChartSettingsWindow_LoadedForDefaults(object sender, RoutedEventArgs e)
+        {
+            if (sender is ChartSettingsWindow window)
+                window.AddDefaultSettingsButton();
+        }
+
+        private void AddDefaultSettingsButton()
+        {
+            if (_defaultSettingsButton != null) return;
+            if (Content is not System.Windows.Controls.Grid root || root.Children.Count < 2) return;
+            if (root.Children[1] is not System.Windows.Controls.StackPanel buttons) return;
+
+            _defaultSettingsButton = new System.Windows.Controls.Button
+            {
+                Content = "پیش‌فرض",
+                Width = 90,
+                Height = 32,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+            _defaultSettingsButton.Click += DefaultSettingsButton_Click;
+            buttons.Children.Insert(0, _defaultSettingsButton);
+        }
+
+        private void DefaultSettingsButton_Click(object? sender, RoutedEventArgs e)
+        {
+            Settings = new ChartSettings();
+            Settings.HasUserSavedSettings = true;
+
+            SetPreviewColor(RisingColorPreview, Settings.RisingColor);
+            SetPreviewColor(FallingColorPreview, Settings.FallingColor);
+            SetPreviewColor(LineColorPreview, Settings.LineColor);
+            SetPreviewColor(FigureBackgroundPreview, Settings.FigureBackground);
+            SetPreviewColor(DataBackgroundPreview, Settings.DataBackground);
+            SetPreviewColor(GridColorPreview, Settings.GridColor);
+            SetPreviewColor(AxisColorPreview, Settings.AxisColor);
+
+            SelectDefaultCombo(LineWidthComboBox, Settings.LineWidth);
+            SelectDefaultCombo(CandleLineWidthComboBox, Settings.CandleLineWidth);
+            SelectDefaultCombo(BarLineWidthComboBox, Settings.BarLineWidth);
+            SelectDefaultCombo(GridLineWidthComboBox, Settings.GridLineWidth);
+            SelectDefaultTag(GridPatternComboBox, Settings.GridPattern);
+            OpenChartInNewTabCheckBox.IsChecked = Settings.OpenChartInNewTab;
+
+            _crosshairColor = Settings.CrosshairColor;
+            if (_crosshairColorPreview != null)
+                SetPreviewColor(_crosshairColorPreview, _crosshairColor);
+            if (_crosshairPatternComboBox != null)
+                SelectDefaultTag(_crosshairPatternComboBox, Settings.CrosshairPattern);
+            if (_crosshairLineWidthComboBox != null)
+                SelectDefaultCombo(_crosshairLineWidthComboBox, Settings.CrosshairLineWidth);
+        }
+
+        private static void SelectDefaultCombo(System.Windows.Controls.ComboBox combo, double value)
+        {
+            foreach (System.Windows.Controls.ComboBoxItem item in combo.Items)
+            {
+                if (double.TryParse(item.Tag?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) &&
+                    Math.Abs(parsed - value) < 0.001)
+                {
+                    combo.SelectedItem = item;
+                    return;
+                }
+            }
+            if (combo.Items.Count > 0) combo.SelectedIndex = 0;
+        }
+
+        private static void SelectDefaultTag(System.Windows.Controls.ComboBox combo, string value)
+        {
+            foreach (System.Windows.Controls.ComboBoxItem item in combo.Items)
+            {
+                if (string.Equals(item.Tag?.ToString(), value, StringComparison.OrdinalIgnoreCase))
+                {
+                    combo.SelectedItem = item;
+                    return;
+                }
+            }
+        }
+
+        private static readonly bool _saveHandlerRegistered = RegisterSaveHandler();
+        private System.Windows.Controls.ComboBox? _crosshairPatternComboBox;
+        private System.Windows.Controls.ComboBox? _crosshairLineWidthComboBox;
+        private System.Windows.Controls.Border? _crosshairColorPreview;
+        private string _crosshairColor = "#909090";
+
+        private static bool RegisterSaveHandler()
+        {
+            EventManager.RegisterClassHandler(typeof(ChartSettingsWindow), System.Windows.Controls.Button.ClickEvent, new RoutedEventHandler(ChartSettingsSaveHandler), true);
+            return true;
+        }
+
+        private static void ChartSettingsSaveHandler(object sender, RoutedEventArgs e)
+        {
+            if (sender is not ChartSettingsWindow window || e.OriginalSource is not System.Windows.Controls.Button button || button.Content?.ToString() != "ذخیره") return;
+            if (window.OpenChartInNewTabCheckBox != null) window.Settings.OpenChartInNewTab = window.OpenChartInNewTabCheckBox.IsChecked == true;
+            if (window.GridPatternComboBox?.SelectedItem is System.Windows.Controls.ComboBoxItem pi) window.Settings.GridPattern = pi.Tag?.ToString() ?? "Solid";
+            if (window.GridLineWidthComboBox?.SelectedItem is System.Windows.Controls.ComboBoxItem wi && double.TryParse(wi.Tag?.ToString(), out var w)) window.Settings.GridLineWidth = w;
+            if (window.LineWidthComboBox?.SelectedItem is System.Windows.Controls.ComboBoxItem li && double.TryParse(li.Tag?.ToString(), out var lw)) window.Settings.LineWidth = lw;
+            if (window.CandleLineWidthComboBox?.SelectedItem is System.Windows.Controls.ComboBoxItem ci && double.TryParse(ci.Tag?.ToString(), out var clw)) window.Settings.CandleLineWidth = clw;
+            if (window.BarLineWidthComboBox?.SelectedItem is System.Windows.Controls.ComboBoxItem bi && double.TryParse(bi.Tag?.ToString(), out var blw)) window.Settings.BarLineWidth = blw;
+            if (window._crosshairPatternComboBox?.SelectedItem is System.Windows.Controls.ComboBoxItem cpi) window.Settings.CrosshairPattern = cpi.Tag?.ToString() ?? "Dotted";
+            if (window._crosshairLineWidthComboBox?.SelectedItem is System.Windows.Controls.ComboBoxItem cwi && double.TryParse(cwi.Tag?.ToString(), out var cw)) window.Settings.CrosshairLineWidth = cw;
+            window.Settings.CrosshairColor = window._crosshairColor;
+            window.Settings.HasUserSavedSettings = true;
+            ChartSettingsManager.Save(window.Settings);
+        }
+
+        protected override void OnContentRendered(EventArgs e)
+        {
+            base.OnContentRendered(e);
+            OpenChartInNewTabCheckBox.IsChecked = Settings.OpenChartInNewTab;
+            SelectComboValue(LineWidthComboBox, Settings.LineWidth);
+            SelectComboValue(CandleLineWidthComboBox, Settings.CandleLineWidth);
+            SelectComboValue(BarLineWidthComboBox, Settings.BarLineWidth);
+            foreach (System.Windows.Controls.ComboBoxItem item in GridPatternComboBox.Items)
+                if (string.Equals(item.Tag?.ToString(), Settings.GridPattern, StringComparison.OrdinalIgnoreCase)) { GridPatternComboBox.SelectedItem = item; break; }
+            foreach (System.Windows.Controls.ComboBoxItem item in GridLineWidthComboBox.Items)
+                if (double.TryParse(item.Tag?.ToString(), out var value) && Math.Abs(value - Settings.GridLineWidth) < .001) { GridLineWidthComboBox.SelectedItem = item; break; }
+            BuildCrosshairControls();
+        }
+
+        private static void SelectComboValue(System.Windows.Controls.ComboBox comboBox, double value)
+        {
+            foreach (System.Windows.Controls.ComboBoxItem item in comboBox.Items)
+                if (double.TryParse(item.Tag?.ToString(), out var itemValue) && Math.Abs(itemValue - value) < .001) { comboBox.SelectedItem = item; return; }
+            if (comboBox.Items.Count > 0) comboBox.SelectedIndex = 0;
+        }
+
+        private void BuildCrosshairControls()
+        {
+            if (_crosshairPatternComboBox != null) return;
+            _crosshairColor = Settings.CrosshairColor;
+            if (Content is not System.Windows.Controls.Grid root) return;
+            var scroll = root.Children.Count > 0 ? root.Children[0] as System.Windows.Controls.ScrollViewer : null;
+            var stack = scroll?.Content as System.Windows.Controls.StackPanel;
+            if (stack == null) return;
+
+            var group = new System.Windows.Controls.GroupBox { Header = "Crosshair", Margin = new Thickness(0, 0, 0, 10) };
+            var grid = new System.Windows.Controls.Grid { Margin = new Thickness(10) };
+            for (int i = 0; i < 3; i++) grid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new GridLength(42) });
+            grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(150) });
+            grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(55) });
+            grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            grid.Children.Add(new System.Windows.Controls.TextBlock { Text = "رنگ Crosshair:", VerticalAlignment = System.Windows.VerticalAlignment.Center });
+            _crosshairColorPreview = new System.Windows.Controls.Border { Width = 32, Height = 25, BorderBrush = System.Windows.Media.Brushes.Gray, BorderThickness = new Thickness(1), HorizontalAlignment = System.Windows.HorizontalAlignment.Center };
+            Grid.SetColumn(_crosshairColorPreview, 1); grid.Children.Add(_crosshairColorPreview);
+            var colorButton = new System.Windows.Controls.Button { Content = "انتخاب رنگ", Width = 100, Height = 28, HorizontalAlignment = System.Windows.HorizontalAlignment.Left };
+            colorButton.Click += CrosshairColorButton_Click; Grid.SetColumn(colorButton, 2); grid.Children.Add(colorButton);
+            var patternLabel = new System.Windows.Controls.TextBlock { Text = "استایل خط:", VerticalAlignment = System.Windows.VerticalAlignment.Center }; Grid.SetRow(patternLabel, 1); grid.Children.Add(patternLabel);
+            _crosshairPatternComboBox = new System.Windows.Controls.ComboBox { Width = 120, Height = 28, HorizontalAlignment = System.Windows.HorizontalAlignment.Left };
+            _crosshairPatternComboBox.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = "یکنواخت", Tag = "Solid" });
+            _crosshairPatternComboBox.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = "نقطه‌چین", Tag = "Dotted" });
+            _crosshairPatternComboBox.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = "خط‌چین", Tag = "Dashed" });
+            _crosshairPatternComboBox.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = "خط‌چین متراکم", Tag = "DenselyDashed" });
+            Grid.SetRow(_crosshairPatternComboBox, 1); Grid.SetColumn(_crosshairPatternComboBox, 2); grid.Children.Add(_crosshairPatternComboBox);
+            var widthLabel = new System.Windows.Controls.TextBlock { Text = "ضخامت خط:", VerticalAlignment = System.Windows.VerticalAlignment.Center }; Grid.SetRow(widthLabel, 2); grid.Children.Add(widthLabel);
+            _crosshairLineWidthComboBox = new System.Windows.Controls.ComboBox { Width = 120, Height = 28, HorizontalAlignment = System.Windows.HorizontalAlignment.Left };
+            foreach (double width in new[] { .5, 1.0, 1.5, 2.0, 3.0 }) _crosshairLineWidthComboBox.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = width.ToString("0.##"), Tag = width.ToString(CultureInfo.InvariantCulture) });
+            Grid.SetRow(_crosshairLineWidthComboBox, 2); Grid.SetColumn(_crosshairLineWidthComboBox, 2); grid.Children.Add(_crosshairLineWidthComboBox);
+            group.Content = grid; stack.Children.Insert(Math.Max(0, stack.Children.Count - 1), group);
+            SetPreviewColor(_crosshairColorPreview, _crosshairColor);
+            foreach (System.Windows.Controls.ComboBoxItem item in _crosshairPatternComboBox.Items) if (string.Equals(item.Tag?.ToString(), Settings.CrosshairPattern, StringComparison.OrdinalIgnoreCase)) { _crosshairPatternComboBox.SelectedItem = item; break; }
+            foreach (System.Windows.Controls.ComboBoxItem item in _crosshairLineWidthComboBox.Items) if (double.TryParse(item.Tag?.ToString(), System.Globalization.NumberStyles.Float, CultureInfo.InvariantCulture, out var value) && Math.Abs(value - Settings.CrosshairLineWidth) < .001) { _crosshairLineWidthComboBox.SelectedItem = item; break; }
+            if (_crosshairPatternComboBox.SelectedItem == null) _crosshairPatternComboBox.SelectedIndex = 1;
+            if (_crosshairLineWidthComboBox.SelectedItem == null) _crosshairLineWidthComboBox.SelectedIndex = 1;
+        }
+
+        private void CrosshairColorButton_Click(object? sender, RoutedEventArgs e)
+        {
+            var color = SelectColor(_crosshairColor); if (color == null) return;
+            _crosshairColor = color; if (_crosshairColorPreview != null) SetPreviewColor(_crosshairColorPreview, color);
+        }
     }
 }
