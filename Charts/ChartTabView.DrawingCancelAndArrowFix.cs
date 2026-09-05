@@ -29,41 +29,9 @@ namespace TradeIt.Charts
             _drawingCancelAndArrowFixAttached = true;
 
             Chart.AddHandler(
-                UIElement.PreviewMouseLeftButtonDownEvent,
-                new MouseButtonEventHandler(DrawingCancelAndArrowFix_LeftMouseDown),
-                true);
-            Chart.AddHandler(
-                UIElement.PreviewMouseMoveEvent,
-                new System.Windows.Input.MouseEventHandler(DrawingCancelAndArrowFix_MouseMove),
-                true);
-            Chart.AddHandler(
                 UIElement.PreviewMouseRightButtonDownEvent,
                 new MouseButtonEventHandler(DrawingCancelAndArrowFix_RightMouseDown),
                 true);
-        }
-
-        private void DrawingCancelAndArrowFix_LeftMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton != MouseButton.Left || _textDrawingActive)
-                return;
-
-            if ((int)_activeDrawingTool == 10 && !e.Handled)
-            {
-                ArrowDrawing_MouseDown(Chart, e);
-                e.Handled = true;
-            }
-        }
-
-        private void DrawingCancelAndArrowFix_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
-        {
-            if (_textDrawingActive)
-                return;
-
-            if ((int)_activeDrawingTool == 10 && !e.Handled)
-            {
-                ArrowDrawing_MouseMove(Chart, e);
-                e.Handled = true;
-            }
         }
 
         private void DrawingCancelAndArrowFix_RightMouseDown(object sender, MouseButtonEventArgs e)
@@ -71,8 +39,6 @@ namespace TradeIt.Charts
             if (e.ChangedButton != MouseButton.Right)
                 return;
 
-            // TechnicalDrawing_RightMouseDown runs on the parent first and changes
-            // the active tool to Select. Clean every uncommitted preview here as well.
             RemoveUnifiedFibPreview();
             _unifiedFibP1 = null;
             _unifiedFibP2 = null;
