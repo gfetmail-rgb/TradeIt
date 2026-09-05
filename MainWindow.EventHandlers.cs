@@ -17,250 +17,33 @@ namespace TradeIt
     public partial class MainWindow
     {
         private static readonly bool _chartClickSettingHandlerRegistered = RegisterChartClickSettingHandler();
-
-        private static bool RegisterChartClickSettingHandler()
-        {
-            EventManager.RegisterClassHandler(typeof(TextBlock), UIElement.MouseLeftButtonUpEvent, new MouseButtonEventHandler(ChartNameClassClickHandler), true);
-            return true;
-        }
-
-        private static async void ChartNameClassClickHandler(object sender, MouseButtonEventArgs e)
-        {
-            if (e.Handled) return;
-            if (sender is not TextBlock textBlock || textBlock.Tag?.ToString() != "SymbolName" || textBlock.DataContext is not SymbolInfo symbol) return;
-            if (Window.GetWindow(textBlock) is not MainWindow window || !IsInsideSymbolGrid(textBlock, window.SymbolsDataGrid) || window._selectedPortfolio == null) return;
-            e.Handled = true;
-            ChartSettings settings = ChartSettingsManager.Current;
-            if (settings.OpenChartInNewTab) await window.OpenChartTabAsync(symbol, window._selectedPortfolio, false);
-            else await window.OpenSharedChartTabAsync(symbol, window._selectedPortfolio);
-        }
-
-        private static bool IsInsideSymbolGrid(DependencyObject child, DependencyObject grid)
-        {
-            DependencyObject? current = child;
-            while (current != null)
-            {
-                if (ReferenceEquals(current, grid)) return true;
-                current = System.Windows.Media.VisualTreeHelper.GetParent(current);
-            }
-            return false;
-        }
-
+        private static bool RegisterChartClickSettingHandler() { EventManager.RegisterClassHandler(typeof(TextBlock), UIElement.MouseLeftButtonUpEvent, new MouseButtonEventHandler(ChartNameClassClickHandler), true); return true; }
+        private static async void ChartNameClassClickHandler(object sender, MouseButtonEventArgs e) { if (e.Handled) return; if (sender is not TextBlock textBlock || textBlock.Tag?.ToString() != "SymbolName" || textBlock.DataContext is not SymbolInfo symbol) return; if (Window.GetWindow(textBlock) is not MainWindow window || !IsInsideSymbolGrid(textBlock, window.SymbolsDataGrid) || window._selectedPortfolio == null) return; e.Handled = true; ChartSettings settings = ChartSettingsManager.Current; if (settings.OpenChartInNewTab) await window.OpenChartTabAsync(symbol, window._selectedPortfolio, false); else await window.OpenSharedChartTabAsync(symbol, window._selectedPortfolio); }
+        private static bool IsInsideSymbolGrid(DependencyObject child, DependencyObject grid) { DependencyObject? current = child; while (current != null) { if (ReferenceEquals(current, grid)) return true; current = System.Windows.Media.VisualTreeHelper.GetParent(current); } return false; }
         private static readonly bool _filterClearHandlerRegistered = RegisterFilterClearHandler();
         private bool _clearFiltersUiAdded;
-
-        private static bool RegisterFilterClearHandler()
-        {
-            EventManager.RegisterClassHandler(typeof(MainWindow), Window.LoadedEvent, new RoutedEventHandler(FilterClearLoadedClassHandler));
-            return true;
-        }
-
-        private static void FilterClearLoadedClassHandler(object sender, RoutedEventArgs e)
-        {
-            if (sender is MainWindow window) window.Dispatcher.BeginInvoke(new Action(window.AddClearAllFiltersButton), DispatcherPriority.Loaded);
-        }
-
-        private void AddClearAllFiltersButton()
-        {
-            if (_clearFiltersUiAdded || SymbolFilterHost == null) return;
-            _clearFiltersUiAdded = true;
-            SymbolFilterHost.RowDefinitions.Clear();
-            SymbolFilterHost.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            SymbolFilterHost.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            UIElement? existing = SymbolFilterHost.Children.Count > 0 ? SymbolFilterHost.Children[0] : null;
-            if (existing != null) Grid.SetRow(existing, 1);
-            var clearButton = new WpfButton { Content = "پاک کردن تمام فیلترها", Height = 30, Padding = new Thickness(12, 2, 12, 2), HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 0, 0, 6), ToolTip = "همه فیلترها را پاک و غیرفعال می‌کند" };
-            clearButton.Click += ClearAllFiltersButton_Click;
-            Grid.SetRow(clearButton, 0);
-            SymbolFilterHost.Children.Add(clearButton);
-        }
-
-        private void ClearAllFiltersButton_Click(object sender, RoutedEventArgs e)
-        {
-            _symbolFiltersApplying = true;
-            try
-            {
-                if (_tradeStatusFilterComboBox != null) _tradeStatusFilterComboBox.SelectedIndex = 0;
-                if (_nameFilterComboBox != null) _nameFilterComboBox.SelectedIndex = 0;
-                if (_nameFilterTextBox != null) _nameFilterTextBox.Clear();
-                if (_daysWithoutTradeCheckBox != null) _daysWithoutTradeCheckBox.IsChecked = false;
-                if (_daysWithTradeCheckBox != null) _daysWithTradeCheckBox.IsChecked = false;
-                if (_volumeFilterCheckBox != null) _volumeFilterCheckBox.IsChecked = false;
-                if (_daysWithoutTradeTextBox != null) _daysWithoutTradeTextBox.Text = "5";
-                if (_daysWithTradeTextBox != null) _daysWithTradeTextBox.Text = "5";
-                if (_volumeAverageDaysTextBox != null) _volumeAverageDaysTextBox.Text = "20";
-                if (_volumeMultiplierTextBox != null) _volumeMultiplierTextBox.Text = "2";
-                foreach (var row in _priceFilterControls)
-                {
-                    row.Enabled.IsChecked = false; row.LeftField.SelectedIndex = 0; row.LeftDays.Text = "0"; row.Comparison.SelectedIndex = 0; row.RightField.SelectedIndex = 0; row.RightDays.Text = "1";
-                }
-                _symbolFilterSettings.TradeStatus = TradeStatusFilter.All;
-                _symbolFilterSettings.NameFilter = SymbolNameFilter.All;
-                _symbolFilterSettings.NameText = "";
-                _symbolFilterSettings.DaysWithoutTradeEnabled = false;
-                _symbolFilterSettings.DaysWithTradeEnabled = false;
-                _symbolFilterSettings.VolumeFilterEnabled = false;
-                foreach (var filter in _symbolFilterSettings.PriceFilters) filter.Enabled = false;
-                if (_symbolFilterStatusTextBlock != null) _symbolFilterStatusTextBlock.Text = "همه فیلترها پاک و غیرفعال شدند.";
-            }
-            finally { _symbolFiltersApplying = false; }
-            _ = ApplyAllSymbolFiltersAsync();
-        }
-
+        private static bool RegisterFilterClearHandler() { EventManager.RegisterClassHandler(typeof(MainWindow), Window.LoadedEvent, new RoutedEventHandler(FilterClearLoadedClassHandler)); return true; }
+        private static void FilterClearLoadedClassHandler(object sender, RoutedEventArgs e) { if (sender is MainWindow window) window.Dispatcher.BeginInvoke(new Action(window.AddClearAllFiltersButton), DispatcherPriority.Loaded); }
+        private void AddClearAllFiltersButton() { if (_clearFiltersUiAdded || SymbolFilterHost == null) return; _clearFiltersUiAdded = true; SymbolFilterHost.RowDefinitions.Clear(); SymbolFilterHost.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); SymbolFilterHost.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); UIElement? existing = SymbolFilterHost.Children.Count > 0 ? SymbolFilterHost.Children[0] : null; if (existing != null) Grid.SetRow(existing, 1); var clearButton = new WpfButton { Content = "پاک کردن تمام فیلترها", Height = 30, Padding = new Thickness(12, 2, 12, 2), HorizontalAlignment = System.Windows.HorizontalAlignment.Right, Margin = new Thickness(0, 0, 0, 6), ToolTip = "همه فیلترها را پاک و غیرفعال می‌کند" }; clearButton.Click += ClearAllFiltersButton_Click; Grid.SetRow(clearButton, 0); SymbolFilterHost.Children.Add(clearButton); }
+        private void ClearAllFiltersButton_Click(object sender, RoutedEventArgs e) { _symbolFiltersApplying = true; try { if (_tradeStatusFilterComboBox != null) _tradeStatusFilterComboBox.SelectedIndex = 0; if (_nameFilterComboBox != null) _nameFilterComboBox.SelectedIndex = 0; if (_nameFilterTextBox != null) _nameFilterTextBox.Clear(); if (_daysWithoutTradeCheckBox != null) _daysWithoutTradeCheckBox.IsChecked = false; if (_daysWithTradeCheckBox != null) _daysWithTradeCheckBox.IsChecked = false; if (_volumeFilterCheckBox != null) _volumeFilterCheckBox.IsChecked = false; if (_daysWithoutTradeTextBox != null) _daysWithoutTradeTextBox.Text = "5"; if (_daysWithTradeTextBox != null) _daysWithTradeTextBox.Text = "5"; if (_volumeAverageDaysTextBox != null) _volumeAverageDaysTextBox.Text = "20"; if (_volumeMultiplierTextBox != null) _volumeMultiplierTextBox.Text = "2"; foreach (var row in _priceFilterControls) { row.Enabled.IsChecked = false; row.LeftField.SelectedIndex = 0; row.LeftDays.Text = "0"; row.Comparison.SelectedIndex = 0; row.RightField.SelectedIndex = 0; row.RightDays.Text = "1"; } _symbolFilterSettings.TradeStatus = TradeStatusFilter.All; _symbolFilterSettings.NameFilter = SymbolNameFilter.All; _symbolFilterSettings.NameText = ""; _symbolFilterSettings.DaysWithoutTradeEnabled = false; _symbolFilterSettings.DaysWithTradeEnabled = false; _symbolFilterSettings.VolumeFilterEnabled = false; foreach (var filter in _symbolFilterSettings.PriceFilters) filter.Enabled = false; if (_symbolFilterStatusTextBlock != null) _symbolFilterStatusTextBlock.Text = "همه فیلترها پاک و غیرفعال شدند."; } finally { _symbolFiltersApplying = false; } _ = ApplyAllSymbolFiltersAsync(); }
         private static readonly bool _portfolioManagementRefreshOnCloseRegistered = RegisterPortfolioManagementRefreshOnClose();
-
-        private static bool RegisterPortfolioManagementRefreshOnClose()
-        {
-            EventManager.RegisterClassHandler(typeof(PortfolioManagementWindow), FrameworkElement.UnloadedEvent, new RoutedEventHandler(PortfolioManagementWindow_Unloaded), true);
-            return true;
-        }
-
-        private static void PortfolioManagementWindow_Unloaded(object sender, RoutedEventArgs e)
-        {
-            if (sender is not PortfolioManagementWindow window || window.Owner is not MainWindow mainWindow) return;
-            mainWindow.RefreshPortfolioButton_Click(mainWindow, new RoutedEventArgs());
-        }
-
-        public void RefreshPortfoliosAfterEditorSave(string portfolioName)
-        {
-            try
-            {
-                string? currentPortfolioName = _selectedPortfolio?.Name;
-                _portfolios = _portfolioManager.LoadAll();
-                PortfolioComboBox.ItemsSource = null;
-                PortfolioComboBox.ItemsSource = _portfolios;
-                string targetName = !string.IsNullOrWhiteSpace(portfolioName) ? portfolioName : currentPortfolioName ?? string.Empty;
-                Portfolio? target = _portfolios.FirstOrDefault(x => x.Name == targetName);
-                if (target != null) PortfolioComboBox.SelectedItem = target;
-                else if (_portfolios.Count > 0) PortfolioComboBox.SelectedIndex = 0;
-            }
-            catch (Exception ex)
-            {
-                WpfMessageBox.Show(ex.ToString(), "خطا در به‌روزرسانی سبدها", WpfMessageBoxButton.OK, WpfMessageBoxImage.Error);
-            }
-        }
-
-        private void SettingsButton_Click(object sender, RoutedEventArgs e)
-        {
-            var window = new ChartSettingsWindow(ChartSettingsManager.Current) { Owner = this };
-            window.ShowDialog();
-        }
-
+        private static bool RegisterPortfolioManagementRefreshOnClose() { EventManager.RegisterClassHandler(typeof(PortfolioManagementWindow), FrameworkElement.UnloadedEvent, new RoutedEventHandler(PortfolioManagementWindow_Unloaded), true); return true; }
+        private static void PortfolioManagementWindow_Unloaded(object sender, RoutedEventArgs e) { if (sender is not PortfolioManagementWindow window || window.Owner is not MainWindow mainWindow) return; mainWindow.RefreshPortfolioButton_Click(mainWindow, new RoutedEventArgs()); }
+        public void RefreshPortfoliosAfterEditorSave(string portfolioName) { try { string? currentPortfolioName = _selectedPortfolio?.Name; _portfolios = _portfolioManager.LoadAll(); PortfolioComboBox.ItemsSource = null; PortfolioComboBox.ItemsSource = _portfolios; string targetName = !string.IsNullOrWhiteSpace(portfolioName) ? portfolioName : currentPortfolioName ?? string.Empty; Portfolio? target = _portfolios.FirstOrDefault(x => x.Name == targetName); if (target != null) PortfolioComboBox.SelectedItem = target; else if (_portfolios.Count > 0) PortfolioComboBox.SelectedIndex = 0; } catch (Exception ex) { WpfMessageBox.Show(ex.ToString(), "خطا در به‌روزرسانی سبدها", WpfMessageBoxButton.OK, WpfMessageBoxImage.Error); } }
+        private void SettingsButton_Click(object sender, RoutedEventArgs e) { var window = new ChartSettingsWindow(ChartSettingsManager.Current) { Owner = this }; window.ShowDialog(); }
         private static readonly bool _sharedChartSettingFixRegistered = RegisterSharedChartSettingFix();
-
-        private static bool RegisterSharedChartSettingFix()
-        {
-            EventManager.RegisterClassHandler(typeof(MainWindow), UIElement.PreviewMouseLeftButtonUpEvent, new MouseButtonEventHandler(SharedChartSettingFix_MouseLeftButtonUp), true);
-            return true;
-        }
-
-        private static async void SharedChartSettingFix_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            if (e.Handled || e.ChangedButton != MouseButton.Left) return;
-            if (e.OriginalSource is not DependencyObject source) return;
-            TextBlock? symbolText = FindSymbolNameTextBlock(source);
-            if (symbolText?.DataContext is not SymbolInfo symbol) return;
-            if (Window.GetWindow(symbolText) is not MainWindow window || window._selectedPortfolio == null) return;
-            if (ChartSettingsManager.Current.OpenChartInNewTab) return;
-            e.Handled = true;
-            await window.OpenSharedChartTabAsync(symbol, window._selectedPortfolio);
-        }
-
-        private static TextBlock? FindSymbolNameTextBlock(DependencyObject source)
-        {
-            DependencyObject? current = source;
-            while (current != null)
-            {
-                if (current is TextBlock text && text.Tag?.ToString() == "SymbolName") return text;
-                current = current is System.Windows.Media.Visual visual ? System.Windows.Media.VisualTreeHelper.GetParent(visual) : current is FrameworkContentElement content ? content.Parent : null;
-            }
-            return null;
-        }
-
+        private static bool RegisterSharedChartSettingFix() { EventManager.RegisterClassHandler(typeof(MainWindow), UIElement.PreviewMouseLeftButtonUpEvent, new MouseButtonEventHandler(SharedChartSettingFix_MouseLeftButtonUp), true); return true; }
+        private static async void SharedChartSettingFix_MouseLeftButtonUp(object sender, MouseButtonEventArgs e) { if (e.Handled || e.ChangedButton != MouseButton.Left) return; if (e.OriginalSource is not DependencyObject source) return; TextBlock? symbolText = FindSymbolNameTextBlock(source); if (symbolText?.DataContext is not SymbolInfo symbol) return; if (Window.GetWindow(symbolText) is not MainWindow window || window._selectedPortfolio == null) return; if (ChartSettingsManager.Current.OpenChartInNewTab) return; e.Handled = true; await window.OpenSharedChartTabAsync(symbol, window._selectedPortfolio); }
+        private static TextBlock? FindSymbolNameTextBlock(DependencyObject source) { DependencyObject? current = source; while (current != null) { if (current is TextBlock text && text.Tag?.ToString() == "SymbolName") return text; current = current is System.Windows.Media.Visual visual ? System.Windows.Media.VisualTreeHelper.GetParent(visual) : current is FrameworkContentElement content ? content.Parent : null; } return null; }
         private bool _startupEmptyListPending;
         private static readonly bool _startupHandlerRegistered = RegisterStartupHandler();
-
-        private static bool RegisterStartupHandler()
-        {
-            EventManager.RegisterClassHandler(typeof(MainWindow), LoadedEvent, new RoutedEventHandler(MainWindow_StartupEmptyListLoaded), true);
-            return true;
-        }
-
-        private static void MainWindow_StartupEmptyListLoaded(object sender, RoutedEventArgs e)
-        {
-            if (sender is not MainWindow window) return;
-            window._isFullScreen = false;
-            window.WindowStyle = WindowStyle.SingleBorderWindow;
-            window.ResizeMode = ResizeMode.CanResize;
-            window.WindowState = WindowState.Maximized;
-            if (window.FullScreenExitButton != null) window.FullScreenExitButton.Visibility = Visibility.Collapsed;
-            window.TopToolbar.Visibility = Visibility.Visible;
-            window.StatusBar.Visibility = Visibility.Visible;
-            window.SymbolsPanel.Visibility = Visibility.Visible;
-            window.MainContent.Visibility = Visibility.Visible;
-            window.ChartArea.Visibility = Visibility.Visible;
-            window._startupEmptyListPending = true;
-            window.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => window.ClearStartupPortfolioSelection()));
-        }
-
-        private void ClearStartupPortfolioSelection()
-        {
-            if (!_startupEmptyListPending) return;
-            _startupEmptyListPending = false;
-            PortfolioComboBox.SelectedIndex = -1;
-            _selectedPortfolio = null;
-            _allSymbols.Clear();
-            SymbolsDataGrid.ItemsSource = null;
-            SymbolsDataGrid.SelectedItem = null;
-            SymbolSearchTextBox.Clear();
-            CloseAllChartTabs();
-            StatusTextBlock.Text = "برای شروع، یک سبد را انتخاب کنید.";
-        }
-
-        private void ClearStartupSelection()
-        {
-            if (PortfolioComboBox == null || SymbolsDataGrid == null) return;
-            PortfolioComboBox.SelectedItem = null;
-            PortfolioComboBox.SelectedIndex = -1;
-            _selectedPortfolio = null;
-            _allSymbols.Clear();
-            SymbolsDataGrid.ItemsSource = null;
-            SymbolsDataGrid.SelectedItem = null;
-            StatusTextBlock.Text = _portfolios.Count > 0 ? "یک سبد را انتخاب کنید." : "هنوز سبدی تعریف نشده است.";
-        }
-
-        private async void SymbolNameTextBlock_ClickBySetting(object sender, MouseButtonEventArgs e)
-        {
-            if (_suppressSymbolSelection) return;
-            if (sender is not FrameworkElement element || element.DataContext is not SymbolInfo symbol || _selectedPortfolio == null) return;
-            e.Handled = true;
-            ChartSettings settings = ChartSettingsManager.Current;
-            if (settings.OpenChartInNewTab) await OpenChartTabAsync(symbol, _selectedPortfolio, false);
-            else await OpenSharedChartTabAsync(symbol, _selectedPortfolio);
-        }
-
+        private static bool RegisterStartupHandler() { EventManager.RegisterClassHandler(typeof(MainWindow), LoadedEvent, new RoutedEventHandler(MainWindow_StartupEmptyListLoaded), true); return true; }
+        private static void MainWindow_StartupEmptyListLoaded(object sender, RoutedEventArgs e) { if (sender is not MainWindow window) return; window._isFullScreen = false; window.WindowStyle = WindowStyle.SingleBorderWindow; window.ResizeMode = ResizeMode.CanResize; window.WindowState = WindowState.Maximized; if (window.FullScreenExitButton != null) window.FullScreenExitButton.Visibility = Visibility.Collapsed; window.TopToolbar.Visibility = Visibility.Visible; window.StatusBar.Visibility = Visibility.Visible; window.SymbolsPanel.Visibility = Visibility.Visible; window.MainContent.Visibility = Visibility.Visible; window.ChartArea.Visibility = Visibility.Visible; window._startupEmptyListPending = true; window.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => window.ClearStartupPortfolioSelection())); }
+        private void ClearStartupPortfolioSelection() { if (!_startupEmptyListPending) return; _startupEmptyListPending = false; PortfolioComboBox.SelectedIndex = -1; _selectedPortfolio = null; _allSymbols.Clear(); SymbolsDataGrid.ItemsSource = null; SymbolsDataGrid.SelectedItem = null; SymbolSearchTextBox.Clear(); CloseAllChartTabs(); StatusTextBlock.Text = "برای شروع، یک سبد را انتخاب کنید."; }
+        private void ClearStartupSelection() { if (PortfolioComboBox == null || SymbolsDataGrid == null) return; PortfolioComboBox.SelectedItem = null; PortfolioComboBox.SelectedIndex = -1; _selectedPortfolio = null; _allSymbols.Clear(); SymbolsDataGrid.ItemsSource = null; SymbolsDataGrid.SelectedItem = null; StatusTextBlock.Text = _portfolios.Count > 0 ? "یک سبد را انتخاب کنید." : "هنوز سبدی تعریف نشده است."; }
+        private async void SymbolNameTextBlock_ClickBySetting(object sender, MouseButtonEventArgs e) { if (_suppressSymbolSelection) return; if (sender is not FrameworkElement element || element.DataContext is not SymbolInfo symbol || _selectedPortfolio == null) return; e.Handled = true; ChartSettings settings = ChartSettingsManager.Current; if (settings.OpenChartInNewTab) await OpenChartTabAsync(symbol, _selectedPortfolio, false); else await OpenSharedChartTabAsync(symbol, _selectedPortfolio); }
         private static readonly bool _userOptionsStartupHandlerRegistered = RegisterUserOptionsStartupHandler();
-
-        private static bool RegisterUserOptionsStartupHandler()
-        {
-            EventManager.RegisterClassHandler(typeof(MainWindow), FrameworkElement.LoadedEvent, new RoutedEventHandler(MainWindow_UserOptionsLoaded), true);
-            return true;
-        }
-
-        private static void MainWindow_UserOptionsLoaded(object sender, RoutedEventArgs e)
-        {
-            if (sender is not MainWindow window) return;
-            window.Dispatcher.BeginInvoke(new Action(() =>
-            {
-                if (window.PortfolioComboBox.Items.Count > 0) window.PortfolioComboBox.SelectedIndex = -1;
-                window._selectedPortfolio = null;
-                window._allSymbols.Clear();
-                window.SymbolsDataGrid.ItemsSource = null;
-                window.SymbolsDataGrid.SelectedItem = null;
-                window.CloseAllChartTabs();
-                window.StopAutoScroll();
-                window.StatusTextBlock.Text = "یک سبد را انتخاب کنید.";
-            }), DispatcherPriority.ApplicationIdle);
-        }
+        private static bool RegisterUserOptionsStartupHandler() { EventManager.RegisterClassHandler(typeof(MainWindow), FrameworkElement.LoadedEvent, new RoutedEventHandler(MainWindow_UserOptionsLoaded), true); return true; }
+        private static void MainWindow_UserOptionsLoaded(object sender, RoutedEventArgs e) { if (sender is not MainWindow window) return; window.Dispatcher.BeginInvoke(new Action(() => { if (window.PortfolioComboBox.Items.Count > 0) window.PortfolioComboBox.SelectedIndex = -1; window._selectedPortfolio = null; window._allSymbols.Clear(); window.SymbolsDataGrid.ItemsSource = null; window.SymbolsDataGrid.SelectedItem = null; window.CloseAllChartTabs(); window.StopAutoScroll(); window.StatusTextBlock.Text = "یک سبد را انتخاب کنید."; }), DispatcherPriority.ApplicationIdle); }
     }
 }
