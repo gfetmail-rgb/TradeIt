@@ -75,7 +75,8 @@ namespace TradeIt.Charts
                 DrawingFibExtensionButton,
                 DrawingParallelChannelButton,
                 DrawingRectangleButton,
-                DrawingPitchforkButton
+                DrawingPitchforkButton,
+                DrawingMeasurementButton
             };
 
             foreach (WpfButton button in buttons)
@@ -109,10 +110,6 @@ namespace TradeIt.Charts
                 }
                 return;
             }
-
-            // Selection and editing are handled exclusively by DrawingSelection.cs
-            // and DrawingSelectionBehaviorFix.cs. This class must never intercept a
-            // chart mouse-down to move an entire drawing.
         }
 
         private void SetAllDrawingButtonVisuals()
@@ -130,6 +127,7 @@ namespace TradeIt.Charts
             SetDrawingButtonVisual(DrawingParallelChannelButton, IsAdvancedDrawingTool && (int)_activeDrawingTool == 5);
             SetDrawingButtonVisual(DrawingRectangleButton, IsAdvancedDrawingTool && (int)_activeDrawingTool == 6);
             SetDrawingButtonVisual(DrawingPitchforkButton, IsAdvancedDrawingTool && (int)_activeDrawingTool == 7);
+            SetDrawingButtonVisual(DrawingMeasurementButton, (int)_activeDrawingTool == MeasurementToolValue);
         }
 
         private void RestoreAllDrawingButtonVisuals()
