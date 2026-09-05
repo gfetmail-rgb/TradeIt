@@ -45,10 +45,8 @@ namespace TradeIt.Charts
 
             _measurementEventsAttached = true;
 
-            // Register directly on WpfPlot with handledEventsToo=true. ScottPlot
-            // has its own mouse-input pipeline and may mark preview events handled;
-            // the ruler must still receive them. Using one direct registration also
-            // avoids competing class-level and child-level handlers.
+            // The ruler owns mouse interaction while active. handledEventsToo is
+            // required because ScottPlot may consume the routed mouse event first.
             Chart.AddHandler(
                 UIElement.PreviewMouseLeftButtonDownEvent,
                 new WpfMouseButtonEventHandler(MeasurementTool_ChartMouseDown),
@@ -90,10 +88,11 @@ namespace TradeIt.Charts
             _activeDrawingTool = (TechnicalDrawingTool)MeasurementToolValue;
             _textDrawingActive = false;
 
-            // Do not disable ScottPlot's input processor. Our direct WPF handlers
-            // are registered with handledEventsToo=true and therefore receive the
-            // events regardless of ScottPlot's internal handling.
-            Chart.UserInputProcessor.IsEnabled = true;
+            // ScottPlot's default LeftClickDragPan must not compete with the
+            // ruler's two-click state machine. The ruler receives WPF mouse events
+            // directly (handledEventsToo=true), so disabling the ScottPlot input
+            // processor does not prevent the ruler from receiving them.
+            Chart.UserInputProcessor.IsEnabled = false;
             Chart.Focusable = true;
             Chart.Focus();
             SetMeasurementButtonVisual(true);
@@ -126,7 +125,6 @@ namespace TradeIt.Charts
             if ((int)_activeDrawingTool != MeasurementToolValue || e.ChangedButton != MouseButton.Left)
                 return;
 
-            // Only the ruler consumes the click while active.
             e.Handled = true;
             MeasurementTool_MouseDown(sender, e);
         }
