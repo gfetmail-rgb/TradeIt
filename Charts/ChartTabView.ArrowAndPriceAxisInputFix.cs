@@ -14,9 +14,9 @@ namespace TradeIt.Charts
         private static bool RegisterArrowAndPriceAxisInputFix()
         {
             EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.LoadedEvent, new RoutedEventHandler(ArrowAndPriceAxisInputFix_Loaded));
-            EventManager.RegisterClassHandler(typeof(ChartTabView), UIElement.PreviewMouseLeftButtonDownEvent, new MouseButtonEventHandler(ArrowAndPriceAxisInputFix_ClassMouseDown));
-            EventManager.RegisterClassHandler(typeof(ChartTabView), UIElement.PreviewMouseWheelEvent, new MouseWheelEventHandler(ArrowAndPriceAxisInputFix_ClassMouseWheel));
-            EventManager.RegisterClassHandler(typeof(ChartTabView), UIElement.PreviewMouseMoveEvent, new MouseEventHandler(ArrowAndPriceAxisInputFix_ClassMouseMove));
+            EventManager.RegisterClassHandler(typeof(ChartTabView), UIElement.PreviewMouseLeftButtonDownEvent, new System.Windows.Input.MouseButtonEventHandler(ArrowAndPriceAxisInputFix_ClassMouseDown));
+            EventManager.RegisterClassHandler(typeof(ChartTabView), UIElement.PreviewMouseWheelEvent, new System.Windows.Input.MouseWheelEventHandler(ArrowAndPriceAxisInputFix_ClassMouseWheel));
+            EventManager.RegisterClassHandler(typeof(ChartTabView), UIElement.PreviewMouseMoveEvent, new System.Windows.Input.MouseEventHandler(ArrowAndPriceAxisInputFix_ClassMouseMove));
             return true;
         }
 
@@ -33,10 +33,10 @@ namespace TradeIt.Charts
         {
             if (_arrowAndPriceAxisInputFixAttached) return;
             _arrowAndPriceAxisInputFixAttached = true;
-            Chart.AddHandler(UIElement.PreviewMouseLeftButtonDownEvent, new MouseButtonEventHandler(ArrowAndPriceAxisInputFix_MouseDown), true);
+            Chart.AddHandler(UIElement.PreviewMouseLeftButtonDownEvent, new System.Windows.Input.MouseButtonEventHandler(ArrowAndPriceAxisInputFix_MouseDown), true);
         }
 
-        private static void ArrowAndPriceAxisInputFix_ClassMouseDown(object sender, MouseButtonEventArgs e)
+        private static void ArrowAndPriceAxisInputFix_ClassMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (sender is not ChartTabView chart || e.ChangedButton != MouseButton.Left) return;
             if (chart._arrowDrawingActive && (int)chart._activeDrawingTool == 10)
@@ -56,7 +56,7 @@ namespace TradeIt.Charts
             }
         }
 
-        private static void ArrowAndPriceAxisInputFix_ClassMouseWheel(object sender, MouseWheelEventArgs e)
+        private static void ArrowAndPriceAxisInputFix_ClassMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
             if (sender is not ChartTabView chart || !chart._hasInitialView) return;
             double range = chart.Chart.Plot.Axes.GetLimits().Right - chart.Chart.Plot.Axes.GetLimits().Left;
@@ -97,7 +97,7 @@ namespace TradeIt.Charts
             e.Handled = true;
         }
 
-        private void ArrowAndPriceAxisInputFix_MouseDown(object sender, MouseButtonEventArgs e)
+        private void ArrowAndPriceAxisInputFix_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (e.ChangedButton != MouseButton.Left) return;
             if (_arrowDrawingActive && (int)_activeDrawingTool == 10)
