@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using TradeIt.Models;
+using TradeIt.Portfolios;
 using TradeIt.Services;
 
 namespace TradeIt
@@ -86,7 +87,7 @@ namespace TradeIt
             _daysWithTradeCheckBox.Unchecked -= SymbolFilterInputChanged;
             _daysWithTradeTextBox!.TextChanged -= SymbolFilterInputChanged;
             _volumeFilterCheckBox!.Checked -= SymbolFilterInputChanged;
-            _volumeFilterCheckBox.Unchecked -= SymbolFilterInputChanged;
+            _volumeFilterCheckBox!.Unchecked -= SymbolFilterInputChanged;
             _volumeAverageDaysTextBox!.TextChanged -= SymbolFilterInputChanged;
             _volumeMultiplierTextBox!.TextChanged -= SymbolFilterInputChanged;
 
