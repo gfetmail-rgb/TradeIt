@@ -11,7 +11,7 @@ namespace TradeIt.Services
     internal sealed class AutoScrollController : IDisposable
     {
         private readonly SemaphoreSlim _gate = new(1, 1);
-        private Timer? _timer;
+        private System.Threading.Timer? _timer;
         private Func<Task>? _tickAction;
         private SynchronizationContext? _context;
         private int _index;
@@ -32,7 +32,7 @@ namespace TradeIt.Services
             _tickAction = tickAction;
             _context = SynchronizationContext.Current;
             _running = true;
-            _timer = new Timer(OnTimer, null, intervalMilliseconds, intervalMilliseconds);
+            _timer = new System.Threading.Timer(OnTimer, null, intervalMilliseconds, intervalMilliseconds);
             return true;
         }
 
