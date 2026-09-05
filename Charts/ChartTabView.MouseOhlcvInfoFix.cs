@@ -1,5 +1,6 @@
 using TradeIt.Models;
 using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
+using WpfMouseEventHandler = System.Windows.Input.MouseEventHandler;
 using WpfPoint = System.Windows.Point;
 
 namespace TradeIt.Charts
@@ -15,6 +16,14 @@ namespace TradeIt.Charts
                 typeof(ChartTabView),
                 System.Windows.FrameworkElement.LoadedEvent,
                 new System.Windows.RoutedEventHandler(MouseOhlcvInfoFix_Loaded));
+
+            // Use PreviewMouseMove with handledEventsToo so ScottPlot's internal
+            // mouse processing cannot prevent OHLCV information from updating.
+            System.Windows.EventManager.RegisterClassHandler(
+                typeof(ChartTabView),
+                System.Windows.UIElement.PreviewMouseMoveEvent,
+                new WpfMouseEventHandler(MouseOhlcvInfoFix_ClassMouseMove),
+                true);
             return true;
         }
 
@@ -24,13 +33,18 @@ namespace TradeIt.Charts
                 chart.AttachMouseOhlcvInfoFix();
         }
 
+        private static void MouseOhlcvInfoFix_ClassMouseMove(object sender, WpfMouseEventArgs e)
+        {
+            if (sender is ChartTabView chart)
+                chart.MouseOhlcvInfoFix_MouseMove(chart.Chart, e);
+        }
+
         private void AttachMouseOhlcvInfoFix()
         {
             if (_mouseOhlcvInfoFixAttached)
                 return;
 
             _mouseOhlcvInfoFixAttached = true;
-            Chart.MouseMove += MouseOhlcvInfoFix_MouseMove;
         }
 
         private void MouseOhlcvInfoFix_MouseMove(object sender, WpfMouseEventArgs e)
