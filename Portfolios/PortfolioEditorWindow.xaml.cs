@@ -193,6 +193,7 @@ namespace TradeIt.Portfolios
                 var portfolio = new Portfolio
                 {
                     Name = name,
+                    HigherTimeframeCapability = GetHigherTimeframeCapability(),
                     DataSource = new DataSource
                     {
                         SourceType = "Folder", Path = folder, Delimiter = GetSelectedDelimiter(), HasHeader = HeaderCheckBox.IsChecked == true,
@@ -216,6 +217,15 @@ namespace TradeIt.Portfolios
                 PortfolioNameTextBox.Focus();
             }
             catch (Exception ex) { System.Windows.MessageBox.Show(ex.ToString(), "خطا", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private HigherTimeframeCapability GetHigherTimeframeCapability()
+        {
+            if (HigherTimeframeCapabilityComboBox.SelectedItem is WpfComboBoxItem item &&
+                Enum.TryParse<HigherTimeframeCapability>(item.Tag?.ToString(), out HigherTimeframeCapability capability))
+                return capability;
+
+            return HigherTimeframeCapability.None;
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e) => DialogResult = false;
