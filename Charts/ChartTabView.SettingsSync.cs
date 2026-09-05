@@ -44,8 +44,6 @@ namespace TradeIt.Charts
                 if (ChartTypeComboBox.SelectedIndex != desiredIndex)
                     ChartTypeComboBox.SelectedIndex = desiredIndex;
 
-                // Rebuild the current series from the new settings and preserve
-                // the user's current zoom/pan limits.
                 if (_bars.Count > 0)
                     DrawChart();
                 else
@@ -60,9 +58,6 @@ namespace TradeIt.Charts
                 CrosshairButton.Content = _crosshairVisible ? "Crosshair روشن" : "Crosshair خاموش";
                 Chart.Refresh();
 
-                // ShowTimeGaps is a chart-layout setting, not merely an axis
-                // formatting setting. Apply it after rebuilding the chart so
-                // the continuous mode can replace the date-based X coordinates.
                 if (_bars.Count > 0 && IsLoaded)
                     QueueTimeGapsApplication();
             }
@@ -121,5 +116,20 @@ namespace TradeIt.Charts
                 "denselydashed" => ScottPlot.LinePattern.DenselyDashed,
                 _ => ScottPlot.LinePattern.Solid
             };
+
+        /// <summary>
+        /// Re-applies the current persisted settings to the already open chart.
+        /// </summary>
+        public void ApplySettingsImmediately()
+        {
+            ApplyStoredChartSettings();
+        }
+
+        public ChartTabView CreateFullScreenClone()
+        {
+            return new ChartTabView(
+                _symbol,
+                new System.Collections.Generic.List<TradeIt.Models.MarketBar>(_bars));
+        }
     }
 }
