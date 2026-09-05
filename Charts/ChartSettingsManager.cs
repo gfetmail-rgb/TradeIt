@@ -1,14 +1,14 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using TradeIt.Services;
 
 namespace TradeIt.Charts
 {
     public static class ChartSettingsManager
     {
         private static readonly object Sync = new();
-        private static readonly string SettingsDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TradeIt");
-        private static readonly string SettingsFile = Path.Combine(SettingsDirectory, "ChartSettings.json");
+        private static readonly string SettingsFile = StoragePaths.ChartSettingsFile;
         private static ChartSettings _current = LoadOrCreateDefaults();
 
         public static event EventHandler? SettingsChanged;
@@ -43,7 +43,7 @@ namespace TradeIt.Charts
 
         private static void PersistCurrent()
         {
-            Directory.CreateDirectory(SettingsDirectory);
+            Directory.CreateDirectory(Path.GetDirectoryName(SettingsFile)!);
             _current.HasUserSavedSettings = true;
             File.WriteAllText(SettingsFile, JsonSerializer.Serialize(_current, new JsonSerializerOptions { WriteIndented = true }));
         }
