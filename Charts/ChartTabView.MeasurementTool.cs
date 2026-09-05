@@ -6,7 +6,6 @@ using System.Windows.Input;
 using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
 using WpfMouseButtonEventHandler = System.Windows.Input.MouseButtonEventHandler;
-using WpfMouseEventHandler = System.Windows.Input.MouseEventHandler;
 
 namespace TradeIt.Charts
 {
@@ -45,20 +44,9 @@ namespace TradeIt.Charts
 
             _measurementEventsAttached = true;
 
-            // The ruler owns mouse interaction while active. handledEventsToo is
-            // required because ScottPlot may consume the routed mouse event first.
-            Chart.AddHandler(
-                UIElement.PreviewMouseLeftButtonDownEvent,
-                new WpfMouseButtonEventHandler(MeasurementTool_ChartMouseDown),
-                true);
-            Chart.AddHandler(
-                UIElement.PreviewMouseMoveEvent,
-                new WpfMouseEventHandler(MeasurementTool_ChartMouseMove),
-                true);
-            Chart.AddHandler(
-                UIElement.PreviewMouseRightButtonDownEvent,
-                new WpfMouseButtonEventHandler(MeasurementTool_ChartRightMouseDown),
-                true);
+            // Left-click and mouse-move are routed by ChartTabView.MeasurementInputRouter.
+            // Keeping a second direct mouse pipeline here caused competing handlers.
+            Chart.PreviewMouseRightButtonDown += MeasurementTool_ChartRightMouseDown;
 
             DrawingSelectButton.Click += MeasurementTool_DeactivateFromOtherTool;
             DrawingTrendLineButton.Click += MeasurementTool_DeactivateFromOtherTool;
@@ -88,10 +76,7 @@ namespace TradeIt.Charts
             _activeDrawingTool = (TechnicalDrawingTool)MeasurementToolValue;
             _textDrawingActive = false;
 
-            // ScottPlot's default LeftClickDragPan must not compete with the
-            // ruler's two-click state machine. The ruler receives WPF mouse events
-            // directly (handledEventsToo=true), so disabling the ScottPlot input
-            // processor does not prevent the ruler from receiving them.
+            // ScottPlot must not process ruler clicks as pan operations.
             Chart.UserInputProcessor.IsEnabled = false;
             Chart.Focusable = true;
             Chart.Focus();
@@ -120,24 +105,6 @@ namespace TradeIt.Charts
                 DeactivateMeasurementTool(false);
         }
 
-        private void MeasurementTool_ChartMouseDown(object sender, WpfMouseButtonEventArgs e)
-        {
-            if ((int)_activeDrawingTool != MeasurementToolValue || e.ChangedButton != MouseButton.Left)
-                return;
-
-            e.Handled = true;
-            MeasurementTool_MouseDown(sender, e);
-        }
-
-        private void MeasurementTool_ChartMouseMove(object sender, WpfMouseEventArgs e)
-        {
-            if ((int)_activeDrawingTool != MeasurementToolValue)
-                return;
-
-            e.Handled = true;
-            MeasurementTool_MouseMove(sender, e);
-        }
-
         private void MeasurementTool_ChartRightMouseDown(object sender, WpfMouseButtonEventArgs e)
         {
             if ((int)_activeDrawingTool != MeasurementToolValue || e.ChangedButton != MouseButton.Right)
@@ -155,26 +122,24 @@ namespace TradeIt.Charts
             if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates point))
                 return;
 
+            point = SnapMeasurementX(point);
+
             if (_measurementStart == null)
             {
-                _measurementStart = SnapMeasurementX(point);
-                _measurementLastPoint = _measurementStart;
+                _measurementStart = point;
+                _measurementLastPoint = point;
                 RemoveMeasurementPreview();
+                RemoveMeasurementLabel();
                 ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط‌کش: نقطه دوم را کلیک کنید";
-                return;
-            }
-
-            if (_measurementLine == null)
-            {
-                _measurementLastPoint = SnapMeasurementX(point);
-                RemoveMeasurementPreview();
-                RenderMeasurementLine();
-                ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط‌کش: اندازه‌گیری انجام شد؛ برای خاموش کردن خط‌کش کلیک کنید";
                 Chart.Refresh();
                 return;
             }
 
-            DeactivateMeasurementTool(true);
+            _measurementLastPoint = point;
+            RemoveMeasurementPreview();
+            RenderMeasurementLine();
+            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط‌کش: اندازه‌گیری انجام شد؛ برای اندازه‌گیری بعدی کلیک کنید";
+            Chart.Refresh();
         }
 
         private void MeasurementTool_MouseMove(object sender, WpfMouseEventArgs e)
