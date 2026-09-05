@@ -28,20 +28,16 @@ namespace TradeIt.Charts
                 FrameworkElement.LoadedEvent,
                 new RoutedEventHandler(MeasurementTool_Loaded));
 
-            // ChartTabView is the parent of the WpfPlot. Registering the ruler
-            // handlers on ChartTabView itself makes them run before the existing
-            // ChartTabView instance PreviewMouse handlers. This gives the ruler
-            // exclusive ownership of left-click and mouse-move while active.
             EventManager.RegisterClassHandler(
                 typeof(ChartTabView),
                 UIElement.PreviewMouseLeftButtonDownEvent,
-                new MouseButtonEventHandler(MeasurementTool_ClassMouseDown),
+                new System.Windows.Input.MouseButtonEventHandler(MeasurementTool_ClassMouseDown),
                 true);
 
             EventManager.RegisterClassHandler(
                 typeof(ChartTabView),
                 UIElement.PreviewMouseMoveEvent,
-                new MouseEventHandler(MeasurementTool_ClassMouseMove),
+                new System.Windows.Input.MouseEventHandler(MeasurementTool_ClassMouseMove),
                 true);
 
             return true;
@@ -81,8 +77,6 @@ namespace TradeIt.Charts
 
             _measurementEventsAttached = true;
 
-            // Left-click and mouse-move are handled by the ChartTabView class
-            // handlers above. Do not attach a second instance input pipeline.
             Chart.PreviewMouseRightButtonDown += MeasurementTool_ChartRightMouseDown;
 
             DrawingSelectButton.Click += MeasurementTool_DeactivateFromOtherTool;
@@ -174,11 +168,6 @@ namespace TradeIt.Charts
             _measurementLastPoint = point;
             RemoveMeasurementPreview();
             RenderMeasurementLine();
-
-            // The second click completes this measurement. The next click starts
-            // a new measurement while keeping the completed line and label.
-            _measurementStart = null;
-            _measurementLastPoint = null;
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط‌کش: اندازه‌گیری انجام شد؛ برای اندازه‌گیری بعدی کلیک کنید";
             Chart.Refresh();
         }
@@ -193,8 +182,6 @@ namespace TradeIt.Charts
             point = SnapMeasurementX(point);
             _measurementLastPoint = point;
 
-            // While measuring, the temporary ruler line is the only mouse-driven
-            // line. Crosshair and axis-drag logic are prevented by the class handler.
             if (_measurementLine == null)
             {
                 RemoveMeasurementPreview();
@@ -261,57 +248,26 @@ namespace TradeIt.Charts
             if (_measurementStart == null || _measurementLastPoint == null)
                 return;
 
-            var a = _measurementStart.Value;
-            var b = _measurementLastPoint.Value;
-            _measurementLine = Chart.Plot.Add.ScatterLine(new[] { a.X, b.X }, new[] { a.Y, b.Y });
+            _measurementLine = Chart.Plot.Add.ScatterLine(
+                new[] { _measurementStart.Value.X, _measurementLastPoint.Value.X },
+                new[] { _measurementStart.Value.Y, _measurementLastPoint.Value.Y });
             _measurementLine.MarkerSize = 0;
-            _measurementLine.LineColor = ScottPlot.Color.FromHtml("#505050");
-            _measurementLine.LineWidth = 1.5f;
-            _measurementLine.LinePattern = ScottPlot.LinePattern.Solid;
-            _measurementLine.IsVisible = _allDrawingsVisible;
-            UpdateMeasurementLabelPreview(a, b);
-        }
-
-        private void RemoveMeasurementPlotOnly()
-        {
-            if (_measurementLine != null) Chart.Plot.Remove(_measurementLine);
-            _measurementLine = null;
-        }
-
-        private void RemoveMeasurementPreview()
-        {
-            if (_measurementPreview != null) Chart.Plot.Remove(_measurementPreview);
-            _measurementPreview = null;
-        }
-
-        private void RemoveMeasurementLabel()
-        {
-            if (_measurementLabel != null) Chart.Plot.Remove(_measurementLabel);
-            _measurementLabel = null;
-        }
-
-        private void DeactivateMeasurementTool(bool refresh)
-        {
-            RemoveMeasurementPreview();
-            RemoveMeasurementPlotOnly();
-            RemoveMeasurementLabel();
-            _measurementStart = null;
-            _measurementLastPoint = null;
-            _activeDrawingTool = TechnicalDrawingTool.Select;
-            Chart.UserInputProcessor.IsEnabled = true;
-            SetMeasurementButtonVisual(false);
-            UpdateTechnicalDrawingButtons();
-            if (refresh)
-            {
-                ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط‌کش خاموش شد";
-                Chart.Refresh();
-            }
+            _measurementLine.LineColor = ScottPlot.Color.FromHtml("#404040");
+            _measurementLine.LineWidth = 2;
+            UpdateMeasurementLabelPreview(_measurementStart.Value, _measurementLastPoint.Value);
         }
 
         private void MeasurementTool_HideAll(object? sender, RoutedEventArgs e)
         {
-            if (_measurementLine != null) _measurementLine.IsVisible = _allDrawingsVisible;
-            if (_measurementLabel != null) _measurementLabel.IsVisible = _allDrawingsVisible;
+            if ((int)_activeDrawingTool == MeasurementToolValue)
+                SetMeasurementDrawingsVisible(false);
+        }
+
+        private void SetMeasurementDrawingsVisible(bool visible)
+        {
+            if (_measurementPreview != null) _measurementPreview.IsVisible = visible;
+            if (_measurementLine != null) _measurementLine.IsVisible = visible;
+            if (_measurementLabel != null) _measurementLabel.IsVisible = visible;
         }
 
         private void MeasurementTool_DeleteAll(object? sender, RoutedEventArgs e)
@@ -321,15 +277,62 @@ namespace TradeIt.Charts
             RemoveMeasurementLabel();
             _measurementStart = null;
             _measurementLastPoint = null;
+            if ((int)_activeDrawingTool == MeasurementToolValue)
+            {
+                _activeDrawingTool = TechnicalDrawingTool.Select;
+                Chart.UserInputProcessor.IsEnabled = true;
+                SetMeasurementButtonVisual(false);
+                UpdateTechnicalDrawingButtons();
+            }
         }
 
-        private void MeasurementTool_RenderStarting(object? sender, ScottPlot.RenderPack e)
+        private void MeasurementTool_RenderStarting(object? sender, EventArgs e)
         {
-            if (_measurementStart == null || _measurementLastPoint == null || _measurementLine == null)
-                return;
+            if (_measurementPreview != null)
+                _measurementPreview.IsVisible = _allDrawingsVisible;
+            if (_measurementLine != null)
+                _measurementLine.IsVisible = _allDrawingsVisible;
+            if (_measurementLabel != null)
+                _measurementLabel.IsVisible = _allDrawingsVisible;
+        }
 
-            if (!Chart.Plot.GetPlottables().Contains(_measurementLine))
-                RenderMeasurementLine();
+        private void DeactivateMeasurementTool(bool removeTemporary)
+        {
+            if (removeTemporary)
+            {
+                RemoveMeasurementPreview();
+                RemoveMeasurementLabel();
+            }
+
+            _measurementStart = null;
+            _measurementLastPoint = null;
+            _activeDrawingTool = TechnicalDrawingTool.Select;
+            Chart.UserInputProcessor.IsEnabled = true;
+            SetMeasurementButtonVisual(false);
+            UpdateTechnicalDrawingButtons();
+            ChartInfoTextBlock.Text = $"{_symbol.Symbol} | {_bars.Count:N0} داده";
+            Chart.Refresh();
+        }
+
+        private void RemoveMeasurementPreview()
+        {
+            if (_measurementPreview == null) return;
+            Chart.Plot.Remove(_measurementPreview);
+            _measurementPreview = null;
+        }
+
+        private void RemoveMeasurementPlotOnly()
+        {
+            if (_measurementLine == null) return;
+            Chart.Plot.Remove(_measurementLine);
+            _measurementLine = null;
+        }
+
+        private void RemoveMeasurementLabel()
+        {
+            if (_measurementLabel == null) return;
+            Chart.Plot.Remove(_measurementLabel);
+            _measurementLabel = null;
         }
     }
 }
