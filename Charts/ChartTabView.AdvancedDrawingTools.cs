@@ -15,7 +15,7 @@ namespace TradeIt.Charts
         private const int AdvancedToolPitchfork = 7;
 
         private sealed class ParallelChannelDrawing { public ScottPlot.Coordinates A { get; set; } public ScottPlot.Coordinates B { get; set; } public ScottPlot.Coordinates C { get; set; } public ScottPlot.Plottables.Scatter? BaseLine { get; set; } public ScottPlot.Plottables.Scatter? ParallelLine { get; set; } }
-        private sealed class RectangleDrawing { public ScottPlot.Coordinates A { get; set; } public ScottPlot.Coordinates B { get; set; } public readonly List<ScottPlot.Plottables.Scatter> Lines = new(); }
+        private sealed class RectangleDrawing { public ScottPlot.Coordinates A { get; set; } public ScottPlot.Coordinates B { get; set; } public readonly List<ScottPlot.IPlottable> Lines = new(); }
         private sealed class PitchforkDrawing { public ScottPlot.Coordinates A { get; set; } public ScottPlot.Coordinates B { get; set; } public ScottPlot.Coordinates C { get; set; } public ScottPlot.Plottables.Scatter? MedianLine { get; set; } public ScottPlot.Plottables.Scatter? UpperLine { get; set; } public ScottPlot.Plottables.Scatter? LowerLine { get; set; } }
 
         private readonly List<ParallelChannelDrawing> _parallelChannels = new();
@@ -85,7 +85,21 @@ namespace TradeIt.Charts
         private ScottPlot.Plottables.Scatter AddParallelLineSegment(ScottPlot.Coordinates a, ScottPlot.Coordinates b, ScottPlot.Coordinates c) { double dx = b.X - a.X, dy = b.Y - a.Y; return AddScatterLine(c.X, c.Y, c.X + dx, c.Y + dy); }
         private ScottPlot.Plottables.Scatter AddRayThroughPoints(ScottPlot.Coordinates start, ScottPlot.Coordinates through) { var limits = Chart.Plot.Axes.GetLimits(); double dx = through.X - start.X, dy = through.Y - start.Y; if (Math.Abs(dx) < 1e-12) return AddScatterLine(start.X, start.Y, start.X, dy >= 0 ? limits.Top : limits.Bottom); double endX = dx >= 0 ? limits.Right : limits.Left; double endY = start.Y + dy / dx * (endX - start.X); return AddScatterLine(start.X, start.Y, endX, endY); }
         private ScottPlot.Plottables.Scatter AddParallelRayThroughPoint(ScottPlot.Coordinates directionStart, ScottPlot.Coordinates directionThrough, ScottPlot.Coordinates lineStart) { var limits = Chart.Plot.Axes.GetLimits(); double dx = directionThrough.X - directionStart.X, dy = directionThrough.Y - directionStart.Y; if (Math.Abs(dx) < 1e-12) return AddScatterLine(lineStart.X, lineStart.Y, lineStart.X, dy >= 0 ? limits.Top : limits.Bottom); double endX = dx >= 0 ? limits.Right : limits.Left; double endY = lineStart.Y + dy / dx * (endX - lineStart.X); return AddScatterLine(lineStart.X, lineStart.Y, endX, endY); }
-        private void AddRectangleToChart(RectangleDrawing d) { double left = Math.Min(d.A.X, d.B.X), right = Math.Max(d.A.X, d.B.X), bottom = Math.Min(d.A.Y, d.B.Y), top = Math.Max(d.A.Y, d.B.Y); d.Lines.Add(AddScatterLine(left, bottom, right, bottom)); d.Lines.Add(AddScatterLine(right, bottom, right, top)); d.Lines.Add(AddScatterLine(right, top, left, top)); d.Lines.Add(AddScatterLine(left, top, left, bottom)); }
+        private void AddRectangleToChart(RectangleDrawing d)
+        {
+            double left = Math.Min(d.A.X, d.B.X), right = Math.Max(d.A.X, d.B.X), bottom = Math.Min(d.A.Y, d.B.Y), top = Math.Max(d.A.Y, d.B.Y);
+            var style = GetDrawingToolStyle("Rectangle");
+            var fill = Chart.Plot.Add.Rectangle(left, right, bottom, top);
+            fill.FillColor = ScottPlot.Color.FromHtml(style.Color);
+            fill.LineColor = ScottPlot.Color.FromHtml(style.Color);
+            fill.LineWidth = (float)Math.Max(0.5, style.LineWidth);
+            fill.LinePattern = GetDrawingLinePattern(style.LineStyle);
+            d.Lines.Add(fill);
+            d.Lines.Add(AddScatterLine(left, bottom, right, bottom));
+            d.Lines.Add(AddScatterLine(right, bottom, right, top));
+            d.Lines.Add(AddScatterLine(right, top, left, top));
+            d.Lines.Add(AddScatterLine(left, top, left, bottom));
+        }
         private void AddParallelChannelToChart(ParallelChannelDrawing d) { d.BaseLine = AddScatterLine(d.A.X, d.A.Y, d.B.X, d.B.Y); d.ParallelLine = AddParallelLineSegment(d.A, d.B, d.C); }
         private static ScottPlot.Coordinates Midpoint(ScottPlot.Coordinates a, ScottPlot.Coordinates b) => new((a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0);
         private void AddPitchforkToChart(PitchforkDrawing d) { var target = Midpoint(d.B, d.C); d.MedianLine = AddRayThroughPoints(d.A, target); d.UpperLine = AddParallelRayThroughPoint(d.A, target, d.B); d.LowerLine = AddParallelRayThroughPoint(d.A, target, d.C); }
