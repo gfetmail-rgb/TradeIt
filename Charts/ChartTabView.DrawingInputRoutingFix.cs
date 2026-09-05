@@ -54,7 +54,7 @@ namespace TradeIt.Charts
                 }
             }
 
-            if (e.StagingItem.Input is MouseEventArgs mouseMove &&
+            if (e.StagingItem.Input is System.Windows.Input.MouseEventArgs mouseMove &&
                 SourceBelongsToThisChart(mouseMove.Source as DependencyObject) &&
                 !mouseMove.Handled &&
                 !_textDrawingActive)
