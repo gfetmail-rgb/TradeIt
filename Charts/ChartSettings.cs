@@ -96,11 +96,19 @@ namespace TradeIt.Charts
                 HasUserSavedSettings = HasUserSavedSettings, DrawingToolStyles = new Dictionary<string, DrawingToolStyle>()
             };
 
-            foreach (var pair in DrawingToolStyles)
-                clone.DrawingToolStyles[pair.Key] = pair.Value.Clone();
+            Dictionary<string, DrawingToolStyle> savedStyles = DrawingToolStyles ?? new Dictionary<string, DrawingToolStyle>();
+            foreach (var pair in savedStyles)
+            {
+                if (pair.Value != null)
+                    clone.DrawingToolStyles[pair.Key] = pair.Value.Clone();
+            }
+
             foreach (var pair in CreateDefaultDrawingToolStyles())
+            {
                 if (!clone.DrawingToolStyles.ContainsKey(pair.Key))
                     clone.DrawingToolStyles[pair.Key] = pair.Value;
+            }
+
             return clone;
         }
     }
