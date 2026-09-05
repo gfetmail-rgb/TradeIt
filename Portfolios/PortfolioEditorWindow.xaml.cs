@@ -48,6 +48,14 @@ namespace TradeIt.Portfolios
 
         private void LoadPreviewButton_Click(object sender, RoutedEventArgs e) => LoadPreviewFromCurrentFolder();
 
+        private void FileExtensionComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!IsLoaded || PathTextBox == null || string.IsNullOrWhiteSpace(PathTextBox.Text)) return;
+            LoadPreviewFromCurrentFolder();
+        }
+
+        private string GetSelectedFileExtension() => GetSelectedTag(FileExtensionComboBox, "csv");
+
         private void LoadPreviewFromCurrentFolder()
         {
             try
@@ -56,8 +64,9 @@ namespace TradeIt.Portfolios
                 if (string.IsNullOrWhiteSpace(folder)) { System.Windows.MessageBox.Show("ابتدا مسیر پوشه داده را انتخاب کنید."); return; }
                 if (!Directory.Exists(folder)) { System.Windows.MessageBox.Show("مسیر انتخاب‌شده یک پوشه معتبر نیست."); return; }
 
+                string selectedExtension = GetSelectedFileExtension();
                 string[] files = Directory.GetFiles(folder, "*.*", SearchOption.TopDirectoryOnly)
-                    .Where(IsDataFile)
+                    .Where(path => IsDataFile(path, selectedExtension))
                     .OrderBy(x => Path.GetFileName(x), StringComparer.CurrentCultureIgnoreCase)
                     .ToArray();
                 if (files.Length == 0)
@@ -67,11 +76,11 @@ namespace TradeIt.Portfolios
                     PreviewDataGrid.ItemsSource = null;
                     _symbolSelectionItems.Clear();
                     UpdateSelectedSymbolsCount();
-                    System.Windows.MessageBox.Show("در این پوشه فایل CSV یا TXT پیدا نشد.");
+                    string extensionText = selectedExtension == "mixed" ? "CSV، TXT یا PRN" : selectedExtension.ToUpperInvariant();
+                    System.Windows.MessageBox.Show($"در این پوشه فایل {extensionText} پیدا نشد.");
                     return;
                 }
 
-                // ممکن است اولین فایل از نظر نام خالی باشد. برای Mapping باید اولین فایل دارای محتوا انتخاب شود.
                 string? sampleFile = files.FirstOrDefault(file =>
                 {
                     try
@@ -91,7 +100,8 @@ namespace TradeIt.Portfolios
                     PreviewDataGrid.ItemsSource = null;
                     _symbolSelectionItems.Clear();
                     UpdateSelectedSymbolsCount();
-                    System.Windows.MessageBox.Show("فایل‌های CSV/TXT پیدا شدند، اما همه آن‌ها خالی هستند.");
+                    string extensionText = selectedExtension == "mixed" ? "CSV/TXT/PRN" : selectedExtension.ToUpperInvariant();
+                    System.Windows.MessageBox.Show($"فایل‌های {extensionText} پیدا شدند، اما همه آن‌ها خالی هستند.");
                     return;
                 }
 
@@ -106,10 +116,17 @@ namespace TradeIt.Portfolios
             }
         }
 
-        private static bool IsDataFile(string path)
+        private static bool IsDataFile(string path, string selectedExtension)
         {
-            string extension = Path.GetExtension(path);
-            return string.Equals(extension, ".csv", StringComparison.OrdinalIgnoreCase) || string.Equals(extension, ".txt", StringComparison.OrdinalIgnoreCase);
+            string extension = Path.GetExtension(path).TrimStart('.');
+            if (selectedExtension == "mixed")
+            {
+                return string.Equals(extension, "csv", StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(extension, "txt", StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(extension, "prn", StringComparison.OrdinalIgnoreCase);
+            }
+
+            return string.Equals(extension, selectedExtension, StringComparison.OrdinalIgnoreCase);
         }
 
         private void LoadMappingFromFile(string filePath)
@@ -220,7 +237,7 @@ namespace TradeIt.Portfolios
                     HigherTimeframeCapability = GetHigherTimeframeCapability(),
                     DataSource = new DataSource
                     {
-                        SourceType = "Folder", Path = folder, Delimiter = GetSelectedDelimiter(), HasHeader = HeaderCheckBox.IsChecked == true,
+                        SourceType = "Folder", Path = folder, FileExtension = GetSelectedFileExtension(), Delimiter = GetSelectedDelimiter(), HasHeader = HeaderCheckBox.IsChecked == true,
                         SymbolSource = symbolFromFile ? "FileContent" : "FileName", DataType = "TseDaily", HasDateTime = hasDateTime,
                         Calendar = GetSelectedTag(CalendarComboBox, "Persian"), DateFormat = GetSelectedTag(DateFormatComboBox, "yyyyMMdd"), TimeFormat = GetSelectedTag(TimeFormatComboBox, "HHmmss"),
                         SymbolColumn = symbolColumn, DateColumn = dateColumn, TimeColumn = timeColumn, OpenColumn = openColumn, HighColumn = highColumn, LowColumn = lowColumn, CloseColumn = closeColumn,
@@ -230,7 +247,6 @@ namespace TradeIt.Portfolios
                     UseExplicitSymbolList = true, Symbols = selected
                 };
 
-                // ذخیره در همان لحظه؛ فرم باز می‌ماند تا کاربر بتواند سبد دیگری بسازد.
                 new PortfolioManager().Save(portfolio);
                 ResultPortfolio = portfolio;
 
