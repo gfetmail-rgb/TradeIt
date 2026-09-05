@@ -11,6 +11,7 @@ namespace TradeIt.Charts
     public partial class ChartTabView
     {
         private const double ContinuousChartBaseDate = 2000.0;
+        private const double InitialRightMarginFraction = 0.30;
         private bool _continuousTimeAxisApplied;
         private bool _timeGapsRefreshPending;
         private bool _timeGapsEventsAttached;
@@ -128,9 +129,15 @@ namespace TradeIt.Charts
                 ? (maxPrice - minPrice) * 0.05
                 : Math.Max(Math.Abs(maxPrice) * 0.01, 1);
 
+            // Keep the latest candle fixed toward the left side of the 70%
+            // data region and reserve exactly 30% of the plot width as empty
+            // space on the right.
+            double candleRange = Math.Max(1.0, lastX - firstX);
+            double rightMargin = candleRange * InitialRightMarginFraction / (1.0 - InitialRightMarginFraction);
+
             Chart.Plot.Axes.SetLimits(
                 firstX - 0.5,
-                lastX + 0.5,
+                lastX + 0.5 + rightMargin,
                 double.IsFinite(minPrice) ? minPrice - padding : current.Bottom,
                 double.IsFinite(maxPrice) ? maxPrice + padding : current.Top);
 
