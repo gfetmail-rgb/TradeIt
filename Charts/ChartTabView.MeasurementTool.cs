@@ -19,57 +19,6 @@ namespace TradeIt.Charts
         private ScottPlot.Plottables.Scatter? _measurementLine;
         private ScottPlot.Plottables.Text? _measurementLabel;
 
-        private static readonly bool _measurementToolRegistered = RegisterMeasurementToolHandling();
-
-        private static bool RegisterMeasurementToolHandling()
-        {
-            EventManager.RegisterClassHandler(
-                typeof(ChartTabView),
-                FrameworkElement.LoadedEvent,
-                new RoutedEventHandler(MeasurementTool_Loaded));
-
-            EventManager.RegisterClassHandler(
-                typeof(ChartTabView),
-                UIElement.PreviewMouseLeftButtonDownEvent,
-                new System.Windows.Input.MouseButtonEventHandler(MeasurementTool_ClassMouseDown),
-                true);
-
-            EventManager.RegisterClassHandler(
-                typeof(ChartTabView),
-                UIElement.PreviewMouseMoveEvent,
-                new System.Windows.Input.MouseEventHandler(MeasurementTool_ClassMouseMove),
-                true);
-
-            return true;
-        }
-
-        private static void MeasurementTool_Loaded(object sender, RoutedEventArgs e)
-        {
-            if (sender is ChartTabView chart)
-                chart.AttachMeasurementToolHandling();
-        }
-
-        private static void MeasurementTool_ClassMouseDown(object sender, WpfMouseButtonEventArgs e)
-        {
-            if (sender is not ChartTabView chart ||
-                (int)chart._activeDrawingTool != MeasurementToolValue ||
-                e.ChangedButton != MouseButton.Left)
-                return;
-
-            chart.MeasurementTool_MouseDown(chart.Chart, e);
-            e.Handled = true;
-        }
-
-        private static void MeasurementTool_ClassMouseMove(object sender, WpfMouseEventArgs e)
-        {
-            if (sender is not ChartTabView chart ||
-                (int)chart._activeDrawingTool != MeasurementToolValue)
-                return;
-
-            chart.MeasurementTool_MouseMove(chart.Chart, e);
-            e.Handled = true;
-        }
-
         private void AttachMeasurementToolHandling()
         {
             if (_measurementEventsAttached)
@@ -77,6 +26,12 @@ namespace TradeIt.Charts
 
             _measurementEventsAttached = true;
 
+            // These handlers are attached directly to the WpfPlot after the
+            // existing chart input handlers. When the ruler is active, the
+            // existing technical-drawing handlers simply return for tool 11,
+            // so the ruler handlers receive the click/move normally.
+            Chart.PreviewMouseLeftButtonDown += MeasurementTool_MouseDown;
+            Chart.PreviewMouseMove += MeasurementTool_MouseMove;
             Chart.PreviewMouseRightButtonDown += MeasurementTool_ChartRightMouseDown;
 
             DrawingSelectButton.Click += MeasurementTool_DeactivateFromOtherTool;
@@ -162,6 +117,7 @@ namespace TradeIt.Charts
                 RemoveMeasurementLabel();
                 ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط‌کش: نقطه دوم را کلیک کنید";
                 Chart.Refresh();
+                e.Handled = true;
                 return;
             }
 
@@ -170,6 +126,7 @@ namespace TradeIt.Charts
             RenderMeasurementLine();
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط‌کش: اندازه‌گیری انجام شد؛ برای اندازه‌گیری بعدی کلیک کنید";
             Chart.Refresh();
+            e.Handled = true;
         }
 
         private void MeasurementTool_MouseMove(object sender, WpfMouseEventArgs e)
@@ -182,19 +139,16 @@ namespace TradeIt.Charts
             point = SnapMeasurementX(point);
             _measurementLastPoint = point;
 
-            if (_measurementLine == null)
-            {
-                RemoveMeasurementPreview();
-                _measurementPreview = Chart.Plot.Add.ScatterLine(
-                    new[] { _measurementStart.Value.X, point.X },
-                    new[] { _measurementStart.Value.Y, point.Y });
-                _measurementPreview.MarkerSize = 0;
-                _measurementPreview.LineColor = ScottPlot.Color.FromHtml("#666666");
-                _measurementPreview.LineWidth = 1;
-                _measurementPreview.LinePattern = ScottPlot.LinePattern.Dotted;
-                UpdateMeasurementLabelPreview(_measurementStart.Value, point);
-                Chart.Refresh();
-            }
+            RemoveMeasurementPreview();
+            _measurementPreview = Chart.Plot.Add.ScatterLine(
+                new[] { _measurementStart.Value.X, point.X },
+                new[] { _measurementStart.Value.Y, point.Y });
+            _measurementPreview.MarkerSize = 0;
+            _measurementPreview.LineColor = ScottPlot.Color.FromHtml("#666666");
+            _measurementPreview.LineWidth = 1;
+            _measurementPreview.LinePattern = ScottPlot.LinePattern.Dotted;
+            UpdateMeasurementLabelPreview(_measurementStart.Value, point);
+            Chart.Refresh();
         }
 
         private ScottPlot.Coordinates SnapMeasurementX(ScottPlot.Coordinates point)
