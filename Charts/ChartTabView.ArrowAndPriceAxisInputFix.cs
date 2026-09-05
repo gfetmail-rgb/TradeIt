@@ -31,10 +31,6 @@ namespace TradeIt.Charts
 
             _arrowAndPriceAxisInputFixAttached = true;
 
-            // ChartTabView's common PreviewMouseLeftButtonDown handler can mark
-            // the event handled before the arrow handler (which is attached on
-            // Loaded) receives it. handledEventsToo guarantees the arrow tool
-            // gets the click and can register its first point.
             Chart.AddHandler(
                 UIElement.PreviewMouseLeftButtonDownEvent,
                 new MouseButtonEventHandler(ArrowAndPriceAxisInputFix_MouseDown),
@@ -52,13 +48,9 @@ namespace TradeIt.Charts
                 return;
             }
 
-            // Double-clicking either price axis must fit the visible candles
-            // vertically without changing the current X limits. This also
-            // handles the continuous-time axis (2000 + candle index), where
-            // the original AutoFitVisiblePriceRange() used OADate coordinates.
             if (e.ClickCount == 2)
             {
-                Point p = e.GetPosition(Chart);
+                System.Windows.Point p = e.GetPosition(Chart);
                 if (IsPriceAxisPoint(p.X, p.Y))
                 {
                     AutoFitVisiblePriceRangeFixed();
