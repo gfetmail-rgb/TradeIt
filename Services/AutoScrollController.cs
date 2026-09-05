@@ -1,0 +1,82 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace TradeIt.Services
+{
+    /// <summary>
+    /// Owns Auto Scroll timing and sequencing. UI code supplies the asynchronous
+    /// action that renders the current item.
+    /// </summary>
+    internal sealed class AutoScrollController : IDisposable
+    {
+        private readonly SemaphoreSlim _gate = new(1, 1);
+        private Timer? _timer;
+        private Func<Task>? _tickAction;
+        private int _index;
+        private int _count;
+        private bool _running;
+
+        public bool IsRunning => _running;
+        public int CurrentIndex => _index;
+
+        public bool Start(int count, int initialIndex, int intervalMilliseconds, Func<Task> tickAction)
+        {
+            if (count <= 0 || intervalMilliseconds <= 0 || tickAction == null)
+                return false;
+
+            Stop();
+            _count = count;
+            _index = Math.Clamp(initialIndex, 0, count - 1);
+            _tickAction = tickAction;
+            _running = true;
+            _timer = new Timer(OnTimer, null, intervalMilliseconds, intervalMilliseconds);
+            return true;
+        }
+
+        public int MoveNext()
+        {
+            if (_count <= 0) return -1;
+            _index++;
+            if (_index >= _count) _index = 0;
+            return _index;
+        }
+
+        public void Stop()
+        {
+            _running = false;
+            _timer?.Dispose();
+            _timer = null;
+            _tickAction = null;
+            _count = 0;
+            _index = -1;
+        }
+
+        private async void OnTimer(object? state)
+        {
+            if (!_running || _tickAction == null || !await _gate.WaitAsync(0))
+                return;
+
+            try
+            {
+                if (!_running || _tickAction == null) return;
+                MoveNext();
+                await _tickAction();
+            }
+            catch
+            {
+                // The UI operation owns user-facing error reporting.
+            }
+            finally
+            {
+                _gate.Release();
+            }
+        }
+
+        public void Dispose()
+        {
+            Stop();
+            _gate.Dispose();
+        }
+    }
+}
