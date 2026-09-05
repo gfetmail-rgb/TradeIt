@@ -34,7 +34,7 @@ namespace TradeIt.Charts
         {
             if (e.StagingItem.Input is MouseButtonEventArgs mouseButton &&
                 mouseButton.ChangedButton == MouseButton.Left &&
-                SourceBelongsToThisChart(mouseButton.Source as DependencyObject) &&
+                SourceBelongsToThisChart(mouseButton.OriginalSource as DependencyObject) &&
                 !mouseButton.Handled &&
                 !_textDrawingActive)
             {
@@ -55,7 +55,7 @@ namespace TradeIt.Charts
             }
 
             if (e.StagingItem.Input is System.Windows.Input.MouseEventArgs mouseMove &&
-                SourceBelongsToThisChart(mouseMove.Source as DependencyObject) &&
+                SourceBelongsToThisChart(mouseMove.OriginalSource as DependencyObject) &&
                 !mouseMove.Handled &&
                 !_textDrawingActive)
             {
