@@ -33,11 +33,27 @@ namespace TradeIt.Charts
 
         private void AttachMeasurementToolHandling()
         {
-            if (_measurementEventsAttached) return;
+            if (_measurementEventsAttached)
+                return;
+
             _measurementEventsAttached = true;
 
-            Chart.PreviewMouseLeftButtonDown += MeasurementTool_MouseDown;
-            Chart.PreviewMouseMove += MeasurementTool_MouseMove;
+            // Use AddHandler(..., handledEventsToo: true). The main chart input
+            // pipeline and the other drawing tools also listen to these events and
+            // can mark them handled. The ruler must still receive the event.
+            Chart.AddHandler(
+                UIElement.PreviewMouseLeftButtonDownEvent,
+                new MouseButtonEventHandler(MeasurementTool_MouseDown),
+                true);
+            Chart.AddHandler(
+                UIElement.PreviewMouseMoveEvent,
+                new MouseEventHandler(MeasurementTool_MouseMove),
+                true);
+            Chart.AddHandler(
+                UIElement.PreviewMouseRightButtonDownEvent,
+                new MouseButtonEventHandler(MeasurementTool_RightMouseDown),
+                true);
+
             DrawingSelectButton.Click += MeasurementTool_DeactivateFromOtherTool;
             DrawingTrendLineButton.Click += MeasurementTool_DeactivateFromOtherTool;
             DrawingArrowButton.Click += MeasurementTool_DeactivateFromOtherTool;
@@ -62,12 +78,6 @@ namespace TradeIt.Charts
             RemoveMeasurementLabel();
             _measurementStart = null;
             _measurementLastPoint = null;
-
-            // ChartTabView.xaml.cs has a general PreviewMouseLeftButtonDown handler.
-            // When a drawing tool is active that handler routes the click to the
-            // generic drawing engine before the measurement handler can consume it.
-            // Temporarily detach that general mouse-down handler while the ruler is active.
-            Chart.PreviewMouseLeftButtonDown -= Chart_PreviewMouseLeftButtonDown;
 
             _activeDrawingTool = (TechnicalDrawingTool)MeasurementToolValue;
             _textDrawingActive = false;
@@ -128,12 +138,11 @@ namespace TradeIt.Charts
                 return;
             }
 
-            // Third click: switch the tool off while keeping the completed result visible.
             DeactivateMeasurementTool(true);
             e.Handled = true;
         }
 
-        private void MeasurementTool_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        private void MeasurementTool_MouseMove(object sender, MouseEventArgs e)
         {
             if ((int)_activeDrawingTool != MeasurementToolValue || _measurementStart == null)
                 return;
@@ -157,6 +166,17 @@ namespace TradeIt.Charts
                 UpdateMeasurementLabelPreview(_measurementStart.Value, point);
                 Chart.Refresh();
             }
+        }
+
+        private void MeasurementTool_RightMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if ((int)_activeDrawingTool != MeasurementToolValue || e.ChangedButton != MouseButton.Right)
+                return;
+
+            // Right-click always releases the ruler. A completed measurement is
+            // kept on the chart; an unfinished preview is discarded.
+            DeactivateMeasurementTool(true);
+            e.Handled = true;
         }
 
         private ScottPlot.Coordinates SnapMeasurementX(ScottPlot.Coordinates point)
@@ -248,10 +268,6 @@ namespace TradeIt.Charts
         private void DeactivateMeasurementTool(bool refresh)
         {
             RemoveMeasurementPreview();
-
-            // Restore the normal chart mouse-down pipeline after the ruler is off.
-            Chart.PreviewMouseLeftButtonDown -= Chart_PreviewMouseLeftButtonDown;
-            Chart.PreviewMouseLeftButtonDown += Chart_PreviewMouseLeftButtonDown;
 
             if (_measurementLine == null)
             {
