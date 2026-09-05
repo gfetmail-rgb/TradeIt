@@ -1,4 +1,3 @@
-using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -52,7 +51,7 @@ namespace TradeIt
                 if (current is TextBlock text && text.Tag?.ToString() == "SymbolName")
                     return text;
 
-                current = current is Visual visual
+                current = current is System.Windows.Media.Visual visual
                     ? System.Windows.Media.VisualTreeHelper.GetParent(visual)
                     : current is FrameworkContentElement content
                         ? content.Parent
