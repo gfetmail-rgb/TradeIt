@@ -15,11 +15,7 @@ namespace TradeIt.Services
 
         public SymbolIdentityStore()
         {
-            string folder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "TradeIt");
-            Directory.CreateDirectory(folder);
-            _filePath = Path.Combine(folder, "symbol-identities.json");
+            _filePath = StoragePaths.SymbolIdentitiesFile;
             Load();
         }
 
