@@ -8,6 +8,9 @@
         // مسیر فایل یا پوشه
         public string Path { get; set; } = "";
 
+        // نوع پسوند فایل داده: csv / txt / prn / mixed
+        public string FileExtension { get; set; } = "csv";
+
         // جداکننده
         public string Delimiter { get; set; } = ",";
 
