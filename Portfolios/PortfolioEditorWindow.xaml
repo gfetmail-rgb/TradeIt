@@ -64,7 +64,8 @@
                     <TextBlock Grid.Column="1" Text="فرمت تاریخ:" VerticalAlignment="Center"/>
                     <ComboBox x:Name="DateFormatComboBox" Grid.Column="2" SelectedIndex="0">
                         <ComboBoxItem Content="YYYYMMDD" Tag="yyyyMMdd"/><ComboBoxItem Content="YYYY-MM-DD" Tag="yyyy-MM-dd"/>
-                        <ComboBoxItem Content="YYYY/MM/DD" Tag="yyyy/MM/dd"/><ComboBoxItem Content="DD/MM/YYYY" Tag="dd/MM/yyyy"/>
+                        <ComboBoxItem Content="YYYY/MM/DD" Tag="yyyy/MM/dd"/><ComboBoxItem Content="YYYY.MM.DD" Tag="yyyy.MM.dd"/>
+                        <ComboBoxItem Content="DD/MM/YYYY" Tag="dd/MM/yyyy"/>
                     </ComboBox>
                     <TextBlock Grid.Column="3" Text="فرمت زمان:" VerticalAlignment="Center"/>
                     <ComboBox x:Name="TimeFormatComboBox" Grid.Column="4" SelectedIndex="0">
