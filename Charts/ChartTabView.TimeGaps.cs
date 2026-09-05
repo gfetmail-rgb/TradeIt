@@ -154,9 +154,7 @@ namespace TradeIt.Charts
             {
                 MarketBar bar = _bars[i];
                 DateTime time = DateTime.FromOADate(ContinuousX(i));
-                candles.Add(new ScottPlot.OHLC(
-                    bar.Open, bar.High, bar.Low, bar.Close,
-                    time, TimeSpan.FromDays(1)));
+                candles.Add(new ScottPlot.OHLC(bar.Open, bar.High, bar.Low, bar.Close, time, TimeSpan.FromDays(1)));
             }
 
             var plot = Chart.Plot.Add.Candlestick(candles);
@@ -193,9 +191,7 @@ namespace TradeIt.Charts
             {
                 MarketBar bar = _bars[i];
                 DateTime time = DateTime.FromOADate(ContinuousX(i));
-                bars.Add(new ScottPlot.OHLC(
-                    bar.Open, bar.High, bar.Low, bar.Close,
-                    time, TimeSpan.FromDays(1)));
+                bars.Add(new ScottPlot.OHLC(bar.Open, bar.High, bar.Low, bar.Close, time, TimeSpan.FromDays(1)));
             }
 
             if (bars.Count == 0)
@@ -215,16 +211,10 @@ namespace TradeIt.Charts
 
             for (int n = 0; n < tickCount; n++)
             {
-                int index = tickCount == 1
-                    ? 0
-                    : (int)Math.Round(n * (_bars.Count - 1.0) / (tickCount - 1.0));
+                int index = tickCount == 1 ? 0 : (int)Math.Round(n * (_bars.Count - 1.0) / (tickCount - 1.0));
                 positions[n] = ContinuousX(index);
-                string label = HasSourceDate(index)
-                    ? GetSourceDateLabel(index)
-                    : $"کندل {index + 1}";
-                labels[n] = string.IsNullOrWhiteSpace(label)
-                    ? $"کندل {index + 1}"
-                    : label;
+                string label = HasSourceDate(index) ? GetSourceDateLabel(index) : $"کندل {index + 1}";
+                labels[n] = string.IsNullOrWhiteSpace(label) ? $"کندل {index + 1}" : label;
             }
 
             axis.TickGenerator = new ScottPlot.TickGenerators.NumericManual(positions, labels);
