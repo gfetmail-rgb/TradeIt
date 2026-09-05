@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -151,6 +149,7 @@ namespace TradeIt.Charts
         // Drawing selection behavior
         private bool _drawingSelectionBehaviorFixAttached;
         private bool _selectionMouseMoved;
+
         private static readonly bool _drawingSelectionBehaviorFixRegistered = RegisterDrawingSelectionBehaviorFix();
 
         private static bool RegisterDrawingSelectionBehaviorFix()
@@ -335,49 +334,15 @@ namespace TradeIt.Charts
         private bool IsSelectedDrawingAtPoint(ScottPlot.Coordinates point)
         {
             if (_selectedDrawing == null) return false;
+
             var candidates = GetDrawingCandidates(point);
             foreach (var candidate in candidates)
             {
                 if (candidate.Kind == _selectedDrawingKind && ReferenceEquals(candidate.Drawing, _selectedDrawing))
                     return true;
             }
+
             return false;
-        }
-
-        // Drawing handle and selection visuals
-        private enum DrawingHandleKind
-        {
-            TrendLineA, TrendLineB,
-            HorizontalLine,
-            VerticalLine,
-            RayA, RayB,
-            ParallelA, ParallelB, ParallelC,
-            RectangleTopLeft, RectangleTopRight, RectangleBottomRight, RectangleBottomLeft,
-            PitchforkA, PitchforkB, PitchforkC,
-            FibonacciA, FibonacciB, FibonacciC
-        }
-
-        private sealed class DrawingHandleInfo
-        {
-            public DrawingHandleKind Kind { get; init; }
-            public ScottPlot.Coordinates Point { get; init; }
-        }
-
-        private readonly List<ScottPlot.Plottables.Marker> _drawingSelectionHandles = new();
-        private readonly List<ScottPlot.IPlottable> _drawingSelectionOverlays = new();
-        private DrawingHandleKind? _activeDrawingHandle;
-
-        private const string SelectedDrawingColor = "#00BFFF";
-        private const float SelectedDrawingWidth = 3.0f;
-        private const float DrawingHandleSize = 12.0f;
-
-        private void ClearDrawingSelectionVisuals()
-        {
-            foreach (var marker in _drawingSelectionHandles) Chart.Plot.Remove(marker);
-            _drawingSelectionHandles.Clear();
-            foreach (var overlay in _drawingSelectionOverlays) Chart.Plot.Remove(overlay);
-            _drawingSelectionOverlays.Clear();
-            _activeDrawingHandle = null;
         }
 
         // Drawing initialization
