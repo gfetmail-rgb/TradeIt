@@ -71,7 +71,31 @@ namespace TradeIt.Portfolios
                     return;
                 }
 
-                LoadMappingFromFile(files[0]);
+                // ممکن است اولین فایل از نظر نام خالی باشد. برای Mapping باید اولین فایل دارای محتوا انتخاب شود.
+                string? sampleFile = files.FirstOrDefault(file =>
+                {
+                    try
+                    {
+                        return File.ReadLines(file).Any(line => !string.IsNullOrWhiteSpace(line));
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+                });
+
+                if (sampleFile == null)
+                {
+                    _mappingLoaded = false;
+                    _previewTable = null;
+                    PreviewDataGrid.ItemsSource = null;
+                    _symbolSelectionItems.Clear();
+                    UpdateSelectedSymbolsCount();
+                    System.Windows.MessageBox.Show("فایل‌های CSV/TXT پیدا شدند، اما همه آن‌ها خالی هستند.");
+                    return;
+                }
+
+                LoadMappingFromFile(sampleFile);
                 PopulateSymbolSelectionList(files);
             }
             catch (Exception ex)
