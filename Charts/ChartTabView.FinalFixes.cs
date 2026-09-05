@@ -61,8 +61,6 @@ namespace TradeIt.Charts
                 if (!_finalChartMouseMoveAttached)
                 {
                     _finalChartMouseMoveAttached = true;
-                    // Run after ScottPlot and the PreviewMouseMove handlers so this
-                    // is the final OHLCV/date/time value written for the current bar.
                     Chart.AddHandler(
                         UIElement.MouseMoveEvent,
                         new System.Windows.Input.MouseEventHandler(FinalChartFixes_MouseMove),
@@ -142,6 +140,8 @@ namespace TradeIt.Charts
                 maxPrice = Math.Max(maxPrice, _bars[i].High);
             }
 
+            double rightMargin = Math.Max(1.0, lastX - firstX) * InitialRightMarginFraction / (1.0 - InitialRightMarginFraction);
+
             if (double.IsFinite(minPrice) && double.IsFinite(maxPrice))
             {
                 double range = maxPrice - minPrice;
@@ -151,7 +151,7 @@ namespace TradeIt.Charts
 
                 Chart.Plot.Axes.SetLimits(
                     firstX - xPadding,
-                    lastX + xPadding,
+                    lastX + xPadding + rightMargin,
                     minPrice - padding,
                     maxPrice + padding);
             }
@@ -160,7 +160,7 @@ namespace TradeIt.Charts
                 var current = Chart.Plot.Axes.GetLimits();
                 Chart.Plot.Axes.SetLimits(
                     firstX - xPadding,
-                    lastX + xPadding,
+                    lastX + xPadding + rightMargin,
                     current.Bottom,
                     current.Top);
             }
@@ -177,11 +177,7 @@ namespace TradeIt.Charts
                     return;
 
                 if (_continuousTimeAxisApplied)
-                {
-                    // TimeGaps.cs owns the continuous-axis coordinate mapping.
-                    // Its PreviewMouseMove has already updated the correct bar.
                     return;
-                }
 
                 if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates))
                     return;
