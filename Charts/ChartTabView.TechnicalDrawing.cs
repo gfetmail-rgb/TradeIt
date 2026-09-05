@@ -129,17 +129,6 @@ namespace TradeIt.Charts
         private void TechnicalDrawing_RightMouseDown(object sender, WpfMouseButtonEventArgs e)
         {
             if (e.ChangedButton != MouseButton.Right) return;
-
-            // Measurement uses value 11 (it is deliberately not part of the
-            // TechnicalDrawingTool enum). Handle it here before the generic
-            // drawing cancel path so its button visual is also reset.
-            if ((int)_activeDrawingTool == 11)
-            {
-                DeactivateMeasurementTool(true);
-                e.Handled = true;
-                return;
-            }
-
             if (_activeDrawingTool != TechnicalDrawingTool.Select || _textDrawingActive)
             {
                 CancelDrawingMode();
@@ -157,12 +146,6 @@ namespace TradeIt.Charts
         private void TechnicalDrawing_KeyDown(object sender, WpfKeyEventArgs e)
         {
             if (e.Key != Key.Escape) return;
-            if ((int)_activeDrawingTool == 11)
-            {
-                DeactivateMeasurementTool(true);
-                e.Handled = true;
-                return;
-            }
             if (_activeDrawingTool == TechnicalDrawingTool.Select && !_textDrawingActive) return;
             CancelDrawingMode(); e.Handled = true;
         }
@@ -171,7 +154,6 @@ namespace TradeIt.Charts
         {
             RemoveTrendLinePreview(); _trendLineStart = null; _textDrawingActive = false; Chart.ReleaseMouseCapture();
             _activeDrawingTool = TechnicalDrawingTool.Select; Chart.UserInputProcessor.IsEnabled = true; _suppressContextMenuAfterCancel = false;
-            SetMeasurementButtonVisual(false);
             UpdateTechnicalDrawingButtons(); ChartInfoTextBlock.Text = $"{_symbol.Symbol} | رسم ابزار لغو شد"; Chart.Refresh();
         }
 
