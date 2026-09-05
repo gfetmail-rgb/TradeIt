@@ -286,7 +286,7 @@ namespace TradeIt.Charts
             }
         }
 
-        private void MeasurementTool_RenderStarting(object? sender, EventArgs e)
+        private void MeasurementTool_RenderStarting(object? sender, ScottPlot.Rendering.RenderPack e)
         {
             if (_measurementPreview != null)
                 _measurementPreview.IsVisible = _allDrawingsVisible;
