@@ -178,6 +178,7 @@ namespace TradeIt.Charts
         {
             if (!TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
             point = SnapUnifiedFibPoint(point);
+
             if (_unifiedFibP1 == null)
             {
                 _unifiedFibP1 = point;
@@ -186,6 +187,7 @@ namespace TradeIt.Charts
                     : $"{_symbol.Symbol} | فیبوناچی اکستنشن: نقطه B را کلیک کنید";
                 return;
             }
+
             if (_unifiedFibP2 == null)
             {
                 _unifiedFibP2 = point;
@@ -202,6 +204,7 @@ namespace TradeIt.Charts
                 Chart.Refresh();
                 return;
             }
+
             DrawUnifiedFibExtension(point);
             ResetUnifiedFibPoints();
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | فیبوناچی اکستنشن رسم شد";
@@ -213,13 +216,13 @@ namespace TradeIt.Charts
             if (_unifiedFibP1 == null || !TryGetRawChartPoint(e, out ScottPlot.Coordinates point)) return;
             RemoveUnifiedFibPreview();
             point = SnapUnifiedFibPoint(point);
+            var limits = Chart.Plot.Axes.GetLimits();
+
             if ((int)_activeDrawingTool == UnifiedFibRetracement)
             {
                 double range = point.Y - _unifiedFibP1.Value.Y;
                 double y = _unifiedFibP1.Value.Y + range * 0.618;
-                double left = Math.Min(_unifiedFibP1.Value.X, point.X);
-                double right = Math.Max(_unifiedFibP1.Value.X, point.X);
-                _unifiedFibPreview = AddScatterLine(left, y, right, y);
+                _unifiedFibPreview = AddScatterLine(limits.Left, y, limits.Right, y);
             }
             else if (_unifiedFibP2 == null)
             {
@@ -228,9 +231,7 @@ namespace TradeIt.Charts
             else
             {
                 double y = point.Y + (_unifiedFibP2.Value.Y - _unifiedFibP1.Value.Y);
-                double left = Math.Min(_unifiedFibP1.Value.X, point.X);
-                double right = Math.Max(_unifiedFibP1.Value.X, point.X);
-                _unifiedFibPreview = AddScatterLine(left, y, right, y);
+                _unifiedFibPreview = AddScatterLine(limits.Left, y, limits.Right, y);
             }
             Chart.Refresh();
         }
@@ -243,14 +244,25 @@ namespace TradeIt.Charts
 
         private void DrawUnifiedFibRetracement()
         {
-            var drawing = new FibonacciDrawing { IsExtension = false, A = _unifiedFibP1!.Value, B = _unifiedFibP2!.Value };
+            var drawing = new FibonacciDrawing
+            {
+                IsExtension = false,
+                A = _unifiedFibP1!.Value,
+                B = _unifiedFibP2!.Value
+            };
             _fibonacciDrawings.Add(drawing);
             RenderFibonacciDrawing(drawing);
         }
 
         private void DrawUnifiedFibExtension(ScottPlot.Coordinates c)
         {
-            var drawing = new FibonacciDrawing { IsExtension = true, A = _unifiedFibP1!.Value, B = _unifiedFibP2!.Value, C = c };
+            var drawing = new FibonacciDrawing
+            {
+                IsExtension = true,
+                A = _unifiedFibP1!.Value,
+                B = _unifiedFibP2!.Value,
+                C = c
+            };
             _fibonacciDrawings.Add(drawing);
             RenderFibonacciDrawing(drawing);
         }
@@ -258,25 +270,41 @@ namespace TradeIt.Charts
         private void RenderFibonacciDrawing(FibonacciDrawing drawing)
         {
             RemoveFibonacciLines(drawing);
+
             var style = GetDrawingToolStyle(drawing.IsExtension ? "FibonacciExtension" : "FibonacciRetracement");
             double ab = drawing.B.Y - drawing.A.Y;
+            var limits = Chart.Plot.Axes.GetLimits();
 
-            // Keep this list in sync with the levels offered by the settings dialog.
-            // The previous implementation omitted the newly added extension/retracement levels.
+            // Fibonacci levels must span a visible X range. Using A..B as the
+            // segment can produce a zero-width line after bar snapping and make
+            // the retracement appear to draw nothing.
+            double left = limits.Left;
+            double right = limits.Right;
+            if (!double.IsFinite(left) || !double.IsFinite(right) || right <= left)
+            {
+                left = Math.Min(drawing.A.X, drawing.IsExtension ? drawing.C.X : drawing.B.X);
+                right = Math.Max(drawing.A.X, drawing.IsExtension ? drawing.C.X : drawing.B.X);
+            }
+
             string[] levels = drawing.IsExtension
                 ? new[] { "0.0", "38.2", "61.8", "100.0", "127.2", "161.8", "200.0", "261.8" }
                 : new[] { "0.0", "23.6", "38.2", "50.0", "61.8", "78.6", "100.0", "127.2", "161.8", "200.0" };
 
-            double endX = drawing.IsExtension ? drawing.C.X : drawing.B.X;
-            double left = Math.Min(drawing.A.X, endX);
-            double right = Math.Max(drawing.A.X, endX);
-
             foreach (string levelText in levels)
             {
                 if (style.FibonacciLevels.TryGetValue(levelText, out bool visible) && !visible) continue;
+
                 double ratio = double.Parse(levelText, System.Globalization.CultureInfo.InvariantCulture) / 100.0;
-                double y = drawing.IsExtension ? drawing.C.Y + ab * ratio : drawing.B.Y - ab * ratio;
-                drawing.Lines.Add(AddScatterLine(left, y, right, y));
+                double y = drawing.IsExtension
+                    ? drawing.C.Y + ab * ratio
+                    : drawing.B.Y - ab * ratio;
+
+                var line = Chart.Plot.Add.ScatterLine(new[] { left, right }, new[] { y, y });
+                line.MarkerSize = 0;
+                line.LineWidth = (float)Math.Max(0.5, style.LineWidth);
+                line.LineColor = ScottPlot.Color.FromHtml(style.Color);
+                line.LinePattern = GetDrawingLinePattern(style.LineStyle);
+                drawing.Lines.Add(line);
 
                 var label = Chart.Plot.Add.Text($"{levelText}%", right, y);
                 label.LabelFontSize = 11;
