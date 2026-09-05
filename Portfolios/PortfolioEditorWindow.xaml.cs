@@ -1,5 +1,6 @@
 using System;
 using System.Data;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -138,8 +139,53 @@ namespace TradeIt.Portfolios
             bool hasHeader = HeaderCheckBox.IsChecked == true;
             string[] headers;
             int startRow;
-            if (hasHeader) { headers = SplitLine(lines[0], delimiter); startRow = 1; }
-            else { headers = Enumerable.Range(1, SplitLine(lines[0], delimiter).Length).Select(x => $"Column {x}").ToArray(); startRow = 0; }
+            string effectiveDelimiter = delimiter;
+
+            if (hasHeader)
+            {
+                headers = SplitLine(lines[0], delimiter);
+                effectiveDelimiter = DetectDelimiterIfSingleColumn(lines[0], delimiter, out string[] detectedHeaders)
+                    ? GetDetectedDelimiter(lines[0], delimiter)
+                    : delimiter;
+                if (!string.Equals(effectiveDelimiter, delimiter, StringComparison.Ordinal))
+                    headers = SplitLine(lines[0], effectiveDelimiter);
+                startRow = 1;
+            }
+            else
+            {
+                string firstLine = lines[0];
+                effectiveDelimiter = DetectDelimiterIfSingleColumn(firstLine, delimiter, out string[] detectedHeaders)
+                    ? GetDetectedDelimiter(firstLine, delimiter)
+                    : delimiter;
+                headers = Enumerable.Range(1, SplitLine(firstLine, effectiveDelimiter).Length).Select(x => $"Column {x}").ToArray();
+                startRow = 0;
+            }
+
+            if (headers.Length <= 1 && ContainsLikelyTabularData(lines))
+            {
+                string autoDelimiter = DetectBestDelimiter(lines[0]);
+                if (!string.Equals(autoDelimiter, effectiveDelimiter, StringComparison.Ordinal))
+                {
+                    effectiveDelimiter = autoDelimiter;
+                    headers = hasHeader
+                        ? SplitLine(lines[0], effectiveDelimiter)
+                        : Enumerable.Range(1, SplitLine(lines[0], effectiveDelimiter).Length).Select(x => $"Column {x}").ToArray();
+                }
+            }
+
+            if (hasHeader && headers.Length <= 1)
+            {
+                _mappingLoaded = false;
+                PreviewDataGrid.ItemsSource = null;
+                System.Windows.MessageBox.Show("فایل بیش از یک ستون دارد اما جداکننده انتخاب‌شده صحیح نیست. جداکننده فایل را بررسی کنید.");
+                return;
+            }
+
+            if (!string.Equals(effectiveDelimiter, delimiter, StringComparison.Ordinal))
+            {
+                SelectDelimiter(effectiveDelimiter);
+                delimiter = effectiveDelimiter;
+            }
 
             BuildColumnCombos(headers);
             AutoDetectColumns(headers);
@@ -162,7 +208,51 @@ namespace TradeIt.Portfolios
                 _previewTable.Rows.Add(row);
             }
             PreviewDataGrid.ItemsSource = _previewTable.DefaultView;
-            _mappingLoaded = headers.Length > 0;
+            _mappingLoaded = headers.Length > 0 && ValidateNumericMapping(false);
+        }
+
+        private static bool DetectDelimiterIfSingleColumn(string line, string currentDelimiter, out string[] detectedHeaders)
+        {
+            detectedHeaders = SplitLine(line, currentDelimiter);
+            if (detectedHeaders.Length > 1) return false;
+            string best = DetectBestDelimiter(line);
+            if (string.Equals(best, currentDelimiter, StringComparison.Ordinal)) return false;
+            detectedHeaders = SplitLine(line, best);
+            return detectedHeaders.Length > 1;
+        }
+
+        private static string GetDetectedDelimiter(string line, string currentDelimiter)
+        {
+            string best = DetectBestDelimiter(line);
+            return SplitLine(line, best).Length > 1 ? best : currentDelimiter;
+        }
+
+        private static string DetectBestDelimiter(string line)
+        {
+            string[] candidates = { "\t", ",", ";", "|" };
+            return candidates
+                .Select(d => new { Delimiter = d, Count = SplitLine(line, d).Length })
+                .OrderByDescending(x => x.Count)
+                .ThenBy(x => Array.IndexOf(candidates, x.Delimiter))
+                .First().Delimiter;
+        }
+
+        private static bool ContainsLikelyTabularData(string[] lines)
+        {
+            if (lines.Length < 2) return false;
+            return DetectBestDelimiter(lines[0]) != "," || DetectBestDelimiter(lines[1]) != ",";
+        }
+
+        private void SelectDelimiter(string delimiter)
+        {
+            for (int i = 0; i < DelimiterComboBox.Items.Count; i++)
+            {
+                if (DelimiterComboBox.Items[i] is WpfComboBoxItem item && string.Equals(item.Tag?.ToString(), delimiter, StringComparison.Ordinal))
+                {
+                    DelimiterComboBox.SelectedIndex = i;
+                    return;
+                }
+            }
         }
 
         private void BuildColumnCombos(string[] headers)
@@ -198,10 +288,51 @@ namespace TradeIt.Portfolios
             }
         }
 
+        private bool ValidateNumericMapping(bool showMessage)
+        {
+            int[] columns = { GetColumnIndex(OpenColumnCombo), GetColumnIndex(HighColumnCombo), GetColumnIndex(LowColumnCombo), GetColumnIndex(CloseColumnCombo) };
+            string[] names = { "قیمت باز شدن", "بیشترین قیمت", "کمترین قیمت", "قیمت بسته شدن" };
+            for (int i = 0; i < columns.Length; i++)
+            {
+                if (columns[i] < 0) continue;
+                if (_previewTable == null || _previewTable.Rows.Count == 0) continue;
+                foreach (DataRow row in _previewTable.Rows)
+                {
+                    string raw = row.ItemArray.ElementAtOrDefault(columns[i])?.ToString()?.Trim() ?? "";
+                    if (!TryParseNumber(raw))
+                    {
+                        if (showMessage)
+                            System.Windows.MessageBox.Show($"مقدار ستون عددی «{names[i]}» معتبر نیست (شماره ستون: {columns[i] + 1}). مقدار خام: «{raw}».", "خطای Mapping", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        private static bool TryParseNumber(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return false;
+            return double.TryParse(raw, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out _)
+                || double.TryParse(raw, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.CurrentCulture, out _);
+        }
+
+        private bool ValidateMappingBeforeSave()
+        {
+            if (!_mappingLoaded) return false;
+            if (GetColumnIndex(OpenColumnCombo) < 0 || GetColumnIndex(HighColumnCombo) < 0 || GetColumnIndex(LowColumnCombo) < 0 || GetColumnIndex(CloseColumnCombo) < 0)
+            {
+                System.Windows.MessageBox.Show("ستون‌های OHLC باید مشخص شوند.");
+                return false;
+            }
+            if (!ValidateNumericMapping(true)) return false;
+            return true;
+        }
+
         private void TestButton_Click(object sender, RoutedEventArgs e)
         {
             if (!_mappingLoaded) { System.Windows.MessageBox.Show("ابتدا مسیر داده را انتخاب کنید."); return; }
-            if (GetColumnIndex(OpenColumnCombo) < 0 || GetColumnIndex(HighColumnCombo) < 0 || GetColumnIndex(LowColumnCombo) < 0 || GetColumnIndex(CloseColumnCombo) < 0) { System.Windows.MessageBox.Show("ستون‌های OHLC باید مشخص شوند."); return; }
+            if (!ValidateMappingBeforeSave()) return;
             if (SymbolFromFileContentRadio.IsChecked == true && GetColumnIndex(SymbolColumnCombo) < 0) { System.Windows.MessageBox.Show("منبع نام نماد روی «داخل فایل» است؛ بنابراین ستون Symbol باید مشخص شود."); return; }
             if (NoDateTimeCheckBox.IsChecked != true && (GetColumnIndex(DateColumnCombo) < 0 || GetColumnIndex(TimeColumnCombo) < 0)) { System.Windows.MessageBox.Show("وقتی داده دارای تاریخ/زمان است، ستون Date و Time باید مشخص شوند."); return; }
             System.Windows.MessageBox.Show("Mapping معتبر است.", "Test", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -217,8 +348,8 @@ namespace TradeIt.Portfolios
                 if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder)) { System.Windows.MessageBox.Show("ابتدا مسیر پوشه داده را انتخاب کنید."); return; }
                 if (!_mappingLoaded) { System.Windows.MessageBox.Show("ابتدا مسیر داده را انتخاب کنید تا فایل‌های آن خوانده شوند."); return; }
 
+                if (!ValidateMappingBeforeSave()) return;
                 int openColumn = GetColumnIndex(OpenColumnCombo), highColumn = GetColumnIndex(HighColumnCombo), lowColumn = GetColumnIndex(LowColumnCombo), closeColumn = GetColumnIndex(CloseColumnCombo);
-                if (openColumn < 0 || highColumn < 0 || lowColumn < 0 || closeColumn < 0) { System.Windows.MessageBox.Show("ستون‌های OHLC باید مشخص شوند."); return; }
                 bool hasDateTime = NoDateTimeCheckBox.IsChecked != true;
                 int dateColumn = hasDateTime ? GetColumnIndex(DateColumnCombo) : -1, timeColumn = hasDateTime ? GetColumnIndex(TimeColumnCombo) : -1;
                 if (hasDateTime && (dateColumn < 0 || timeColumn < 0)) { System.Windows.MessageBox.Show("ستون Date و Time باید مشخص شوند."); return; }
