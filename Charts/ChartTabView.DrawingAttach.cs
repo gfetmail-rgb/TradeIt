@@ -8,11 +8,6 @@ namespace TradeIt.Charts
         {
             AttachUnifiedDrawingInput();
             UnifiedDrawing_Loaded(sender, e);
-
-            // Attach the ruler through the same explicit Loaded pipeline used by
-            // the other drawing tools. This guarantees its mouse handlers are
-            // connected before the user can activate it.
-            AttachMeasurementToolHandling();
         }
     }
 }
