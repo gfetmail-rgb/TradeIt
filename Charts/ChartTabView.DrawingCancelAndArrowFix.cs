@@ -34,7 +34,7 @@ namespace TradeIt.Charts
                 true);
             Chart.AddHandler(
                 UIElement.PreviewMouseMoveEvent,
-                new MouseEventHandler(DrawingCancelAndArrowFix_MouseMove),
+                new System.Windows.Input.MouseEventHandler(DrawingCancelAndArrowFix_MouseMove),
                 true);
             Chart.AddHandler(
                 UIElement.PreviewMouseRightButtonDownEvent,
@@ -54,7 +54,7 @@ namespace TradeIt.Charts
             }
         }
 
-        private void DrawingCancelAndArrowFix_MouseMove(object sender, MouseEventArgs e)
+        private void DrawingCancelAndArrowFix_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             if (_textDrawingActive)
                 return;
