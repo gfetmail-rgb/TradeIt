@@ -54,7 +54,7 @@ namespace TradeIt.Charts
             e.Handled = true;
         }
 
-        private static void MeasurementInputRouter_MouseMove(object sender, MouseEventArgs e)
+        private static void MeasurementInputRouter_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             if (sender is not WpfPlot plot)
                 return;
