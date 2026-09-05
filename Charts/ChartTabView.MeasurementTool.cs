@@ -3,6 +3,9 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 
+using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
+using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
+
 namespace TradeIt.Charts
 {
     public partial class ChartTabView
@@ -37,22 +40,12 @@ namespace TradeIt.Charts
                 return;
 
             _measurementEventsAttached = true;
-
-            // Use AddHandler(..., handledEventsToo: true). The main chart input
-            // pipeline and the other drawing tools also listen to these events and
-            // can mark them handled. The ruler must still receive the event.
-            Chart.AddHandler(
-                UIElement.PreviewMouseLeftButtonDownEvent,
-                new MouseButtonEventHandler(MeasurementTool_MouseDown),
-                true);
-            Chart.AddHandler(
-                UIElement.PreviewMouseMoveEvent,
-                new MouseEventHandler(MeasurementTool_MouseMove),
-                true);
-            Chart.AddHandler(
-                UIElement.PreviewMouseRightButtonDownEvent,
-                new MouseButtonEventHandler(MeasurementTool_RightMouseDown),
-                true);
+            Chart.AddHandler(UIElement.PreviewMouseLeftButtonDownEvent,
+                new WpfMouseButtonEventHandler(MeasurementTool_MouseDown), true);
+            Chart.AddHandler(UIElement.PreviewMouseMoveEvent,
+                new WpfMouseEventHandler(MeasurementTool_MouseMove), true);
+            Chart.AddHandler(UIElement.PreviewMouseRightButtonDownEvent,
+                new WpfMouseButtonEventHandler(MeasurementTool_RightMouseDown), true);
 
             DrawingSelectButton.Click += MeasurementTool_DeactivateFromOtherTool;
             DrawingTrendLineButton.Click += MeasurementTool_DeactivateFromOtherTool;
@@ -109,7 +102,7 @@ namespace TradeIt.Charts
                 DeactivateMeasurementTool(false);
         }
 
-        private void MeasurementTool_MouseDown(object sender, MouseButtonEventArgs e)
+        private void MeasurementTool_MouseDown(object sender, WpfMouseButtonEventArgs e)
         {
             if ((int)_activeDrawingTool != MeasurementToolValue || e.ChangedButton != MouseButton.Left)
                 return;
@@ -142,7 +135,7 @@ namespace TradeIt.Charts
             e.Handled = true;
         }
 
-        private void MeasurementTool_MouseMove(object sender, MouseEventArgs e)
+        private void MeasurementTool_MouseMove(object sender, WpfMouseEventArgs e)
         {
             if ((int)_activeDrawingTool != MeasurementToolValue || _measurementStart == null)
                 return;
@@ -168,13 +161,11 @@ namespace TradeIt.Charts
             }
         }
 
-        private void MeasurementTool_RightMouseDown(object sender, MouseButtonEventArgs e)
+        private void MeasurementTool_RightMouseDown(object sender, WpfMouseButtonEventArgs e)
         {
             if ((int)_activeDrawingTool != MeasurementToolValue || e.ChangedButton != MouseButton.Right)
                 return;
 
-            // Right-click always releases the ruler. A completed measurement is
-            // kept on the chart; an unfinished preview is discarded.
             DeactivateMeasurementTool(true);
             e.Handled = true;
         }
@@ -213,8 +204,7 @@ namespace TradeIt.Charts
             double offset = Math.Max(Math.Abs(a.Y - b.Y) * 0.08, Math.Abs(top) * 0.012);
             double labelY = top + offset;
 
-            _measurementLabel = Chart.Plot.Add.Text(
-                $"{candles:N0} کندل | {percentText}", labelX, labelY);
+            _measurementLabel = Chart.Plot.Add.Text($"{candles:N0} کندل | {percentText}", labelX, labelY);
             _measurementLabel.LabelFontSize = 12;
             _measurementLabel.LabelFontColor = ScottPlot.Color.FromHtml("#202020");
             _measurementLabel.LabelBackgroundColor = ScottPlot.Colors.White.WithAlpha(0.90);
@@ -233,9 +223,7 @@ namespace TradeIt.Charts
 
             var a = _measurementStart.Value;
             var b = _measurementLastPoint.Value;
-            _measurementLine = Chart.Plot.Add.ScatterLine(
-                new[] { a.X, b.X },
-                new[] { a.Y, b.Y });
+            _measurementLine = Chart.Plot.Add.ScatterLine(new[] { a.X, b.X }, new[] { a.Y, b.Y });
             _measurementLine.MarkerSize = 0;
             _measurementLine.LineColor = ScottPlot.Color.FromHtml("#505050");
             _measurementLine.LineWidth = 1.5f;
@@ -246,35 +234,30 @@ namespace TradeIt.Charts
 
         private void RemoveMeasurementPlotOnly()
         {
-            if (_measurementLine != null)
-                Chart.Plot.Remove(_measurementLine);
+            if (_measurementLine != null) Chart.Plot.Remove(_measurementLine);
             _measurementLine = null;
         }
 
         private void RemoveMeasurementPreview()
         {
-            if (_measurementPreview != null)
-                Chart.Plot.Remove(_measurementPreview);
+            if (_measurementPreview != null) Chart.Plot.Remove(_measurementPreview);
             _measurementPreview = null;
         }
 
         private void RemoveMeasurementLabel()
         {
-            if (_measurementLabel != null)
-                Chart.Plot.Remove(_measurementLabel);
+            if (_measurementLabel != null) Chart.Plot.Remove(_measurementLabel);
             _measurementLabel = null;
         }
 
         private void DeactivateMeasurementTool(bool refresh)
         {
             RemoveMeasurementPreview();
-
             if (_measurementLine == null)
             {
                 _measurementStart = null;
                 _measurementLastPoint = null;
             }
-
             _activeDrawingTool = TechnicalDrawingTool.Select;
             Chart.UserInputProcessor.IsEnabled = true;
             SetMeasurementButtonVisual(false);
