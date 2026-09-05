@@ -31,9 +31,8 @@ namespace TradeIt.Charts
             _arrowMeasurementBehaviorFixAttached = true;
 
             // The common Delete-All handler now owns confirmation and deletion.
-            // Remove the old per-tool handlers so clicking No cannot delete arrows/measurements.
+            // Remove the old arrow-specific handler so clicking No cannot delete arrows.
             DeleteAllDrawingsButton.Click -= ArrowDeleteAll_Click;
-            DeleteAllDrawingsButton.Click -= MeasurementTool_DeleteAll;
 
             // Right-click while actively drawing an arrow cancels the unfinished arrow.
             Chart.PreviewMouseRightButtonDown += ArrowMeasurementBehaviorFix_RightMouseDown;
