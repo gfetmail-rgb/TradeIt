@@ -13,14 +13,12 @@ namespace TradeIt.Charts
     public partial class ChartTabView
     {
         private const int MeasurementToolValue = 11;
-
         private bool _measurementEventsAttached;
         private ScottPlot.Coordinates? _measurementStart;
         private ScottPlot.Coordinates? _measurementLastPoint;
         private ScottPlot.Plottables.Scatter? _measurementPreview;
         private ScottPlot.Plottables.Scatter? _measurementLine;
         private ScottPlot.Plottables.Text? _measurementLabel;
-
         private static readonly bool _measurementToolRegistered = RegisterMeasurementToolHandling();
 
         private static bool RegisterMeasurementToolHandling()
@@ -40,7 +38,6 @@ namespace TradeIt.Charts
         {
             if (_measurementEventsAttached)
                 return;
-
             _measurementEventsAttached = true;
             Chart.AddHandler(UIElement.PreviewMouseLeftButtonDownEvent,
                 new WpfMouseButtonEventHandler(MeasurementTool_MouseDown), true);
@@ -48,7 +45,6 @@ namespace TradeIt.Charts
                 new WpfMouseEventHandler(MeasurementTool_MouseMove), true);
             Chart.AddHandler(UIElement.PreviewMouseRightButtonDownEvent,
                 new WpfMouseButtonEventHandler(MeasurementTool_RightMouseDown), true);
-
             DrawingSelectButton.Click += MeasurementTool_DeactivateFromOtherTool;
             DrawingTrendLineButton.Click += MeasurementTool_DeactivateFromOtherTool;
             DrawingArrowButton.Click += MeasurementTool_DeactivateFromOtherTool;
@@ -68,12 +64,15 @@ namespace TradeIt.Charts
 
         private void MeasurementToolButton_Click(object sender, RoutedEventArgs e)
         {
+            // The static Loaded handler may not have run yet because this partial
+            // class is first referenced when the ruler button is clicked.
+            AttachMeasurementToolHandling();
+
             RemoveMeasurementPreview();
             RemoveMeasurementPlotOnly();
             RemoveMeasurementLabel();
             _measurementStart = null;
             _measurementLastPoint = null;
-
             _activeDrawingTool = (TechnicalDrawingTool)MeasurementToolValue;
             _textDrawingActive = false;
             Chart.UserInputProcessor.IsEnabled = false;
@@ -108,10 +107,8 @@ namespace TradeIt.Charts
         {
             if ((int)_activeDrawingTool != MeasurementToolValue || e.ChangedButton != MouseButton.Left)
                 return;
-
             if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates point))
                 return;
-
             if (_measurementStart == null)
             {
                 _measurementStart = SnapMeasurementX(point);
@@ -121,7 +118,6 @@ namespace TradeIt.Charts
                 e.Handled = true;
                 return;
             }
-
             if (_measurementLine == null)
             {
                 _measurementLastPoint = SnapMeasurementX(point);
@@ -132,7 +128,6 @@ namespace TradeIt.Charts
                 Chart.Refresh();
                 return;
             }
-
             DeactivateMeasurementTool(true);
             e.Handled = true;
         }
@@ -143,10 +138,8 @@ namespace TradeIt.Charts
                 return;
             if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates point))
                 return;
-
             point = SnapMeasurementX(point);
             _measurementLastPoint = point;
-
             if (_measurementLine == null)
             {
                 RemoveMeasurementPreview();
@@ -157,7 +150,6 @@ namespace TradeIt.Charts
                 _measurementPreview.LineColor = ScottPlot.Color.FromHtml("#666666");
                 _measurementPreview.LineWidth = 1;
                 _measurementPreview.LinePattern = ScottPlot.LinePattern.Dotted;
-
                 UpdateMeasurementLabelPreview(_measurementStart.Value, point);
                 Chart.Refresh();
             }
@@ -167,7 +159,6 @@ namespace TradeIt.Charts
         {
             if ((int)_activeDrawingTool != MeasurementToolValue || e.ChangedButton != MouseButton.Right)
                 return;
-
             DeactivateMeasurementTool(true);
             e.Handled = true;
         }
@@ -205,7 +196,6 @@ namespace TradeIt.Charts
             double top = Math.Max(a.Y, b.Y);
             double offset = Math.Max(Math.Abs(a.Y - b.Y) * 0.08, Math.Abs(top) * 0.012);
             double labelY = top + offset;
-
             _measurementLabel = Chart.Plot.Add.Text($"{candles:N0} کندل | {percentText}", labelX, labelY);
             _measurementLabel.LabelFontSize = 12;
             _measurementLabel.LabelFontColor = ScottPlot.Color.FromHtml("#202020");
@@ -222,7 +212,6 @@ namespace TradeIt.Charts
             RemoveMeasurementPlotOnly();
             if (_measurementStart == null || _measurementLastPoint == null)
                 return;
-
             var a = _measurementStart.Value;
             var b = _measurementLastPoint.Value;
             _measurementLine = Chart.Plot.Add.ScatterLine(new[] { a.X, b.X }, new[] { a.Y, b.Y });
@@ -290,7 +279,6 @@ namespace TradeIt.Charts
         {
             if (_measurementStart == null || _measurementLastPoint == null || _measurementLine == null)
                 return;
-
             if (!Chart.Plot.GetPlottables().Contains(_measurementLine))
                 RenderMeasurementLine();
         }
