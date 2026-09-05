@@ -1,5 +1,6 @@
-using System.Windows;
+using TradeIt.Models;
 using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
+using WpfPoint = System.Windows.Point;
 
 namespace TradeIt.Charts
 {
@@ -10,14 +11,14 @@ namespace TradeIt.Charts
 
         private static bool RegisterMouseOhlcvInfoFix()
         {
-            EventManager.RegisterClassHandler(
+            System.Windows.EventManager.RegisterClassHandler(
                 typeof(ChartTabView),
-                FrameworkElement.LoadedEvent,
-                new RoutedEventHandler(MouseOhlcvInfoFix_Loaded));
+                System.Windows.FrameworkElement.LoadedEvent,
+                new System.Windows.RoutedEventHandler(MouseOhlcvInfoFix_Loaded));
             return true;
         }
 
-        private static void MouseOhlcvInfoFix_Loaded(object sender, RoutedEventArgs e)
+        private static void MouseOhlcvInfoFix_Loaded(object sender, System.Windows.RoutedEventArgs e)
         {
             if (sender is ChartTabView chart)
                 chart.AttachMouseOhlcvInfoFix();
