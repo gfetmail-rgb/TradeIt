@@ -10,6 +10,7 @@ namespace TradeIt.Charts
     {
         private static readonly bool _finalChartFixesRegistered = RegisterFinalChartFixes();
         private bool _finalChartFixesInitialized;
+        private bool _finalChartMouseMoveAttached;
 
         private static bool RegisterFinalChartFixes()
         {
@@ -35,9 +36,6 @@ namespace TradeIt.Charts
         {
             try
             {
-                // TimeGaps=false uses a completely different X coordinate system.
-                // Do not let this late final-fix pass overwrite its continuous axis
-                // with real OADate coordinates/range.
                 bool showTimeGaps = ChartSettingsManager.Current.ShowTimeGaps;
                 if (showTimeGaps)
                 {
@@ -60,8 +58,16 @@ namespace TradeIt.Charts
                 UpdateInitialOHLCVInfo();
                 Chart.Refresh();
 
-                Chart.MouseMove -= FinalChartFixes_MouseMove;
-                Chart.MouseMove += FinalChartFixes_MouseMove;
+                if (!_finalChartMouseMoveAttached)
+                {
+                    _finalChartMouseMoveAttached = true;
+                    // Run after ScottPlot and the PreviewMouseMove handlers so this
+                    // is the final OHLCV/date/time value written for the current bar.
+                    Chart.AddHandler(
+                        UIElement.MouseMoveEvent,
+                        new System.Windows.Input.MouseEventHandler(FinalChartFixes_MouseMove),
+                        true);
+                }
             }
             catch (Exception ex)
             {
@@ -170,15 +176,19 @@ namespace TradeIt.Charts
                 if (_bars.Count == 0)
                     return;
 
-                if (!_continuousTimeAxisApplied)
+                if (_continuousTimeAxisApplied)
                 {
-                    if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates))
-                        return;
-
-                    int index = FindNearestBarIndex(coordinates.X);
-                    if (index >= 0)
-                        UpdateOHLCVInfo(index);
+                    // TimeGaps.cs owns the continuous-axis coordinate mapping.
+                    // Its PreviewMouseMove has already updated the correct bar.
+                    return;
                 }
+
+                if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates))
+                    return;
+
+                int index = FindNearestBarIndex(coordinates.X);
+                if (index >= 0)
+                    UpdateOHLCVInfo(index);
             }
             catch
             {
@@ -204,8 +214,13 @@ namespace TradeIt.Charts
             if (string.IsNullOrWhiteSpace(date))
                 date = $"کندل {index + 1}";
 
+            string time = !string.IsNullOrWhiteSpace(bar.Time)
+                ? bar.Time
+                : GetBarDateTime(bar, index).ToString("HH:mm:ss");
+
             ChartInfoTextBlock.Text =
-                $"{_symbol.Symbol} | O: {bar.Open:N2}  H: {bar.High:N2}  L: {bar.Low:N2}  C: {bar.Close:N2}  V: {bar.Volume:N0} | {date}";
+                $"{_symbol.Symbol} | تاریخ: {date} | ساعت: {time} | " +
+                $"O: {bar.Open:N2}  H: {bar.High:N2}  L: {bar.Low:N2}  C: {bar.Close:N2}  V: {bar.Volume:N0}";
         }
     }
 }
