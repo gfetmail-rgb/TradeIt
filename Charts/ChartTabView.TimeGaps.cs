@@ -11,7 +11,6 @@ namespace TradeIt.Charts
     public partial class ChartTabView
     {
         private const double ContinuousChartBaseDate = 2000.0;
-        private const double InitialRightMarginFraction = 0.30;
         private bool _continuousTimeAxisApplied;
         private bool _timeGapsRefreshPending;
         private bool _timeGapsEventsAttached;
@@ -129,9 +128,6 @@ namespace TradeIt.Charts
                 ? (maxPrice - minPrice) * 0.05
                 : Math.Max(Math.Abs(maxPrice) * 0.01, 1);
 
-            // Keep the latest candle fixed toward the left side of the 70%
-            // data region and reserve exactly 30% of the plot width as empty
-            // space on the right.
             double candleRange = Math.Max(1.0, lastX - firstX);
             double rightMargin = candleRange * InitialRightMarginFraction / (1.0 - InitialRightMarginFraction);
 
@@ -145,10 +141,6 @@ namespace TradeIt.Charts
             _initialCandleRangeApplied = true;
             _continuousTimeAxisApplied = true;
 
-            // The continuous redraw removes all plottables except the crosshair,
-            // and ClearMainChart() hides the crosshair. Restore it only after the
-            // continuous coordinate system is fully active so both its X position
-            // and the bottom-axis labels use the same coordinate system.
             RestoreCrosshairAndDateAxis();
             Chart.Refresh();
         }
@@ -260,7 +252,8 @@ namespace TradeIt.Charts
 
         private void TimeGaps_ChartMouseMove(object sender, WpfMouseEventArgs e)
         {
-            ApplyContinuousCrosshair(e);
+            if (_continuousTimeAxisApplied)
+                ApplyContinuousCrosshair(e);
         }
     }
 }
