@@ -30,8 +30,6 @@ namespace TradeIt.Charts
                 FrameworkElement.LoadedEvent,
                 new RoutedEventHandler(MeasurementTool_Loaded));
 
-            // Register at the ChartTabView class level and listen even when a
-            // child of ScottPlot has already marked the mouse event handled.
             EventManager.RegisterClassHandler(
                 typeof(ChartTabView),
                 UIElement.PreviewMouseLeftButtonDownEvent,
@@ -59,20 +57,32 @@ namespace TradeIt.Charts
 
         private static void MeasurementTool_ClassMouseDown(object sender, WpfMouseButtonEventArgs e)
         {
-            if (sender is ChartTabView chart)
-                chart.MeasurementTool_MouseDown(chart.Chart, e);
+            if (sender is not ChartTabView chart || (int)chart._activeDrawingTool != MeasurementToolValue)
+                return;
+
+            // Claim the event before it reaches ScottPlot or the normal drawing
+            // handler. This makes the ruler independent of ScottPlot input state.
+            e.Handled = true;
+            chart.MeasurementTool_MouseDown(chart.Chart, e);
         }
 
         private static void MeasurementTool_ClassMouseMove(object sender, WpfMouseEventArgs e)
         {
-            if (sender is ChartTabView chart)
-                chart.MeasurementTool_MouseMove(chart.Chart, e);
+            if (sender is not ChartTabView chart || (int)chart._activeDrawingTool != MeasurementToolValue)
+                return;
+
+            e.Handled = true;
+            chart.MeasurementTool_MouseMove(chart.Chart, e);
         }
 
         private static void MeasurementTool_ClassRightMouseDown(object sender, WpfMouseButtonEventArgs e)
         {
-            if (sender is ChartTabView chart)
-                chart.MeasurementTool_RightMouseDown(chart.Chart, e);
+            if (sender is not ChartTabView chart || (int)chart._activeDrawingTool != MeasurementToolValue)
+                return;
+
+            // Claim right-click so the context menu cannot consume the event.
+            e.Handled = true;
+            chart.MeasurementTool_RightMouseDown(chart.Chart, e);
         }
 
         private void AttachMeasurementToolHandling()
@@ -108,7 +118,11 @@ namespace TradeIt.Charts
             _measurementLastPoint = null;
             _activeDrawingTool = (TechnicalDrawingTool)MeasurementToolValue;
             _textDrawingActive = false;
-            Chart.UserInputProcessor.IsEnabled = false;
+
+            // Keep ScottPlot input enabled. The class-level routed handlers above
+            // claim ruler mouse events before ScottPlot sees them, so disabling
+            // the WpfPlot input processor cannot block the WPF mouse route.
+            Chart.UserInputProcessor.IsEnabled = true;
             Chart.Focusable = true;
             Chart.Focus();
             SetMeasurementButtonVisual(true);
@@ -150,7 +164,6 @@ namespace TradeIt.Charts
                 _measurementLastPoint = _measurementStart;
                 RemoveMeasurementPreview();
                 ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط‌کش: نقطه دوم را کلیک کنید";
-                e.Handled = true;
                 return;
             }
 
@@ -160,13 +173,11 @@ namespace TradeIt.Charts
                 RemoveMeasurementPreview();
                 RenderMeasurementLine();
                 ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط‌کش: اندازه‌گیری انجام شد؛ برای خاموش کردن خط‌کش کلیک کنید";
-                e.Handled = true;
                 Chart.Refresh();
                 return;
             }
 
             DeactivateMeasurementTool(true);
-            e.Handled = true;
         }
 
         private void MeasurementTool_MouseMove(object sender, WpfMouseEventArgs e)
@@ -200,7 +211,6 @@ namespace TradeIt.Charts
                 return;
 
             DeactivateMeasurementTool(true);
-            e.Handled = true;
         }
 
         private ScottPlot.Coordinates SnapMeasurementX(ScottPlot.Coordinates point)
