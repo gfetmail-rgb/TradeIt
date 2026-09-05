@@ -17,7 +17,7 @@ namespace TradeIt
     public partial class MainWindow
     {
         private readonly AutoScrollController _autoScrollController = new();
-        private bool _autoScrollLoading;
+        private bool _autoScrollViewLoading;
         private TabItem? _autoScrollTab;
 
         private async void AutoScrollButton_Order2_Click(object sender, RoutedEventArgs e)
@@ -37,7 +37,7 @@ namespace TradeIt
 
             int selectedIndex = SymbolsDataGrid.SelectedItem is SymbolInfo selected ? _allSymbols.IndexOf(selected) : -1;
             int initialIndex = selectedIndex >= 0 ? selectedIndex : 0;
-            _autoScrollLoading = false;
+            _autoScrollViewLoading = false;
             RefreshSymbolsButton.IsEnabled = false;
             DeleteSymbolsButton.IsEnabled = false;
             MakeWatchButton.IsEnabled = false;
@@ -91,10 +91,10 @@ namespace TradeIt
 
         private async Task ShowAutoScrollSymbolAsync()
         {
-            if (!_autoScrollController.IsRunning || _autoScrollLoading || _selectedPortfolio == null) return;
+            if (!_autoScrollController.IsRunning || _autoScrollViewLoading || _selectedPortfolio == null) return;
             int index = _autoScrollController.CurrentIndex;
             if (index < 0 || index >= _allSymbols.Count) return;
-            _autoScrollLoading = true;
+            _autoScrollViewLoading = true;
             try
             {
                 SymbolInfo symbol = _allSymbols[index];
@@ -118,13 +118,13 @@ namespace TradeIt
                 StopAutoScroll();
                 System.Windows.MessageBox.Show(ex.ToString(), "خطا در Auto Scroll", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-            finally { _autoScrollLoading = false; }
+            finally { _autoScrollViewLoading = false; }
         }
 
         private void StopAutoScroll()
         {
             _autoScrollController.Stop();
-            _autoScrollLoading = false;
+            _autoScrollViewLoading = false;
             if (AutoScrollButton != null) AutoScrollButton.Content = "Auto Scroll";
             if (RefreshSymbolsButton != null) RefreshSymbolsButton.IsEnabled = true;
             if (DeleteSymbolsButton != null) DeleteSymbolsButton.IsEnabled = true;
