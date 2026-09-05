@@ -26,12 +26,18 @@ namespace TradeIt.Charts
                 return;
 
             chart.Dispatcher.BeginInvoke(new Action(chart.ApplyInitialCandleRange), DispatcherPriority.ApplicationIdle);
-            chart.Dispatcher.BeginInvoke(new Action(chart.ApplyInitialCandleRange), DispatcherPriority.ApplicationIdle);
         }
 
         private void ApplyInitialCandleRange()
         {
             if (_bars.Count == 0)
+                return;
+
+            // When time gaps are hidden, the chart uses a continuous X coordinate
+            // system (2000 + candle index). Do not overwrite those limits with
+            // OADate values, otherwise _initialXMin/_initialXMax become inconsistent
+            // with the active chart coordinate system and all zoom operations break.
+            if (!ChartSettingsManager.Current.ShowTimeGaps)
                 return;
 
             int visibleCount = Math.Min(InitialVisibleCandleCount, _bars.Count);
@@ -54,7 +60,6 @@ namespace TradeIt.Charts
                 limits.Bottom,
                 limits.Top);
 
-            AutoFitVisiblePriceRange();
             SaveInitialView();
             _initialCandleRangeApplied = true;
             Chart.Refresh();
