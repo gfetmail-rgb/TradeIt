@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.Json;
 
 using TradeIt.Models;
+using TradeIt.Services;
 
 namespace TradeIt.Portfolios
 {
@@ -13,8 +14,7 @@ namespace TradeIt.Portfolios
 
         public PortfolioManager()
         {
-            string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            _folderPath = Path.Combine(appData, "TradeIt", "Portfolios");
+            _folderPath = StoragePaths.PortfoliosDirectory;
             Directory.CreateDirectory(_folderPath);
         }
 
