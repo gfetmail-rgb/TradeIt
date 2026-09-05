@@ -5,7 +5,6 @@ using System.Windows.Input;
 
 using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
-using WpfMouseButtonEventHandler = System.Windows.Input.MouseButtonEventHandler;
 
 namespace TradeIt.Charts
 {
@@ -28,6 +27,23 @@ namespace TradeIt.Charts
                 typeof(ChartTabView),
                 FrameworkElement.LoadedEvent,
                 new RoutedEventHandler(MeasurementTool_Loaded));
+
+            // ChartTabView is the parent of the WpfPlot. Registering the ruler
+            // handlers on ChartTabView itself makes them run before the existing
+            // ChartTabView instance PreviewMouse handlers. This gives the ruler
+            // exclusive ownership of left-click and mouse-move while active.
+            EventManager.RegisterClassHandler(
+                typeof(ChartTabView),
+                UIElement.PreviewMouseLeftButtonDownEvent,
+                new MouseButtonEventHandler(MeasurementTool_ClassMouseDown),
+                true);
+
+            EventManager.RegisterClassHandler(
+                typeof(ChartTabView),
+                UIElement.PreviewMouseMoveEvent,
+                new MouseEventHandler(MeasurementTool_ClassMouseMove),
+                true);
+
             return true;
         }
 
@@ -37,6 +53,27 @@ namespace TradeIt.Charts
                 chart.AttachMeasurementToolHandling();
         }
 
+        private static void MeasurementTool_ClassMouseDown(object sender, WpfMouseButtonEventArgs e)
+        {
+            if (sender is not ChartTabView chart ||
+                (int)chart._activeDrawingTool != MeasurementToolValue ||
+                e.ChangedButton != MouseButton.Left)
+                return;
+
+            chart.MeasurementTool_MouseDown(chart.Chart, e);
+            e.Handled = true;
+        }
+
+        private static void MeasurementTool_ClassMouseMove(object sender, WpfMouseEventArgs e)
+        {
+            if (sender is not ChartTabView chart ||
+                (int)chart._activeDrawingTool != MeasurementToolValue)
+                return;
+
+            chart.MeasurementTool_MouseMove(chart.Chart, e);
+            e.Handled = true;
+        }
+
         private void AttachMeasurementToolHandling()
         {
             if (_measurementEventsAttached)
@@ -44,8 +81,8 @@ namespace TradeIt.Charts
 
             _measurementEventsAttached = true;
 
-            // Left-click and mouse-move are routed by ChartTabView.MeasurementInputRouter.
-            // Keeping a second direct mouse pipeline here caused competing handlers.
+            // Left-click and mouse-move are handled by the ChartTabView class
+            // handlers above. Do not attach a second instance input pipeline.
             Chart.PreviewMouseRightButtonDown += MeasurementTool_ChartRightMouseDown;
 
             DrawingSelectButton.Click += MeasurementTool_DeactivateFromOtherTool;
@@ -76,7 +113,6 @@ namespace TradeIt.Charts
             _activeDrawingTool = (TechnicalDrawingTool)MeasurementToolValue;
             _textDrawingActive = false;
 
-            // ScottPlot must not process ruler clicks as pan operations.
             Chart.UserInputProcessor.IsEnabled = false;
             Chart.Focusable = true;
             Chart.Focus();
@@ -138,6 +174,11 @@ namespace TradeIt.Charts
             _measurementLastPoint = point;
             RemoveMeasurementPreview();
             RenderMeasurementLine();
+
+            // The second click completes this measurement. The next click starts
+            // a new measurement while keeping the completed line and label.
+            _measurementStart = null;
+            _measurementLastPoint = null;
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | خط‌کش: اندازه‌گیری انجام شد؛ برای اندازه‌گیری بعدی کلیک کنید";
             Chart.Refresh();
         }
@@ -152,6 +193,8 @@ namespace TradeIt.Charts
             point = SnapMeasurementX(point);
             _measurementLastPoint = point;
 
+            // While measuring, the temporary ruler line is the only mouse-driven
+            // line. Crosshair and axis-drag logic are prevented by the class handler.
             if (_measurementLine == null)
             {
                 RemoveMeasurementPreview();
