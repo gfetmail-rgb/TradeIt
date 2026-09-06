@@ -233,7 +233,11 @@ namespace TradeIt.Charts
         private static void DateRangeFix_Loaded(object sender, RoutedEventArgs e)
         {
             if (sender is not ChartTabView chart) return;
-            chart.Dispatcher.BeginInvoke(new Action(chart.ApplyDateAndInitialRangeFix), DispatcherPriority.ContextIdle);
+            // This is intentionally the last idle-stage correction. Other Loaded
+            // handlers (especially the time-gap application) may rebuild the chart
+            // after ContextIdle. Running at SystemIdle makes the final opening view
+            // use the exact same limits that Reset Zoom stores.
+            chart.Dispatcher.BeginInvoke(new Action(chart.ApplyDateAndInitialRangeFix), DispatcherPriority.SystemIdle);
         }
 
         private void ApplyDateAndInitialRangeFix()
@@ -251,8 +255,8 @@ namespace TradeIt.Charts
                 if (_continuousTimeAxisApplied)
                 {
                     // Continuous-axis initialization already defines the same view
-                    // used by Reset Zoom. Re-apply and save it here after timestamp
-                    // normalization and all Loaded-time chart setup are complete.
+                    // used by Reset Zoom. Re-apply and save it here after every other
+                    // Loaded-time chart setup has completed.
                     ApplyContinuousInitialLimits();
                     SaveInitialView();
                     ApplySavedInitialView();
