@@ -148,7 +148,6 @@ namespace TradeIt.Charts
 
         // Drawing selection behavior
         private bool _drawingSelectionBehaviorFixAttached;
-        private bool _selectionMouseMoved;
 
         private static readonly bool _drawingSelectionBehaviorFixRegistered = RegisterDrawingSelectionBehaviorFix();
 
@@ -229,7 +228,6 @@ namespace TradeIt.Charts
             {
                 _activeDrawingHandle = handleKind;
                 _selectionDragStart = chartPoint;
-                _selectionMouseMoved = false;
                 _selectionDragging = true;
                 Chart.CaptureMouse();
                 Chart.UserInputProcessor.IsEnabled = false;
@@ -240,7 +238,6 @@ namespace TradeIt.Charts
             if (TrySelectDrawing(chartPoint))
             {
                 _selectionDragging = false;
-                _selectionMouseMoved = false;
                 Chart.ReleaseMouseCapture();
                 Chart.UserInputProcessor.IsEnabled = false;
                 e.Handled = true;
@@ -276,7 +273,6 @@ namespace TradeIt.Charts
                 Math.Abs(drawingPoint.Y - _selectionDragStart.Y) < 1e-15)
                 return;
 
-            _selectionMouseMoved = true;
             DrawingHandleKind handleKind = _activeDrawingHandle.Value;
             if (MoveSelectedHandle(handleKind, drawingPoint))
             {
@@ -300,7 +296,6 @@ namespace TradeIt.Charts
 
             if (!_selectionDragging) return;
             _selectionDragging = false;
-            _selectionMouseMoved = false;
             _activeDrawingHandle = null;
             Chart.ReleaseMouseCapture();
             Chart.UserInputProcessor.IsEnabled = true;
