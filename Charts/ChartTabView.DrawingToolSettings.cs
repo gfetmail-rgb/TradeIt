@@ -116,7 +116,19 @@ namespace TradeIt.Charts
             bool isText = key == "Text";
             bool isFib = key == "FibonacciRetracement" || key == "FibonacciExtension";
 
-            var window = new Window
+            Window window = CreateDrawingSettingsWindow(title, isFib, isText);
+            if (isText)
+            {
+                ShowTextDrawingToolSettings(window, current, defaults);
+                return;
+            }
+
+            ShowLineDrawingToolSettings(window, key, current, defaults, isFib);
+        }
+
+        private Window CreateDrawingSettingsWindow(string title, bool isFib, bool isText)
+        {
+            return new Window
             {
                 Title = $"تنظیمات {title}",
                 Width = 400,
@@ -126,165 +138,95 @@ namespace TradeIt.Charts
                 FlowDirection = System.Windows.FlowDirection.RightToLeft,
                 Owner = Window.GetWindow(this)
             };
+        }
 
+        private void ShowTextDrawingToolSettings(Window window, DrawingToolStyle current, DrawingToolStyle defaults)
+        {
             var form = new WpfGrid { Margin = new Thickness(10) };
             int row = 0;
-            WpfButton? backgroundButton = null;
-            WpfButton? textColorButton = null;
-            WpfButton? fontButton = null;
-
-            if (isText)
-            {
-                form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                backgroundButton = CreateColorButton(current.BackgroundColor);
-                AddSettingRow(form, row++, "رنگ زمینه", backgroundButton);
-
-                form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                fontButton = new WpfButton
-                {
-                    Content = $"{current.FontFamily}  /  {current.FontSize:0}",
-                    Width = 190, Height = 30, Margin = new Thickness(6)
-                };
-                AddSettingRow(form, row++, "فونت", fontButton);
-
-                fontButton.Click += (_, _) =>
-                {
-                    using var dialog = new System.Windows.Forms.FontDialog
-                    {
-                        Font = CreateWinFormsFont(current.FontFamily, current.FontSize),
-                        ShowColor = false
-                    };
-                    if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-                    {
-                        current.FontFamily = dialog.Font.FontFamily.Name;
-                        current.FontSize = dialog.Font.Size;
-                        fontButton.Content = $"{current.FontFamily}  /  {current.FontSize:0}";
-                    }
-                };
-
-                form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                textColorButton = CreateColorButton(current.Color);
-                AddSettingRow(form, row++, "رنگ متن", textColorButton);
-            }
-            else
-            {
-                form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                var colorButton = CreateColorButton(current.Color);
-                AddSettingRow(form, row++, "رنگ", colorButton);
-
-                form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                var widthBox = CreateWidthCombo(current.LineWidth);
-                AddSettingRow(form, row++, "ضخامت", widthBox);
-
-                form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                var styleBox = CreateStyleCombo(current.LineStyle);
-                AddSettingRow(form, row++, "استایل", styleBox);
-
-                var levelChecks = new Dictionary<string, System.Windows.Controls.CheckBox>();
-                if (isFib)
-                {
-                    form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                    var levelPanel = new WpfStackPanel { Margin = new Thickness(4, 8, 4, 4) };
-                    levelPanel.Children.Add(new WpfTextBlock { Text = "سطوح فیبوناچی رایج", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 5) });
-                    string[] levels = key == "FibonacciRetracement"
-                        ? new[] { "0.0", "23.6", "38.2", "50.0", "61.8", "78.6", "100.0", "127.2", "161.8", "200.0" }
-                        : new[] { "0.0", "38.2", "61.8", "100.0", "127.2", "161.8", "200.0", "261.8" };
-                    foreach (string level in levels)
-                    {
-                        bool checkedValue = current.FibonacciLevels.TryGetValue(level, out bool value) ? value : true;
-                        var check = new System.Windows.Controls.CheckBox
-                        {
-                            Content = level switch
-                            {
-                                "127.2" => "1.272 (127.2%)",
-                                "161.8" => "1.618 (161.8%)",
-                                "200.0" => "2 (200%)",
-                                "261.8" => "2.618 (261.8%)",
-                                _ => $"{level}%"
-                            },
-                            IsChecked = checkedValue,
-                            Margin = new Thickness(2)
-                        };
-                        levelChecks[level] = check;
-                        levelPanel.Children.Add(check);
-                    }
-                    Grid.SetRow(levelPanel, row++);
-                    form.Children.Add(levelPanel);
-                }
-
-                form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                var buttons = CreateDialogButtons();
-                Grid.SetRow(buttons.panel, row++);
-                form.Children.Add(buttons.panel);
-                window.Content = form;
-
-                colorButton.Click += (_, _) =>
-                {
-                    using var dialog = new WinFormsColorDialog { FullOpen = true, Color = System.Drawing.ColorTranslator.FromHtml(current.Color) };
-                    if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-                        SetColorButton(colorButton, System.Drawing.ColorTranslator.ToHtml(dialog.Color));
-                };
-
-                buttons.defaultButton.Click += (_, _) =>
-                {
-                    SetColorButton(colorButton, defaults.Color);
-                    widthBox.SelectedItem = FindNumericComboItem(widthBox, defaults.LineWidth);
-                    styleBox.SelectedItem = defaults.LineStyle;
-                    foreach (var pair in levelChecks)
-                        pair.Value.IsChecked = defaults.FibonacciLevels.TryGetValue(pair.Key, out bool value) ? value : true;
-                };
-
-                buttons.applyButton.Click += (_, _) =>
-                {
-                    string color = GetColorButtonValue(colorButton);
-                    DrawingToolStyle saved = GetDrawingToolStyle(key);
-                    saved.Color = color;
-                    if (widthBox.SelectedItem is double width) saved.LineWidth = width;
-                    saved.LineStyle = styleBox.SelectedItem?.ToString() ?? "Solid";
-                    if (isFib)
-                    {
-                        saved.FibonacciLevels = new Dictionary<string, bool>();
-                        foreach (var pair in levelChecks) saved.FibonacciLevels[pair.Key] = pair.Value.IsChecked == true;
-                    }
-                    ChartSettingsManager.SaveDrawingToolStyles(_settings);
-                    // The saved style is intentionally not applied to existing drawings.
-                    // Existing drawings keep the style they had when they were created.
-                    window.DialogResult = true;
-                };
-                window.ShowDialog();
-                return;
-            }
 
             form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            var textButtons = CreateDialogButtons();
-            Grid.SetRow(textButtons.panel, row++);
-            form.Children.Add(textButtons.panel);
+            WpfButton backgroundButton = CreateColorButton(current.BackgroundColor);
+            AddSettingRow(form, row++, "رنگ زمینه", backgroundButton);
+
+            form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            WpfButton fontButton = new WpfButton
+            {
+                Content = $"{current.FontFamily}  /  {current.FontSize:0}",
+                Width = 190,
+                Height = 30,
+                Margin = new Thickness(6)
+            };
+            AddSettingRow(form, row++, "فونت", fontButton);
+
+            form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            WpfButton textColorButton = CreateColorButton(current.Color);
+            AddSettingRow(form, row++, "رنگ متن", textColorButton);
+
+            form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var buttons = CreateDialogButtons();
+            Grid.SetRow(buttons.panel, row++);
+            form.Children.Add(buttons.panel);
             window.Content = form;
 
-            backgroundButton!.Click += (_, _) =>
+            ConfigureTextFontButton(fontButton, current);
+            ConfigureTextColorButtons(backgroundButton, textColorButton, current);
+            ConfigureTextDefaults(buttons.defaultButton, backgroundButton, textColorButton, fontButton, current, defaults);
+            ConfigureTextApply(buttons.applyButton, backgroundButton, textColorButton, current);
+
+            window.ShowDialog();
+        }
+
+        private static void ConfigureTextFontButton(WpfButton fontButton, DrawingToolStyle current)
+        {
+            fontButton.Click += (_, _) =>
+            {
+                using var dialog = new System.Windows.Forms.FontDialog
+                {
+                    Font = CreateWinFormsFont(current.FontFamily, current.FontSize),
+                    ShowColor = false
+                };
+                if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    current.FontFamily = dialog.Font.FontFamily.Name;
+                    current.FontSize = dialog.Font.Size;
+                    fontButton.Content = $"{current.FontFamily}  /  {current.FontSize:0}";
+                }
+            };
+        }
+
+        private static void ConfigureTextColorButtons(WpfButton backgroundButton, WpfButton textColorButton, DrawingToolStyle current)
+        {
+            backgroundButton.Click += (_, _) =>
             {
                 using var dialog = new WinFormsColorDialog { FullOpen = true, Color = System.Drawing.ColorTranslator.FromHtml(current.BackgroundColor) };
                 if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                     SetColorButton(backgroundButton, System.Drawing.ColorTranslator.ToHtml(dialog.Color));
             };
 
-            textColorButton!.Click += (_, _) =>
+            textColorButton.Click += (_, _) =>
             {
                 using var dialog = new WinFormsColorDialog { FullOpen = true, Color = System.Drawing.ColorTranslator.FromHtml(current.Color) };
                 if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                     SetColorButton(textColorButton, System.Drawing.ColorTranslator.ToHtml(dialog.Color));
             };
+        }
 
-            textButtons.defaultButton.Click += (_, _) =>
+        private void ConfigureTextDefaults(WpfButton defaultButton, WpfButton backgroundButton, WpfButton textColorButton, WpfButton fontButton, DrawingToolStyle current, DrawingToolStyle defaults)
+        {
+            defaultButton.Click += (_, _) =>
             {
                 SetColorButton(backgroundButton, defaults.BackgroundColor);
                 SetColorButton(textColorButton, defaults.Color);
                 current.FontFamily = defaults.FontFamily;
                 current.FontSize = defaults.FontSize;
-                fontButton!.Content = $"{current.FontFamily}  /  {current.FontSize:0}";
+                fontButton.Content = $"{current.FontFamily}  /  {current.FontSize:0}";
             };
+        }
 
-            textButtons.applyButton.Click += (_, _) =>
+        private void ConfigureTextApply(WpfButton applyButton, WpfButton backgroundButton, WpfButton textColorButton, DrawingToolStyle current)
+        {
+            applyButton.Click += (_, _) =>
             {
                 DrawingToolStyle saved = GetDrawingToolStyle("Text");
                 saved.BackgroundColor = GetColorButtonValue(backgroundButton);
@@ -295,10 +237,122 @@ namespace TradeIt.Charts
                 // Text already drawn on the chart is intentionally left unchanged.
                 // The new style will be used only for text created after this point.
                 Chart.Refresh();
-                window.DialogResult = true;
             };
+        }
+
+        private void ShowLineDrawingToolSettings(Window window, string key, DrawingToolStyle current, DrawingToolStyle defaults, bool isFib)
+        {
+            var form = new WpfGrid { Margin = new Thickness(10) };
+            int row = 0;
+            WpfButton colorButton = CreateColorButton(current.Color);
+            AddSettingRow(form, row++, "رنگ", colorButton);
+
+            form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            WpfComboBox widthBox = CreateWidthCombo(current.LineWidth);
+            AddSettingRow(form, row++, "ضخامت", widthBox);
+
+            form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            WpfComboBox styleBox = CreateStyleCombo(current.LineStyle);
+            AddSettingRow(form, row++, "استایل", styleBox);
+
+            Dictionary<string, System.Windows.Controls.CheckBox> levelChecks = new();
+            if (isFib)
+                AddFibonacciLevelControls(form, ref row, key, current, levelChecks);
+
+            form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var buttons = CreateDialogButtons();
+            Grid.SetRow(buttons.panel, row++);
+            form.Children.Add(buttons.panel);
+            window.Content = form;
+
+            ConfigureLineColorButton(colorButton, current);
+            ConfigureLineDefaults(buttons.defaultButton, colorButton, widthBox, styleBox, levelChecks, defaults);
+            ConfigureLineApply(buttons.applyButton, colorButton, widthBox, styleBox, levelChecks, key, isFib);
 
             window.ShowDialog();
+        }
+
+        private static void AddFibonacciLevelControls(WpfGrid form, ref int row, string key, DrawingToolStyle current, Dictionary<string, System.Windows.Controls.CheckBox> levelChecks)
+        {
+            form.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var levelPanel = new WpfStackPanel { Margin = new Thickness(4, 8, 4, 4) };
+            levelPanel.Children.Add(new WpfTextBlock
+            {
+                Text = "سطوح فیبوناچی رایج",
+                FontWeight = FontWeights.Bold,
+                Margin = new Thickness(0, 0, 0, 5)
+            });
+
+            string[] levels = key == "FibonacciRetracement"
+                ? new[] { "0.0", "23.6", "38.2", "50.0", "61.8", "78.6", "100.0", "127.2", "161.8", "200.0" }
+                : new[] { "0.0", "38.2", "61.8", "100.0", "127.2", "161.8", "200.0", "261.8" };
+
+            foreach (string level in levels)
+            {
+                bool checkedValue = current.FibonacciLevels.TryGetValue(level, out bool value) ? value : true;
+                var check = new System.Windows.Controls.CheckBox
+                {
+                    Content = FormatFibonacciLevelLabel(level),
+                    IsChecked = checkedValue,
+                    Margin = new Thickness(2)
+                };
+                levelChecks[level] = check;
+                levelPanel.Children.Add(check);
+            }
+
+            Grid.SetRow(levelPanel, row++);
+            form.Children.Add(levelPanel);
+        }
+
+        private static string FormatFibonacciLevelLabel(string level) => level switch
+        {
+            "127.2" => "1.272 (127.2%)",
+            "161.8" => "1.618 (161.8%)",
+            "200.0" => "2 (200%)",
+            "261.8" => "2.618 (261.8%)",
+            _ => $"{level}%"
+        };
+
+        private static void ConfigureLineColorButton(WpfButton colorButton, DrawingToolStyle current)
+        {
+            colorButton.Click += (_, _) =>
+            {
+                using var dialog = new WinFormsColorDialog { FullOpen = true, Color = System.Drawing.ColorTranslator.FromHtml(current.Color) };
+                if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                    SetColorButton(colorButton, System.Drawing.ColorTranslator.ToHtml(dialog.Color));
+            };
+        }
+
+        private static void ConfigureLineDefaults(WpfButton defaultButton, WpfButton colorButton, WpfComboBox widthBox, WpfComboBox styleBox, Dictionary<string, System.Windows.Controls.CheckBox> levelChecks, DrawingToolStyle defaults)
+        {
+            defaultButton.Click += (_, _) =>
+            {
+                SetColorButton(colorButton, defaults.Color);
+                widthBox.SelectedItem = FindNumericComboItem(widthBox, defaults.LineWidth);
+                styleBox.SelectedItem = defaults.LineStyle;
+                foreach (var pair in levelChecks)
+                    pair.Value.IsChecked = defaults.FibonacciLevels.TryGetValue(pair.Key, out bool value) ? value : true;
+            };
+        }
+
+        private void ConfigureLineApply(WpfButton applyButton, WpfButton colorButton, WpfComboBox widthBox, WpfComboBox styleBox, Dictionary<string, System.Windows.Controls.CheckBox> levelChecks, string key, bool isFib)
+        {
+            applyButton.Click += (_, _) =>
+            {
+                DrawingToolStyle saved = GetDrawingToolStyle(key);
+                saved.Color = GetColorButtonValue(colorButton);
+                if (widthBox.SelectedItem is double width) saved.LineWidth = width;
+                saved.LineStyle = styleBox.SelectedItem?.ToString() ?? "Solid";
+                if (isFib)
+                {
+                    saved.FibonacciLevels = new Dictionary<string, bool>();
+                    foreach (var pair in levelChecks)
+                        saved.FibonacciLevels[pair.Key] = pair.Value.IsChecked == true;
+                }
+                ChartSettingsManager.SaveDrawingToolStyles(_settings);
+                // The saved style is intentionally not applied to existing drawings.
+                // Existing drawings keep the style they had when they were created.
+            };
         }
 
         private static (WpfStackPanel panel, WpfButton defaultButton, WpfButton cancelButton, WpfButton applyButton) CreateDialogButtons()
