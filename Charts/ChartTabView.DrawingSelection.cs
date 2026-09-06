@@ -230,9 +230,11 @@ namespace TradeIt.Charts
             double right = drawing.IsExtension ? Math.Max(drawing.A.X, drawing.C.X) : Math.Max(drawing.A.X, drawing.B.X);
             if (point.X < left || point.X > right) return double.MaxValue;
 
+            // Keep hit-testing in sync with the complete set of levels rendered by
+            // RenderFibonacciDrawing(), including the 1.272/1.618/2 extension levels.
             double[] ratios = drawing.IsExtension
-                ? new[] { 0.0, 0.382, 0.618, 1.0, 1.618, 2.618 }
-                : new[] { 0.0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0 };
+                ? new[] { 0.0, 0.382, 0.618, 1.0, 1.272, 1.618, 2.0, 2.618 }
+                : new[] { 0.0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0, 1.272, 1.618, 2.0 };
             double nearest = double.MaxValue;
             foreach (double ratio in ratios)
             {
