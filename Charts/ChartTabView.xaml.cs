@@ -9,8 +9,6 @@ using TradeIt.Models;
 using WpfPoint = System.Windows.Point;
 using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
 using WpfMouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
-using WpfMouseWheelEventArgs = System.Windows.Input.MouseWheelEventArgs;
-using WpfMouseButtonState = System.Windows.Input.MouseButtonState;
 using WpfMessageBox = System.Windows.MessageBox;
 using WpfMessageBoxButton = System.Windows.MessageBoxButton;
 using WpfMessageBoxImage = System.Windows.MessageBoxImage;
@@ -23,11 +21,6 @@ namespace TradeIt.Charts
         private readonly SymbolInfo _symbol;
         private readonly List<MarketBar> _bars;
         private ChartDisplayType _chartType = ChartDisplayType.Candlestick;
-        private bool _hasInitialView;
-        private double _initialXMin;
-        private double _initialXMax;
-        private double _initialYMin;
-        private double _initialYMax;
         private bool _chartVisible = true;
         private bool _toolsVisible = true;
         private bool _gridVisible = false;
@@ -35,13 +28,6 @@ namespace TradeIt.Charts
         private ScottPlot.Plottables.Crosshair? _crosshair;
         private bool _crosshairMouseInside;
         private bool _crosshairVisible = true;
-        private enum AxisDragMode { None, TimeAxis, PriceAxis }
-        private AxisDragMode _axisDragMode = AxisDragMode.None;
-        private double _axisDragStartX;
-        private double _axisDragStartY;
-        private const double LeftAxisWidth = 75.0;
-        private const double RightAxisWidth = 30.0;
-        private const double BottomAxisHeight = 55.0;
 
         public ChartTabView(SymbolInfo symbol, List<MarketBar> bars)
         {
@@ -52,10 +38,8 @@ namespace TradeIt.Charts
             SubscribeToSettingsChanges();
             ChartTypeComboBox.SelectedIndex = 0;
             ConfigureInteraction();
-            Chart.PreviewMouseWheel += Chart_PreviewMouseWheel;
             Chart.PreviewMouseLeftButtonDown += Chart_PreviewMouseLeftButtonDown;
             Chart.PreviewMouseMove += Chart_PreviewMouseMove;
-            Chart.PreviewMouseLeftButtonUp += Chart_PreviewMouseLeftButtonUp;
             Chart.MouseLeave += Chart_MouseLeave;
             InitializeCrosshair();
             DrawChart();
@@ -69,11 +53,9 @@ namespace TradeIt.Charts
 
         private void ConfigureInteraction()
         {
-            var input = Chart.UserInputProcessor;
-            input.IsEnabled = true;
-            input.LeftClickDragPan(true, horizontal: true, vertical: true);
-            input.RightClickDragZoom(true, horizontal: true, vertical: true);
-            input.RemoveAll<ScottPlot.Interactivity.UserActionResponses.MouseWheelZoom>();
+            // No built-in pan/zoom interaction is registered here.
+            // Zoom will be reimplemented cleanly later without the legacy handlers.
+            Chart.UserInputProcessor.UserActionResponses.Clear();
         }
 
         private void ClearMainChart()
@@ -182,16 +164,6 @@ namespace TradeIt.Charts
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | {_bars.Count:N0} داده";
         }
 
-        private void Chart_PreviewMouseWheel(object sender, WpfMouseWheelEventArgs e) { ZoomXAxis(e.Delta > 0 ? 0.80 : 1.25); e.Handled = true; }
-        private void ZoomXAxis(double factor)
-        {
-            if (!_hasInitialView) return;
-            var limits = Chart.Plot.Axes.GetLimits(); double range = limits.Right - limits.Left; if (range <= 0) return;
-            double initialRange = _initialXMax - _initialXMin; if (initialRange <= 0) initialRange = range;
-            double newRange = Math.Max(initialRange / 10000.0, Math.Min(initialRange * 2.0, range * factor));
-            Chart.Plot.Axes.SetLimits(limits.Right - newRange, limits.Right, limits.Bottom, limits.Top); Chart.Refresh();
-        }
-
         private void Chart_PreviewMouseLeftButtonDown(object sender, WpfMouseButtonEventArgs e)
         {
             if (_activeDrawingTool != TechnicalDrawingTool.Select)
@@ -205,11 +177,6 @@ namespace TradeIt.Charts
                 TextDrawing_MouseDown(sender, e);
                 return;
             }
-
-            WpfPoint p = e.GetPosition(Chart); AxisDragMode mode = GetAxisDragMode(p.X, p.Y);
-            if (e.ClickCount == 2 && mode == AxisDragMode.PriceAxis) { AutoFitVisiblePriceRange(); e.Handled = true; return; }
-            if (mode == AxisDragMode.None) return;
-            _axisDragMode = mode; _axisDragStartX = p.X; _axisDragStartY = p.Y; Chart.CaptureMouse(); e.Handled = true;
         }
 
         private void Chart_PreviewMouseMove(object sender, WpfMouseEventArgs e)
@@ -217,59 +184,23 @@ namespace TradeIt.Charts
             if (_activeDrawingTool == TechnicalDrawingTool.TrendLine)
                 TechnicalDrawing_MouseMove(sender, e);
 
-            WpfPoint p = e.GetPosition(Chart); UpdateCrosshair(p);
-            if (_axisDragMode == AxisDragMode.None) return;
-            if (e.LeftButton != WpfMouseButtonState.Pressed) { EndAxisDrag(); return; }
-            double deltaX = p.X - _axisDragStartX; double deltaY = p.Y - _axisDragStartY;
-            if (_axisDragMode == AxisDragMode.TimeAxis && Math.Abs(deltaX) >= 1) { ApplyHorizontalAxisZoom(deltaX); _axisDragStartX = p.X; }
-            else if (_axisDragMode == AxisDragMode.PriceAxis && Math.Abs(deltaY) >= 1) { ApplyVerticalAxisZoom(deltaY); _axisDragStartY = p.Y; }
-            e.Handled = true;
-        }
-        private void Chart_PreviewMouseLeftButtonUp(object sender, WpfMouseButtonEventArgs e) { if (_axisDragMode == AxisDragMode.None) return; EndAxisDrag(); e.Handled = true; }
-        private void EndAxisDrag() { _axisDragMode = AxisDragMode.None; if (Chart.IsMouseCaptured) Chart.ReleaseMouseCapture(); }
-        private AxisDragMode GetAxisDragMode(double x, double y)
-        {
-            double width = Chart.ActualWidth, height = Chart.ActualHeight; if (width <= 0 || height <= 0) return AxisDragMode.None;
-            if (y >= height - BottomAxisHeight) return AxisDragMode.TimeAxis;
-            if (x <= LeftAxisWidth || x >= width - RightAxisWidth) return AxisDragMode.PriceAxis;
-            return AxisDragMode.None;
-        }
-        private void ApplyHorizontalAxisZoom(double deltaX)
-        {
-            var limits = Chart.Plot.Axes.GetLimits(); double range = limits.Right - limits.Left; if (range <= 0) return;
-            double newRange = range * Math.Exp(-deltaX / 180.0); double initialRange = _initialXMax - _initialXMin; if (initialRange <= 0) initialRange = range;
-            newRange = Math.Max(initialRange / 10000.0, Math.Min(initialRange * 2.0, newRange)); double center = (limits.Left + limits.Right) / 2.0;
-            Chart.Plot.Axes.SetLimits(center - newRange / 2.0, center + newRange / 2.0, limits.Bottom, limits.Top); Chart.Refresh();
-        }
-        private void ApplyVerticalAxisZoom(double deltaY)
-        {
-            var limits = Chart.Plot.Axes.GetLimits(); double range = limits.Top - limits.Bottom; if (range <= 0) return;
-            double newRange = range * Math.Exp(deltaY / 180.0); double initialRange = _initialYMax - _initialYMin; if (initialRange <= 0) initialRange = range;
-            newRange = Math.Max(initialRange / 10000.0, Math.Min(initialRange * 2.0, newRange)); double center = (limits.Bottom + limits.Top) / 2.0;
-            Chart.Plot.Axes.SetLimits(limits.Left, limits.Right, center - newRange / 2.0, center + newRange / 2.0); Chart.Refresh();
-        }
-        private void AutoFitVisiblePriceRange()
-        {
-            if (!_hasInitialView || _bars.Count == 0) return;
-            var limits = Chart.Plot.Axes.GetLimits(); double minPrice = double.MaxValue, maxPrice = double.MinValue;
-            for (int i = 0; i < _bars.Count; i++) { double x = GetBarDateTime(_bars[i], i).ToOADate(); if (x < limits.Left || x > limits.Right) continue; minPrice = Math.Min(minPrice, _bars[i].Low); maxPrice = Math.Max(maxPrice, _bars[i].High); }
-            if (minPrice == double.MaxValue || maxPrice == double.MinValue) return;
-            double range = maxPrice - minPrice; double padding = range > 0 ? range * 0.05 : Math.Max(Math.Abs(maxPrice) * 0.01, 1);
-            Chart.Plot.Axes.SetLimits(limits.Left, limits.Right, minPrice - padding, maxPrice + padding); Chart.Refresh();
+            UpdateCrosshair(e.GetPosition(Chart));
         }
 
         private void DrawChart()
         {
-            if (_bars.Count == 0) { ClearMainChart(); _hasInitialView = false; ApplySettings(); Chart.Refresh(); return; }
+            if (_bars.Count == 0) { ClearMainChart(); ApplySettings(); Chart.Refresh(); return; }
             if (!ChartSettingsManager.Current.ShowTimeGaps) { ApplyContinuousTimeAxis(); return; }
-            bool preserveCurrentView = _hasInitialView && Chart.ActualWidth > 0 && Chart.ActualHeight > 0;
-            ScottPlot.AxisLimits currentLimits = default;
-            if (preserveCurrentView) currentLimits = Chart.Plot.Axes.GetLimits();
+
             ClearMainChart();
-            switch (_chartType) { case ChartDisplayType.Candlestick: DrawCandlestick(); break; case ChartDisplayType.Line: DrawLine(); break; case ChartDisplayType.Bar: DrawBar(); break; }
+            switch (_chartType)
+            {
+                case ChartDisplayType.Candlestick: DrawCandlestick(); break;
+                case ChartDisplayType.Line: DrawLine(); break;
+                case ChartDisplayType.Bar: DrawBar(); break;
+            }
             ApplySettings();
-            if (!preserveCurrentView) { Chart.Plot.Axes.AutoScale(); }
-            else Chart.Plot.Axes.SetLimits(currentLimits.Left, currentLimits.Right, currentLimits.Bottom, currentLimits.Top);
+            Chart.Plot.Axes.AutoScale();
 
             // Redraw every persisted drawing because ClearMainChart() removes all drawing plottables.
             RenderTechnicalDrawings();
@@ -280,7 +211,7 @@ namespace TradeIt.Charts
             if (_textSelection != null) RenderTextSelectionVisuals();
 
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | {_bars.Count:N0} داده";
-            if (_crosshair != null) _crosshair.IsVisible = _crosshairVisible && _chartVisible && (_crosshairMouseInside || !_hasInitialView);
+            if (_crosshair != null) _crosshair.IsVisible = _crosshairVisible && _chartVisible && _crosshairMouseInside;
             Chart.Refresh();
         }
 
@@ -321,10 +252,9 @@ namespace TradeIt.Charts
             return false;
         }
         private static ScottPlot.LinePattern ParseLinePattern(string? value) => value?.Trim().ToLowerInvariant() switch { "dotted" => ScottPlot.LinePattern.Dotted, "dashed" => ScottPlot.LinePattern.Dashed, "denselydashed" => ScottPlot.LinePattern.DenselyDashed, _ => ScottPlot.LinePattern.Solid };
-        private void SaveInitialView() { var limits = Chart.Plot.Axes.GetLimits(); _initialXMin = limits.Left; _initialXMax = limits.Right; _initialYMin = limits.Bottom; _initialYMax = limits.Top; _hasInitialView = true; }
         private void GridButton_Click(object sender, RoutedEventArgs e) { _gridVisible = !_gridVisible; SetGridVisibility(Chart, _gridVisible); GridButton.Content = _gridVisible ? "GRID" : "GRID خاموش"; Chart.Refresh(); }
         private void SetGridVisibility(ScottPlot.WPF.WpfPlot plot, bool visible) => plot.Plot.Grid.IsVisible = visible;
-        private void CrosshairButton_Click(object sender, RoutedEventArgs e) { _crosshairVisible = !_crosshairVisible; if (_crosshair != null) _crosshair.IsVisible = _crosshairVisible && _chartVisible && (_crosshairMouseInside || !_hasInitialView); CrosshairButton.Content = _crosshairVisible ? "Crosshair روشن" : "Crosshair خاموش"; Chart.Refresh(); }
+        private void CrosshairButton_Click(object sender, RoutedEventArgs e) { _crosshairVisible = !_crosshairVisible; if (_crosshair != null) _crosshair.IsVisible = _crosshairVisible && _chartVisible && _crosshairMouseInside; CrosshairButton.Content = _crosshairVisible ? "Crosshair روشن" : "Crosshair خاموش"; Chart.Refresh(); }
         private void ScreenshotButton_Click(object sender, RoutedEventArgs e) { try { int width = (int)Math.Max(1, ActualWidth), height = (int)Math.Max(1, ActualHeight); var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(width, height, 96, 96, System.Windows.Media.PixelFormats.Pbgra32); bitmap.Render(this); var dialog = new Microsoft.Win32.SaveFileDialog { Title = "ذخیره تصویر نمودار", Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg", FileName = $"{_symbol.Symbol}_{DateTime.Now:yyyyMMdd_HHmmss}.png" }; if (dialog.ShowDialog() != true) return; System.Windows.Media.Imaging.BitmapEncoder encoder = Path.GetExtension(dialog.FileName).Equals(".jpg", StringComparison.OrdinalIgnoreCase) ? new System.Windows.Media.Imaging.JpegBitmapEncoder() : new System.Windows.Media.Imaging.PngBitmapEncoder(); encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap)); using FileStream stream = new FileStream(dialog.FileName, FileMode.Create); encoder.Save(stream); BottomInfoTextBlock.Text = $"تصویر ذخیره شد: {dialog.FileName}"; } catch (Exception ex) { WpfMessageBox.Show($"خطا در گرفتن تصویر نمودار:\n{ex.Message}", "Screenshot", WpfMessageBoxButton.OK, WpfMessageBoxImage.Error); } }
         private void PrintButton_Click(object sender, RoutedEventArgs e) { try { var dialog = new WpfPrintDialog(); if (dialog.ShowDialog() != true) return; dialog.PrintVisual(this, $"TradeIt - {_symbol.Symbol}"); BottomInfoTextBlock.Text = "نمودار برای چاپ ارسال شد."; } catch (Exception ex) { WpfMessageBox.Show($"خطا در چاپ نمودار:\n{ex.Message}", "Print", WpfMessageBoxButton.OK, WpfMessageBoxImage.Error); } }
         private void ChartTypeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (ChartTypeComboBox.SelectedItem is not ComboBoxItem item) return; string type = item.Tag?.ToString() ?? string.Empty; _chartType = type switch { "Line" => ChartDisplayType.Line, "Bar" => ChartDisplayType.Bar, _ => ChartDisplayType.Candlestick }; DrawChart(); }
