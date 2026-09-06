@@ -271,7 +271,13 @@ namespace TradeIt.Charts
             if (!preserveCurrentView) { Chart.Plot.Axes.AutoScale(); }
             else Chart.Plot.Axes.SetLimits(currentLimits.Left, currentLimits.Right, currentLimits.Bottom, currentLimits.Top);
 
+            // Redraw every persisted drawing because ClearMainChart() removes all drawing plottables.
+            RenderTechnicalDrawings();
             RenderAllFibonacciDrawings();
+            RenderArrowDrawings();
+            RenderTextDrawings();
+            RenderDrawingSelectionOverlay();
+            if (_textSelection != null) RenderTextSelectionVisuals();
 
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | {_bars.Count:N0} داده";
             if (_crosshair != null) _crosshair.IsVisible = _crosshairVisible && _chartVisible && (_crosshairMouseInside || !_hasInitialView);
