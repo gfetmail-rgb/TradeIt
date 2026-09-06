@@ -32,7 +32,7 @@ namespace TradeIt.Charts
 
         private void DrawingVisibilityFix_RenderStarting(object? sender, ScottPlot.RenderPack e)
         {
-            if (_allDrawingsVisible)
+            if (!IsLoaded || _allDrawingsVisible)
                 return;
 
             SetAllPersistentDrawingPlottablesVisible(false);
