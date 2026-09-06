@@ -13,7 +13,14 @@ namespace TradeIt.Charts
         private static ChartSettings _current = LoadOrCreateDefaults();
 
         public static event EventHandler? SettingsChanged;
-        public static ChartSettings Current => _current.Clone();
+        public static ChartSettings Current
+        {
+            get
+            {
+                lock (Sync)
+                    return _current.Clone();
+            }
+        }
 
         public static void SetCurrent(ChartSettings settings)
         {
@@ -44,12 +51,18 @@ namespace TradeIt.Charts
 
         private static void PersistCurrent()
         {
+            ChartSettings snapshot;
+            lock (Sync)
+            {
+                _current.HasUserSavedSettings = true;
+                snapshot = _current.Clone();
+            }
+
             Directory.CreateDirectory(Path.GetDirectoryName(SettingsFile)!);
-            _current.HasUserSavedSettings = true;
-            File.WriteAllText(SettingsFile, JsonSerializer.Serialize(_current, JsonOptions));
+            File.WriteAllText(SettingsFile, JsonSerializer.Serialize(snapshot, JsonOptions));
         }
 
-        public static void Save() => Save(_current);
+        public static void Save() => Save(Current);
 
         private static ChartSettings LoadOrCreateDefaults()
         {
