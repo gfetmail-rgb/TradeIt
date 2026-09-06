@@ -23,7 +23,6 @@ namespace TradeIt.Charts
         private readonly List<PitchforkDrawing> _pitchforks = new();
         private ScottPlot.Coordinates? _advancedDrawingP1;
         private ScottPlot.Coordinates? _advancedDrawingP2;
-        private ScottPlot.Coordinates? _horizontalRayStart;
         private ScottPlot.Plottables.Scatter? _advancedDrawingPreview1;
         private ScottPlot.Plottables.Scatter? _advancedDrawingPreview2;
         private ScottPlot.Plottables.Scatter? _horizontalRayPreview;
@@ -39,7 +38,7 @@ namespace TradeIt.Charts
         private void DrawingParallelChannelButton_Click_Advanced(object sender, RoutedEventArgs e) { _textDrawingActive = false; SetAdvancedDrawingTool(AdvancedToolParallelChannel); }
         private void DrawingRectangleButton_Click_Advanced(object sender, RoutedEventArgs e) { _textDrawingActive = false; SetAdvancedDrawingTool(AdvancedToolRectangle); }
         private void DrawingPitchforkButton_Click_Advanced(object sender, RoutedEventArgs e) { _textDrawingActive = false; SetAdvancedDrawingTool(AdvancedToolPitchfork); }
-        private void SetAdvancedDrawingTool(int tool) { RemoveAdvancedPreview(); _horizontalRayStart = null; RemoveHorizontalRayPreview(); _advancedDrawingP1 = null; _advancedDrawingP2 = null; _activeDrawingTool = (TechnicalDrawingTool)tool; Chart.UserInputProcessor.IsEnabled = false; DrawingParallelChannelButton.Opacity = tool == AdvancedToolParallelChannel ? 1.0 : 0.55; DrawingRectangleButton.Opacity = tool == AdvancedToolRectangle ? 1.0 : 0.55; DrawingPitchforkButton.Opacity = tool == AdvancedToolPitchfork ? 1.0 : 0.55; Chart.Focusable = true; Chart.Focus(); Focus(); Chart.Refresh(); }
+        private void SetAdvancedDrawingTool(int tool) { RemoveAdvancedPreview(); RemoveHorizontalRayPreview(); _advancedDrawingP1 = null; _advancedDrawingP2 = null; _activeDrawingTool = (TechnicalDrawingTool)tool; Chart.UserInputProcessor.IsEnabled = false; DrawingParallelChannelButton.Opacity = tool == AdvancedToolParallelChannel ? 1.0 : 0.55; DrawingRectangleButton.Opacity = tool == AdvancedToolRectangle ? 1.0 : 0.55; DrawingPitchforkButton.Opacity = tool == AdvancedToolPitchfork ? 1.0 : 0.55; Chart.Focusable = true; Chart.Focus(); Focus(); Chart.Refresh(); }
         private bool IsAdvancedDrawingTool => (int)_activeDrawingTool == AdvancedToolParallelChannel || (int)_activeDrawingTool == AdvancedToolRectangle || (int)_activeDrawingTool == AdvancedToolPitchfork;
         private bool TryGetAdvancedPoint(WpfMouseEventArgs e, out ScottPlot.Coordinates point) { point = default; if (!TryGetChartCoordinates(Chart, e.GetPosition(Chart), out ScottPlot.Coordinates coordinates)) return false; int index = FindNearestDrawingBarIndex(coordinates.X); if (index < 0) return false; point = new ScottPlot.Coordinates(GetDrawingX(index), coordinates.Y); return true; }
         private bool TryGetRawChartPoint(WpfMouseEventArgs e, out ScottPlot.Coordinates point) => TryGetChartCoordinates(Chart, e.GetPosition(Chart), out point);
