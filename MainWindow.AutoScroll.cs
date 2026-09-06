@@ -53,9 +53,7 @@ namespace TradeIt
             int initialIndex = selectedIndex >= 0 ? selectedIndex : 0;
 
             _autoScrollViewLoading = false;
-            RefreshSymbolsButton.IsEnabled = false;
-            DeleteSymbolsButton.IsEnabled = false;
-            MakeWatchButton.IsEnabled = false;
+            SetAutoScrollUiEnabled(false);
             AutoScrollButton.Content = "Stop";
 
             EnsureAutoScrollControllerTab();
@@ -92,6 +90,13 @@ namespace TradeIt
                 return false;
             }
             return true;
+        }
+
+        private void SetAutoScrollUiEnabled(bool enabled)
+        {
+            RefreshSymbolsButton.IsEnabled = enabled;
+            DeleteSymbolsButton.IsEnabled = enabled;
+            MakeWatchButton.IsEnabled = enabled;
         }
 
         private void EnsureAutoScrollControllerTab()
@@ -166,16 +171,7 @@ namespace TradeIt
             try
             {
                 SymbolInfo symbol = _allSymbols[index];
-                _suppressSymbolSelection = true;
-                try
-                {
-                    SymbolsDataGrid.SelectedItem = symbol;
-                    SymbolsDataGrid.ScrollIntoView(symbol);
-                }
-                finally
-                {
-                    _suppressSymbolSelection = false;
-                }
+                SelectAutoScrollSymbol(symbol);
 
                 List<MarketBar> bars = await Task.Run(
                     () => _symbolDataService.LoadBars(symbol, _selectedPortfolio));
@@ -211,18 +207,27 @@ namespace TradeIt
             }
         }
 
+        private void SelectAutoScrollSymbol(SymbolInfo symbol)
+        {
+            _suppressSymbolSelection = true;
+            try
+            {
+                SymbolsDataGrid.SelectedItem = symbol;
+                SymbolsDataGrid.ScrollIntoView(symbol);
+            }
+            finally
+            {
+                _suppressSymbolSelection = false;
+            }
+        }
+
         private void StopAutoScrollController()
         {
             _autoScrollController.Stop();
             _autoScrollViewLoading = false;
             if (AutoScrollButton != null)
                 AutoScrollButton.Content = "Auto Scroll";
-            if (RefreshSymbolsButton != null)
-                RefreshSymbolsButton.IsEnabled = true;
-            if (DeleteSymbolsButton != null)
-                DeleteSymbolsButton.IsEnabled = true;
-            if (MakeWatchButton != null)
-                MakeWatchButton.IsEnabled = true;
+            SetAutoScrollUiEnabled(true);
         }
     }
 }
