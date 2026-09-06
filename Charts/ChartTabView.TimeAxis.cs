@@ -17,7 +17,6 @@ namespace TradeIt.Charts
         private bool _timeGapsEventsAttached;
 
         private static readonly bool _timeGapsRegistered = RegisterTimeGapsHandling();
-        private static readonly bool _dateRangeFixRegistered = RegisterDateRangeFix();
 
         private static bool RegisterTimeGapsHandling()
         {
@@ -78,13 +77,8 @@ namespace TradeIt.Charts
             ApplySettings();
             ConfigureContinuousDateAxis();
 
-            // The drawing coordinate helpers must know that the chart is already
-            // using the continuous index axis before any drawing is restored.
             _continuousTimeAxisApplied = true;
 
-            // ClearMainChart() also removes persisted drawing plottables. Restore the
-            // non-advanced drawings here; advanced drawings and their styles are restored
-            // by AdvancedDrawingRenderFix during RenderStarting.
             RenderTechnicalDrawings();
             RenderAllFibonacciDrawings();
             RenderArrowDrawings();
@@ -185,36 +179,6 @@ namespace TradeIt.Charts
         private void TimeGaps_ChartMouseMove(object sender, WpfMouseEventArgs e)
         {
             if (_continuousTimeAxisApplied) ApplyContinuousCrosshair(e);
-        }
-
-        private static bool RegisterDateRangeFix()
-        {
-            EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.LoadedEvent, new RoutedEventHandler(DateRangeFix_Loaded));
-            return true;
-        }
-
-        private static void DateRangeFix_Loaded(object sender, RoutedEventArgs e)
-        {
-            if (sender is not ChartTabView chart) return;
-            chart.Dispatcher.BeginInvoke(new Action(chart.ApplyDateAndInitialRangeFix), DispatcherPriority.SystemIdle);
-        }
-
-        private void ApplyDateAndInitialRangeFix()
-        {
-            try
-            {
-                bool changed = NormalizeTimestampsFromSourceDates();
-                if (changed)
-                    DrawChart();
-
-                InitializeCrosshairAtInitialPosition();
-                ConfigureDisplayDateAxis(Chart);
-                Chart.Refresh();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Chart date normalization fix failed: {ex}");
-            }
         }
 
         private bool NormalizeTimestampsFromSourceDates()
