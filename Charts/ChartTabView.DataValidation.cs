@@ -16,19 +16,10 @@ namespace TradeIt.Charts
             for (int i = 0; i < _bars.Count; i++)
             {
                 MarketBar bar = _bars[i];
-
-                if (!IsFinitePositive(bar.Open) ||
-                    !IsFinitePositive(bar.High) ||
-                    !IsFinitePositive(bar.Low) ||
-                    !IsFinitePositive(bar.Close) ||
-                    double.IsNaN(bar.Volume) ||
-                    double.IsInfinity(bar.Volume) ||
-                    bar.Volume < 0 ||
-                    bar.High < bar.Low ||
-                    bar.High < Math.Max(bar.Open, bar.Close) ||
-                    bar.Low > Math.Min(bar.Open, bar.Close))
+                string? reason = GetInvalidBarReason(bar);
+                if (reason != null)
                 {
-                    ShowInvalidChartDataMessage();
+                    ShowInvalidChartDataMessage(i, reason);
                     return false;
                 }
             }
@@ -36,7 +27,28 @@ namespace TradeIt.Charts
             return true;
         }
 
-        private void ShowInvalidChartDataMessage()
+        private static string? GetInvalidBarReason(MarketBar bar)
+        {
+            if (!IsFinitePositive(bar.Open) || !IsFinitePositive(bar.High) ||
+                !IsFinitePositive(bar.Low) || !IsFinitePositive(bar.Close))
+                return "مقادیر قیمت نامعتبر یا غیرعددی هستند";
+
+            if (double.IsNaN(bar.Volume) || double.IsInfinity(bar.Volume) || bar.Volume < 0)
+                return "حجم نامعتبر است";
+
+            if (bar.High < bar.Low)
+                return "بیشینه قیمت از کمینه قیمت کمتر است";
+
+            if (bar.High < Math.Max(bar.Open, bar.Close))
+                return "بیشینه قیمت از قیمت باز یا پایانی کمتر است";
+
+            if (bar.Low > Math.Min(bar.Open, bar.Close))
+                return "کمینه قیمت از قیمت باز یا پایانی بیشتر است";
+
+            return null;
+        }
+
+        private void ShowInvalidChartDataMessage(int barIndex, string reason)
         {
             if (_chartDataInvalid)
                 return;
@@ -51,10 +63,11 @@ namespace TradeIt.Charts
                 $"چارت نماد «{_symbol.Symbol}» به دلیل خرابی یا ناقص بودن داده‌ها قابل نمایش نیست.";
 
             System.Windows.MessageBox.Show(
-                $"چارت نماد «{_symbol.Symbol}» به دلیل خرابی یا ناقص بودن داده‌ها قابل نمایش نیست.\n\nداده‌های فایل منبع تغییر داده نشده‌اند.",
+                $"چارت نماد «{_symbol.Symbol}» به دلیل خرابی یا ناقص بودن داده‌ها قابل نمایش نیست.\n\n" +
+                $"ردیف داده: {barIndex + 1:N0}\nعلت: {reason}\n\nداده‌های فایل منبع تغییر داده نشده‌اند.",
                 "داده خراب",
-                System.Windows.MessageBoxButton.OK,
-                System.Windows.MessageBoxImage.Warning);
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
         }
 
         private static bool IsFinitePositive(double value)
