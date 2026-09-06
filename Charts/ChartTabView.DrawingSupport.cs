@@ -1,7 +1,6 @@
 using System;
 using System.Windows;
 using System.Windows.Input;
-using TradeIt.Charts;
 
 namespace TradeIt.Charts
 {
@@ -53,7 +52,6 @@ namespace TradeIt.Charts
         }
 
         private bool _drawingCursorAttached;
-        private bool _advancedDirectInputAttached;
 
         private void InitializeDrawingCursorHandling()
         {
@@ -70,12 +68,8 @@ namespace TradeIt.Charts
             DrawingFibRetracementButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.Cross);
             DrawingFibExtensionButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.Cross);
             DrawingTextButton.Click += (_, _) => SetDrawingCursor(System.Windows.Input.Cursors.IBeam);
-            if (!_advancedDirectInputAttached)
-            {
-                _advancedDirectInputAttached = true;
-                Chart.PreviewMouseLeftButtonDown += AdvancedDirectMouseDown;
-                Chart.PreviewMouseMove += AdvancedDirectMouseMove;
-            }
+            Chart.PreviewMouseLeftButtonDown += AdvancedDirectMouseDown;
+            Chart.PreviewMouseMove += AdvancedDirectMouseMove;
             AddHandler(Keyboard.PreviewKeyDownEvent, new System.Windows.Input.KeyEventHandler(DrawingCursor_KeyDown), true);
             AddHandler(UIElement.PreviewMouseRightButtonDownEvent, new System.Windows.Input.MouseButtonEventHandler(DrawingCursor_RightMouseDown), true);
         }
