@@ -360,6 +360,7 @@ namespace TradeIt.Charts
             chart.InitializeTechnicalDrawingHandling();
             chart.InitializeTextDrawingHandling();
             chart.AttachAdvancedDrawingTools();
+            chart.AttachAdvancedDrawingRenderFix();
             chart.AttachUnifiedDrawingInput();
             chart.InitializeDrawingCursorHandling();
         }
