@@ -335,6 +335,12 @@ namespace TradeIt.Charts
                 UpdateDisplayStateButtons();
                 UpdateInitialOHLCVInfo();
                 Chart.Refresh();
+
+                // This is intentionally the last X-axis operation of the initial-load pipeline.
+                // Earlier Loaded/Render callbacks can be followed by the final chart rebuild,
+                // which would otherwise overwrite the requested initial 200-candle viewport.
+                ApplyInitialDisplayRange();
+
                 if (!_finalChartMouseMoveAttached)
                 {
                     _finalChartMouseMoveAttached = true;
