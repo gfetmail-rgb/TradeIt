@@ -36,11 +36,19 @@ namespace TradeIt.Services
             return true;
         }
 
+        /// <summary>
+        /// Advances to the next symbol. Returns -1 when the sequence has reached
+        /// the end, matching the previous Auto Scroll behavior (no wrap-around).
+        /// </summary>
         public int MoveNext()
         {
-            if (_count <= 0) return -1;
+            if (_count <= 0 || _index < 0)
+                return -1;
+
+            if (_index >= _count - 1)
+                return -1;
+
             _index++;
-            if (_index >= _count) _index = 0;
             return _index;
         }
 
@@ -70,8 +78,15 @@ namespace TradeIt.Services
 
             try
             {
-                if (!_running || _tickAction == null) return;
-                MoveNext();
+                if (!_running || _tickAction == null)
+                    return;
+
+                if (MoveNext() < 0)
+                {
+                    Stop();
+                    return;
+                }
+
                 await _tickAction();
             }
             finally
