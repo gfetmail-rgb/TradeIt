@@ -23,7 +23,6 @@ Filtering is delegated to `SymbolFilterEngine`, including historical-bar caching
 - interaction and axes
 - time-axis handling
 - settings synchronization
-- initial range
 - crosshair
 - drawing tools, selection, handles, text and technical drawings
 - chart export (screenshot / print)
