@@ -102,6 +102,17 @@ namespace TradeIt.Charts
             Chart.Plot.Axes.SetLimits(firstX - 0.5, lastX + 0.5 + rightMargin,
                 double.IsFinite(minPrice) ? minPrice - padding : current.Bottom,
                 double.IsFinite(maxPrice) ? maxPrice + padding : current.Top);
+
+            // ClearMainChart() also removes persisted drawing plottables. Restore the
+            // non-advanced drawings here; advanced drawings and their styles are restored
+            // by AdvancedDrawingRenderFix during RenderStarting.
+            RenderTechnicalDrawings();
+            RenderAllFibonacciDrawings();
+            RenderArrowDrawings();
+            RenderTextDrawings();
+            RenderDrawingSelectionOverlay();
+            if (_textSelection != null) RenderTextSelectionVisuals();
+
             SaveInitialView();
             _initialCandleRangeApplied = true;
             _continuousTimeAxisApplied = true;
