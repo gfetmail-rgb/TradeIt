@@ -65,11 +65,6 @@ namespace TradeIt.Charts
             _crosshair.IsVisible = true;
         }
 
-        private void ConfigureBottomAxisForCrosshair()
-        {
-            // DrawChart() and the final chart-fix pass own the bottom-axis tick generator.
-        }
-
         private static readonly bool _crosshairButtonSafeFixRegistered = RegisterCrosshairButtonSafeFix();
         private bool _crosshairButtonSafeFixAttached;
 
