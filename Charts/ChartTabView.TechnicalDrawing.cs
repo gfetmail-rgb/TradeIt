@@ -28,7 +28,6 @@ namespace TradeIt.Charts
         private ScottPlot.Coordinates? _trendLineStart;
         private ScottPlot.Plottables.Scatter? _trendLinePreview;
         private bool _technicalDrawingEventsAttached;
-        private bool _suppressContextMenuAfterCancel;
 
         private void InitializeTechnicalDrawingHandling()
         {
@@ -54,7 +53,6 @@ namespace TradeIt.Charts
             RemoveTrendLinePreview();
             _activeDrawingTool = tool;
             _trendLineStart = null;
-            _suppressContextMenuAfterCancel = false;
             Chart.ReleaseMouseCapture();
             Chart.UserInputProcessor.IsEnabled = tool == TechnicalDrawingTool.Select && !_textDrawingActive;
             UpdateTechnicalDrawingButtons();
@@ -133,7 +131,6 @@ namespace TradeIt.Charts
                 e.Handled = true;
                 return;
             }
-            if (_suppressContextMenuAfterCancel) { _suppressContextMenuAfterCancel = false; e.Handled = true; return; }
             if (e.ClickCount == 2)
             {
                 WpfPoint position = e.GetPosition(Chart); double scale = Chart.DisplayScale; if (scale <= 0) scale = 1.0;
@@ -151,7 +148,7 @@ namespace TradeIt.Charts
         private void CancelDrawingMode()
         {
             RemoveTrendLinePreview(); _trendLineStart = null; _textDrawingActive = false; Chart.ReleaseMouseCapture();
-            _activeDrawingTool = TechnicalDrawingTool.Select; Chart.UserInputProcessor.IsEnabled = true; _suppressContextMenuAfterCancel = false;
+            _activeDrawingTool = TechnicalDrawingTool.Select; Chart.UserInputProcessor.IsEnabled = true;
             UpdateTechnicalDrawingButtons(); ChartInfoTextBlock.Text = $"{_symbol.Symbol} | رسم ابزار لغو شد"; Chart.Refresh();
         }
 
