@@ -6,6 +6,20 @@ namespace TradeIt.Charts
     public partial class ChartTabView
     {
         private bool _drawingVisibilityFixAttached;
+        private static readonly bool _drawingVisibilityFixRegistered = RegisterDrawingVisibilityFix();
+
+        private static bool RegisterDrawingVisibilityFix()
+        {
+            EventManager.RegisterClassHandler(typeof(ChartTabView), FrameworkElement.LoadedEvent,
+                new RoutedEventHandler(DrawingVisibilityFix_Loaded));
+            return true;
+        }
+
+        private static void DrawingVisibilityFix_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is ChartTabView chart)
+                chart.AttachDrawingVisibilityFix();
+        }
 
         private void AttachDrawingVisibilityFix()
         {
