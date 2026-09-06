@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using TradeIt.Services;
@@ -72,9 +73,14 @@ namespace TradeIt.Charts
                 {
                     var saved = JsonSerializer.Deserialize<ChartSettings>(File.ReadAllText(SettingsFile));
                     if (saved != null && saved.HasUserSavedSettings) return saved;
+                    if (saved != null)
+                        Debug.WriteLine("TradeIt: chart settings file exists but has no saved-settings marker; using defaults.");
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"TradeIt: chart settings could not be loaded; using defaults. {ex}");
+            }
 
             return new ChartSettings
             {
