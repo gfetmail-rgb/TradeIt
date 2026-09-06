@@ -1,5 +1,5 @@
 using System.Windows;
-using System.Windows.Controls;
+using WpfButton = System.Windows.Controls.Button;
 
 namespace TradeIt.Charts
 {
@@ -10,8 +10,8 @@ namespace TradeIt.Charts
         private static bool RegisterDrawingToolSettingsApplyClose()
         {
             EventManager.RegisterClassHandler(
-                typeof(Button),
-                Button.ClickEvent,
+                typeof(WpfButton),
+                WpfButton.ClickEvent,
                 new RoutedEventHandler(DrawingToolSettingsApplyClose_Click),
                 true);
             return true;
@@ -19,7 +19,7 @@ namespace TradeIt.Charts
 
         private static void DrawingToolSettingsApplyClose_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not Button button ||
+            if (sender is not WpfButton button ||
                 !string.Equals(button.Content?.ToString(), "اعمال", System.StringComparison.Ordinal))
                 return;
 
