@@ -164,9 +164,23 @@ namespace TradeIt.Charts
 
         private int FindNearestDrawingBarIndex(double x)
         {
-            if (_bars.Count == 0) return -1; int bestIndex = -1; double bestDistance = double.MaxValue;
-            for (int i = 0; i < _bars.Count; i++) { double distance = Math.Abs(GetDrawingX(i) - x); if (distance < bestDistance) { bestDistance = distance; bestIndex = i; } }
-            return bestIndex;
+            if (_bars.Count == 0) return -1;
+            int low = 0;
+            int high = _bars.Count - 1;
+            while (low <= high)
+            {
+                int mid = low + ((high - low) >> 1);
+                double midX = GetDrawingX(mid);
+                if (midX < x) low = mid + 1;
+                else if (midX > x) high = mid - 1;
+                else return mid;
+            }
+
+            if (low <= 0) return 0;
+            if (low >= _bars.Count) return _bars.Count - 1;
+            double leftDistance = Math.Abs(GetDrawingX(low - 1) - x);
+            double rightDistance = Math.Abs(GetDrawingX(low) - x);
+            return leftDistance <= rightDistance ? low - 1 : low;
         }
 
         private double GetDrawingX(int index) => _continuousTimeAxisApplied ? ContinuousX(index) : GetBarDateTime(_bars[index], index).ToOADate();
