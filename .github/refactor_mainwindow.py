@@ -6,7 +6,8 @@ ROOT = Path(__file__).resolve().parents[1]
 MARKER = "// AUTO-REFACTORED-METHODS-V2"
 HELPER = ROOT / "MainWindow.RefactoredMethods.cs"
 
-# Each tuple is (source file, method name, optional predicate for overload selection).
+# One-time safe extraction of the selected MainWindow handlers into a partial class.
+# The generated code is behavior-preserving; this script is intentionally idempotent.
 TARGETS = [
     ("MainWindow.xaml.cs", "OpenChartTabAsync", lambda b: "bool replaceCurrentTab" in b),
     ("MainWindow.xaml.cs", "CreateTabHeader", None),
@@ -21,7 +22,6 @@ TARGETS = [
 
 
 def method_start_candidates(text, name):
-    # Handles multiline signatures while requiring an access modifier.
     pat = re.compile(
         rf"(?ms)^[ \t]*(?:public|private|protected|internal)\b[^;{{}}]*?\b{name}\s*\([^;{{}}]*?\)\s*\{{"
     )
@@ -36,39 +36,24 @@ def matching_brace(text, open_index):
         c = text[i]
         n = text[i + 1] if i + 1 < len(text) else ""
         if state == "code":
-            if c == '"':
-                state = "string"
-            elif c == "'":
-                state = "char"
-            elif c == "/" and n == "/":
-                state = "line_comment"
-                i += 1
-            elif c == "/" and n == "*":
-                state = "block_comment"
-                i += 1
-            elif c == "{":
-                depth += 1
+            if c == '"': state = "string"
+            elif c == "'": state = "char"
+            elif c == "/" and n == "/": state = "line_comment"; i += 1
+            elif c == "/" and n == "*": state = "block_comment"; i += 1
+            elif c == "{": depth += 1
             elif c == "}":
                 depth -= 1
-                if depth == 0:
-                    return i
+                if depth == 0: return i
         elif state == "string":
-            if c == "\\":
-                i += 1
-            elif c == '"':
-                state = "code"
+            if c == "\\": i += 1
+            elif c == '"': state = "code"
         elif state == "char":
-            if c == "\\":
-                i += 1
-            elif c == "'":
-                state = "code"
+            if c == "\\": i += 1
+            elif c == "'": state = "code"
         elif state == "line_comment":
-            if c == "\n":
-                state = "code"
+            if c == "\n": state = "code"
         elif state == "block_comment":
-            if c == "*" and n == "/":
-                state = "code"
-                i += 1
+            if c == "*" and n == "/": state = "code"; i += 1
         i += 1
     raise RuntimeError("Unbalanced braces")
 
@@ -120,7 +105,6 @@ def main():
     if len(extracted_all) != len(TARGETS):
         raise RuntimeError("Not all requested methods were extracted")
 
-    # Preserve the union of using directives from the affected files.
     using_blocks = []
     for filename in grouped:
         text = (ROOT / filename).read_text(encoding="utf-8")
@@ -140,7 +124,7 @@ def main():
     )
 
     for path, content in updated_files.items():
-        if "AUTO-REFACTORED-METHODS-V2" not in content:
+        if MARKER not in content:
             content = content.replace(
                 "public partial class MainWindow\n    {",
                 "public partial class MainWindow\n    {\n        // AUTO-REFACTORED-METHODS-V2: implementations moved to MainWindow.RefactoredMethods.cs",
