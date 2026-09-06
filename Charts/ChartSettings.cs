@@ -29,7 +29,7 @@ namespace TradeIt.Charts
         public string RisingColor { get; set; } = "#00A86B";
         public string FallingColor { get; set; } = "#E74C3C";
         public string LineColor { get; set; } = "#1976D2";
-        public string VolumeColor { get; set; } = "#607D8B";
+        public string VolumeColor { get; set; } = "#000000";
         public double VolumeBarWidth { get; set; } = 0.8;
         public string FigureBackground { get; set; } = "#FFFFFF";
         public string DataBackground { get; set; } = "#FFFFFF";
