@@ -1,0 +1,34 @@
+name: Refactor MainWindow
+
+on:
+  push:
+    branches: [ order1 ]
+
+permissions:
+  contents: write
+
+jobs:
+  refactor:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout order1
+        uses: actions/checkout@v4
+        with:
+          ref: order1
+          fetch-depth: 0
+
+      - name: Run refactor
+        run: python3 .github/refactor_mainwindow.py
+
+      - name: Commit and push refactor
+        run: |
+          if git diff --quiet; then
+            echo "No refactor changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add MainWindow.xaml.cs MainWindow.RefactoredMethods.cs
+          git commit -m "Refactor MainWindow handlers into partial class"
+          git push origin HEAD:order1
