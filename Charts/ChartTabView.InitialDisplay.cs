@@ -1,6 +1,4 @@
 using System;
-using System.Windows;
-using System.Windows.Threading;
 
 namespace TradeIt.Charts
 {
@@ -9,44 +7,14 @@ namespace TradeIt.Charts
         private const int InitialVisibleCandleCount = 200;
         private const double InitialRightBlankFraction = 0.25;
         private bool _initialDisplayApplied;
-        private static readonly bool _initialDisplayRegistered = RegisterInitialDisplay();
-
-        private static bool RegisterInitialDisplay()
-        {
-            EventManager.RegisterClassHandler(
-                typeof(ChartTabView),
-                FrameworkElement.LoadedEvent,
-                new RoutedEventHandler(InitialDisplay_Loaded));
-            return true;
-        }
-
-        private static void InitialDisplay_Loaded(object sender, RoutedEventArgs e)
-        {
-            if (sender is not ChartTabView chart)
-                return;
-
-            chart.Dispatcher.BeginInvoke(
-                new Action(chart.ApplyInitialDisplayRange),
-                DispatcherPriority.Render);
-        }
 
         private void ApplyInitialDisplayRange()
         {
             if (_initialDisplayApplied || _bars.Count == 0 || !IsLoaded)
                 return;
 
-            if (Chart.ActualWidth <= 0 || Chart.ActualHeight <= 0)
-            {
-                Dispatcher.BeginInvoke(
-                    new Action(ApplyInitialDisplayRange),
-                    DispatcherPriority.Render);
-                return;
-            }
-
             try
             {
-                Chart.Plot.Axes.AutoScale();
-
                 int visibleCount = Math.Min(InitialVisibleCandleCount, _bars.Count);
                 int firstIndex = _bars.Count - visibleCount;
                 int lastIndex = _bars.Count - 1;
@@ -65,15 +33,23 @@ namespace TradeIt.Charts
                     lastX = GetBarDateTime(_bars[lastIndex], lastIndex).ToOADate();
                 }
 
-                double candleWidth = Math.Max(1.0 / 24.0, lastX > firstX
-                    ? (lastX - firstX) / Math.Max(1, visibleCount - 1)
-                    : 1.0);
+                if (!double.IsFinite(firstX) || !double.IsFinite(lastX))
+                    return;
 
-                double left = firstX - candleWidth / 2.0;
-                double dataWidth = Math.Max(candleWidth, (lastX - firstX) + candleWidth);
-                double rightBlankWidth = dataWidth *
-                    InitialRightBlankFraction / (1.0 - InitialRightBlankFraction);
-                double right = lastX + candleWidth / 2.0 + rightBlankWidth;
+                double slotWidth = visibleCount > 1
+                    ? (lastX - firstX) / (visibleCount - 1)
+                    : 1.0;
+
+                if (!(slotWidth > 0) || !double.IsFinite(slotWidth))
+                    slotWidth = _continuousTimeAxisApplied ? 1.0 : 1.0 / 24.0;
+
+                // The requested 25% is the blank portion of the actual X-axis.
+                // Therefore the 200-candle data span occupies exactly 75% of it.
+                double candleHalfWidth = slotWidth * 0.5;
+                double dataSpan = Math.Max(slotWidth, (lastX - firstX) + slotWidth);
+                double axisSpan = dataSpan / (1.0 - InitialRightBlankFraction);
+                double left = firstX - candleHalfWidth;
+                double right = left + axisSpan;
 
                 Chart.Plot.Axes.SetLimitsX(left, right);
                 _initialDisplayApplied = true;
@@ -81,8 +57,7 @@ namespace TradeIt.Charts
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"Initial chart display range failed: {ex}");
+                System.Diagnostics.Debug.WriteLine($"Initial chart display range failed: {ex}");
             }
         }
     }
