@@ -26,15 +26,15 @@ namespace TradeIt.Charts
             chart._coordinateConsistencyFixAttached = true;
             chart.Chart.AddHandler(
                 UIElement.PreviewMouseMoveEvent,
-                new MouseEventHandler(chart.CoordinateConsistencyFix_MouseMove),
+                new System.Windows.Input.MouseEventHandler(chart.CoordinateConsistencyFix_MouseMove),
                 true);
             chart.Chart.AddHandler(
                 UIElement.PreviewMouseLeftButtonDownEvent,
-                new MouseButtonEventHandler(chart.CoordinateConsistencyFix_MouseLeftButtonDown),
+                new System.Windows.Input.MouseButtonEventHandler(chart.CoordinateConsistencyFix_MouseLeftButtonDown),
                 true);
         }
 
-        private void CoordinateConsistencyFix_MouseMove(object sender, MouseEventArgs e)
+        private void CoordinateConsistencyFix_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
             if (!_continuousTimeAxisApplied || !_chartVisible || !_crosshairVisible || _crosshair == null)
                 return;
@@ -59,14 +59,13 @@ namespace TradeIt.Charts
             if (_bars.Count == 0 || double.IsNaN(x) || double.IsInfinity(x))
                 return -1;
 
-            double position = x - 2000.0;
             int low = 0;
             int high = _bars.Count - 1;
 
             while (low <= high)
             {
                 int mid = low + ((high - low) >> 1);
-                double midX = 2000.0 + mid;
+                double midX = ContinuousX(mid);
                 if (midX < x)
                     low = mid + 1;
                 else if (midX > x)
@@ -77,17 +76,17 @@ namespace TradeIt.Charts
 
             if (low <= 0) return 0;
             if (low >= _bars.Count) return _bars.Count - 1;
-            return Math.Abs((2000.0 + low) - x) < Math.Abs(x - (2000.0 + low - 1))
+            return Math.Abs(ContinuousX(low) - x) < Math.Abs(x - ContinuousX(low - 1))
                 ? low
                 : low - 1;
         }
 
-        private void CoordinateConsistencyFix_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void CoordinateConsistencyFix_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (!_continuousTimeAxisApplied || e.ChangedButton != MouseButton.Left || e.ClickCount != 2)
                 return;
 
-            Point point = e.GetPosition(Chart);
+            System.Windows.Point point = e.GetPosition(Chart);
             if (point.X < 0 || point.X > Chart.ActualWidth)
                 return;
 
