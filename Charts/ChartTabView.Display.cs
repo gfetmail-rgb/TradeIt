@@ -24,10 +24,26 @@ namespace TradeIt.Charts
             chart.ApplyDisplayFixesNow();
             ChartSettingsManager.SettingsChanged -= chart.DisplayFixes_SettingsChanged;
             ChartSettingsManager.SettingsChanged += chart.DisplayFixes_SettingsChanged;
+            chart.EnsureDisplaySettingsLifecycle();
+        }
+
+        private bool _displaySettingsLifecycleAttached;
+
+        private void EnsureDisplaySettingsLifecycle()
+        {
+            if (_displaySettingsLifecycleAttached) return;
+            _displaySettingsLifecycleAttached = true;
+            Unloaded += DisplayFixes_Unloaded;
+        }
+
+        private void DisplayFixes_Unloaded(object sender, RoutedEventArgs e)
+        {
+            ChartSettingsManager.SettingsChanged -= DisplayFixes_SettingsChanged;
         }
 
         private void DisplayFixes_SettingsChanged(object? sender, EventArgs e)
         {
+            if (!IsLoaded) return;
             if (Dispatcher.CheckAccess()) ApplyDisplayFixesNow();
             else Dispatcher.InvokeAsync(ApplyDisplayFixesNow);
         }
