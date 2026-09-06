@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -38,22 +38,6 @@ namespace TradeIt
 
         private List<SymbolInfo> _allSymbols =
             new();
-
-
-        // =========================================================
-        // Auto Scroll
-        // =========================================================
-
-        private DispatcherTimer? _autoScrollTimer;
-
-        private bool _autoScrollRunning;
-
-        private bool _autoScrollLoading;
-
-        private int _autoScrollIndex = -1;
-
-        private const int _autoScrollIntervalMilliseconds =
-            1000;
 
 
         // =========================================================
@@ -154,7 +138,8 @@ namespace TradeIt
             object? sender,
             EventArgs e)
         {
-            StopAutoScroll();
+            StopAutoScrollController();
+            _autoScrollController.Dispose();
         }
 
 
@@ -184,7 +169,7 @@ namespace TradeIt
         {
             try
             {
-                StopAutoScroll();
+                StopAutoScrollController();
 
                 SetBusy(
                     true,
@@ -336,7 +321,7 @@ namespace TradeIt
             _selectedPortfolio =
                 portfolio;
 
-            StopAutoScroll();
+            StopAutoScrollController();
 
             CloseAllChartTabs();
 
@@ -859,7 +844,7 @@ namespace TradeIt
             object sender,
             RoutedEventArgs e)
         {
-            StopAutoScroll();
+            StopAutoScrollController();
 
             CloseAllChartTabs();
 
@@ -1226,301 +1211,6 @@ namespace TradeIt
                     "خطا در ساخت سبد جدید",
                     WpfMessageBoxButton.OK,
                     WpfMessageBoxImage.Error);
-            }
-        }
-
-
-        // =========================================================
-        // Auto Scroll Button
-        // =========================================================
-
-        private async void AutoScrollButton_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            if (_autoScrollRunning)
-            {
-                StopAutoScroll();
-                return;
-            }
-
-            await StartAutoScrollAsync();
-        }
-
-
-        // =========================================================
-        // Start Auto Scroll
-        // =========================================================
-
-        private async Task StartAutoScrollAsync()
-        {
-            if (_allSymbols.Count == 0)
-            {
-                WpfMessageBox.Show(
-                    "هیچ نمادی برای Auto Scroll وجود ندارد.",
-                    "Auto Scroll",
-                    WpfMessageBoxButton.OK,
-                    WpfMessageBoxImage.Information);
-
-                return;
-            }
-
-            if (_selectedPortfolio == null)
-            {
-                return;
-            }
-
-            int currentIndex =
-                -1;
-
-            if (SymbolsDataGrid.SelectedItem
-                is SymbolInfo selected)
-            {
-                currentIndex =
-                    _allSymbols.IndexOf(
-                        selected);
-            }
-
-            if (currentIndex < 0)
-            {
-                currentIndex = 0;
-            }
-
-            _autoScrollIndex =
-                currentIndex;
-
-            _autoScrollRunning =
-                true;
-
-            _autoScrollLoading =
-                false;
-
-            AutoScrollButton.Content =
-                "Stop Auto";
-
-            EnsureAutoScrollTab();
-
-            await OpenAutoScrollSymbolAsync();
-
-            if (!_autoScrollRunning)
-                return;
-
-            _autoScrollTimer =
-                new DispatcherTimer
-                {
-                    Interval =
-                        TimeSpan.FromMilliseconds(
-                            _autoScrollIntervalMilliseconds)
-                };
-
-            _autoScrollTimer.Tick +=
-                AutoScrollTimer_Tick;
-
-            _autoScrollTimer.Start();
-        }
-
-
-        // =========================================================
-        // Ensure Auto Scroll Tab
-        // =========================================================
-
-        private void EnsureAutoScrollTab()
-        {
-            TabItem? tab =
-                ChartTabs.Items
-                    .OfType<TabItem>()
-                    .FirstOrDefault(
-                        x =>
-                            x.Tag is string tag &&
-                            tag ==
-                            "__AUTO_SCROLL__");
-
-            if (tab != null)
-            {
-                ChartTabs.SelectedItem =
-                    tab;
-
-                return;
-            }
-
-            var header =
-                new WpfTextBlock
-                {
-                    Text =
-                        "Auto Scroll"
-                };
-
-            tab =
-                new TabItem
-                {
-                    Tag =
-                        "__AUTO_SCROLL__",
-
-                    Header =
-                        header
-                };
-
-            ChartTabs.Items.Add(
-                tab);
-
-            ChartTabs.SelectedItem =
-                tab;
-        }
-
-
-        // =========================================================
-        // Auto Scroll Tick
-        // =========================================================
-
-        private async void AutoScrollTimer_Tick(
-            object? sender,
-            EventArgs e)
-        {
-            if (!_autoScrollRunning ||
-                _autoScrollLoading)
-            {
-                return;
-            }
-
-            _autoScrollIndex++;
-
-            if (_autoScrollIndex >=
-                _allSymbols.Count)
-            {
-                StopAutoScroll();
-
-                return;
-            }
-
-            await OpenAutoScrollSymbolAsync();
-        }
-
-
-        // =========================================================
-        // Open Auto Scroll Symbol
-        // =========================================================
-
-        private void OpenAutoScrollSymbol()
-        {
-            if (_autoScrollIndex < 0 ||
-                _autoScrollIndex >=
-                _allSymbols.Count)
-            {
-                return;
-            }
-
-            SymbolInfo symbol =
-                _allSymbols[
-                    _autoScrollIndex];
-
-            _suppressSymbolSelection =
-                true;
-
-            try
-            {
-                SymbolsDataGrid.SelectedItem =
-                    symbol;
-
-                SymbolsDataGrid.ScrollIntoView(
-                    symbol);
-            }
-            finally
-            {
-                _suppressSymbolSelection =
-                    false;
-            }
-        }
-
-
-        // =========================================================
-        // Open Auto Scroll Symbol Async
-        // =========================================================
-
-        private async Task OpenAutoScrollSymbolAsync()
-        {
-            if (!_autoScrollRunning ||
-                _autoScrollLoading)
-            {
-                return;
-            }
-
-            if (_autoScrollIndex < 0 ||
-                _autoScrollIndex >=
-                _allSymbols.Count ||
-                _selectedPortfolio == null)
-            {
-                return;
-            }
-
-            _autoScrollLoading =
-                true;
-
-            try
-            {
-                SymbolInfo symbol =
-                    _allSymbols[
-                        _autoScrollIndex];
-
-                _suppressSymbolSelection =
-                    true;
-
-                try
-                {
-                    SymbolsDataGrid.SelectedItem =
-                        symbol;
-
-                    SymbolsDataGrid.ScrollIntoView(
-                        symbol);
-                }
-                finally
-                {
-                    _suppressSymbolSelection =
-                        false;
-                }
-
-                await OpenChartTabAsync(
-                    symbol,
-                    _selectedPortfolio,
-                    true);
-            }
-            finally
-            {
-                _autoScrollLoading =
-                    false;
-            }
-        }
-
-
-        // =========================================================
-        // Stop Auto Scroll
-        // =========================================================
-
-        private void StopAutoScroll()
-        {
-            _autoScrollRunning =
-                false;
-
-            _autoScrollLoading =
-                false;
-
-            _autoScrollIndex =
-                -1;
-
-            if (_autoScrollTimer != null)
-            {
-                _autoScrollTimer.Stop();
-
-                _autoScrollTimer.Tick -=
-                    AutoScrollTimer_Tick;
-
-                _autoScrollTimer =
-                    null;
-            }
-
-            if (AutoScrollButton != null)
-            {
-                AutoScrollButton.Content =
-                    "Auto Scroll";
             }
         }
 
