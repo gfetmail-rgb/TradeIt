@@ -6,8 +6,8 @@ namespace TradeIt.Charts
 {
     public partial class ChartTabView
     {
-        private bool _initialViewLayoutFinalizationPending = true;
-        private bool _initialViewLayoutFinalizationQueued;
+        private bool _initialViewRenderFixAttached;
+        private bool _initialViewRenderFixApplied;
         private static readonly bool _initialViewLayoutFixRegistered = RegisterInitialViewLayoutFix();
 
         private static bool RegisterInitialViewLayoutFix()
@@ -24,48 +24,32 @@ namespace TradeIt.Charts
             if (sender is not ChartTabView chart)
                 return;
 
-            chart.Chart.SizeChanged -= chart.InitialViewLayoutFix_SizeChanged;
-            chart.Chart.SizeChanged += chart.InitialViewLayoutFix_SizeChanged;
-            chart.QueueInitialViewLayoutFinalization();
+            chart.AttachInitialViewRenderFix();
+
+            // Force one render after every Loaded handler has had its chance to
+            // configure the chart. The RenderStarting callback below is the final
+            // authority for the opening limits.
+            chart.Dispatcher.BeginInvoke(
+                new Action(chart.Chart.Refresh),
+                DispatcherPriority.ContextIdle);
         }
 
-        private void InitialViewLayoutFix_SizeChanged(object sender, SizeChangedEventArgs e)
+        private void AttachInitialViewRenderFix()
         {
-            QueueInitialViewLayoutFinalization();
-        }
-
-        private void QueueInitialViewLayoutFinalization()
-        {
-            if (!_initialViewLayoutFinalizationPending ||
-                _initialViewLayoutFinalizationQueued ||
-                !IsLoaded ||
-                Chart.ActualWidth <= 0 ||
-                Chart.ActualHeight <= 0)
+            if (_initialViewRenderFixAttached)
                 return;
 
-            _initialViewLayoutFinalizationQueued = true;
-            Dispatcher.BeginInvoke(
-                new Action(FinalizeInitialViewAfterLayout),
-                DispatcherPriority.Render);
+            _initialViewRenderFixAttached = true;
+            Chart.Plot.RenderManager.RenderStarting += InitialViewRenderStarting;
         }
 
-        private void FinalizeInitialViewAfterLayout()
+        private void InitialViewRenderStarting(object? sender, ScottPlot.RenderPack e)
         {
-            _initialViewLayoutFinalizationQueued = false;
-
-            if (!_initialViewLayoutFinalizationPending ||
-                !IsLoaded ||
-                Chart.ActualWidth <= 0 ||
-                Chart.ActualHeight <= 0 ||
-                _bars.Count == 0)
+            if (_initialViewRenderFixApplied || !IsLoaded || _bars.Count == 0)
                 return;
 
             try
             {
-                // This is deliberately performed after the first real Chart layout.
-                // ScottPlot receives its final data-area dimensions only after WPF
-                // Measure/Arrange, so the opening view must be finalized here rather
-                // than only during the earlier Loaded/idle sequence.
                 _initialCandleRangeApplied = false;
 
                 if (ChartSettingsManager.Current.ShowTimeGaps)
@@ -83,13 +67,14 @@ namespace TradeIt.Charts
                 if (!_hasInitialView)
                     return;
 
+                // Deliberately use the exact same operation as Reset Zoom.
+                // This removes any distinction between the opening view and Reset Zoom.
                 ApplySavedInitialView();
-                _initialViewLayoutFinalizationPending = false;
-                Chart.Refresh();
+                _initialViewRenderFixApplied = true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Initial chart layout fix failed: {ex}");
+                System.Diagnostics.Debug.WriteLine($"Initial chart render fix failed: {ex}");
             }
         }
     }
