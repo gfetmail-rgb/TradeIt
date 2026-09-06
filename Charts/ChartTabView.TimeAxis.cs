@@ -62,7 +62,6 @@ namespace TradeIt.Charts
             {
                 if (!_continuousTimeAxisApplied) return;
                 _continuousTimeAxisApplied = false;
-                _hasInitialView = false;
                 DrawChart();
                 ConfigureFinalDateAxis();
                 Chart.Refresh();
@@ -78,7 +77,6 @@ namespace TradeIt.Charts
             DrawContinuousChartSeries();
             ApplySettings();
             ConfigureContinuousDateAxis();
-            ApplyContinuousInitialLimits();
 
             // The drawing coordinate helpers must know that the chart is already
             // using the continuous index axis before any drawing is restored.
@@ -94,8 +92,6 @@ namespace TradeIt.Charts
             RenderDrawingSelectionOverlay();
             if (_textSelection != null) RenderTextSelectionVisuals();
 
-            SaveInitialView();
-            _initialCandleRangeApplied = true;
             RestoreCrosshairAndDateAxis();
             Chart.Refresh();
         }
@@ -108,39 +104,6 @@ namespace TradeIt.Charts
                 case ChartDisplayType.Line: DrawContinuousLine(); break;
                 case ChartDisplayType.Bar: DrawContinuousBar(); break;
             }
-        }
-
-        private void ApplyContinuousInitialLimits()
-        {
-            int visibleCount = Math.Min(InitialVisibleCandleCount, _bars.Count);
-            int firstIndex = _bars.Count - visibleCount;
-            int lastIndex = _bars.Count - 1;
-            var current = Chart.Plot.Axes.GetLimits();
-            double firstX = ContinuousX(firstIndex);
-            double lastX = ContinuousX(lastIndex);
-            (double minPrice, double maxPrice) = GetContinuousPriceRange(firstIndex, lastIndex);
-            double padding = maxPrice > minPrice
-                ? (maxPrice - minPrice) * 0.05
-                : Math.Max(Math.Abs(maxPrice) * 0.01, 1);
-            double candleRange = Math.Max(1.0, lastX - firstX);
-            double rightMargin = candleRange * InitialRightMarginFraction / (1.0 - InitialRightMarginFraction);
-            Chart.Plot.Axes.SetLimits(
-                firstX - 0.5,
-                lastX + 0.5 + rightMargin,
-                double.IsFinite(minPrice) ? minPrice - padding : current.Bottom,
-                double.IsFinite(maxPrice) ? maxPrice + padding : current.Top);
-        }
-
-        private (double minPrice, double maxPrice) GetContinuousPriceRange(int firstIndex, int lastIndex)
-        {
-            double minPrice = double.MaxValue;
-            double maxPrice = double.MinValue;
-            for (int i = firstIndex; i <= lastIndex; i++)
-            {
-                minPrice = Math.Min(minPrice, _bars[i].Low);
-                maxPrice = Math.Max(maxPrice, _bars[i].High);
-            }
-            return (minPrice, maxPrice);
         }
 
         private static double ContinuousX(int index) => ContinuousChartBaseDate + index;
@@ -233,10 +196,6 @@ namespace TradeIt.Charts
         private static void DateRangeFix_Loaded(object sender, RoutedEventArgs e)
         {
             if (sender is not ChartTabView chart) return;
-            // This is intentionally the last idle-stage correction. Other Loaded
-            // handlers (especially the time-gap application) may rebuild the chart
-            // after ContextIdle. Running at SystemIdle makes the final opening view
-            // use the exact same limits that Reset Zoom stores.
             chart.Dispatcher.BeginInvoke(new Action(chart.ApplyDateAndInitialRangeFix), DispatcherPriority.SystemIdle);
         }
 
@@ -246,27 +205,7 @@ namespace TradeIt.Charts
             {
                 bool changed = NormalizeTimestampsFromSourceDates();
                 if (changed)
-                {
-                    _initialCandleRangeApplied = false;
                     DrawChart();
-                }
-
-                _initialCandleRangeApplied = false;
-                if (_continuousTimeAxisApplied)
-                {
-                    // Continuous-axis initialization already defines the same view
-                    // used by Reset Zoom. Re-apply and save it here after every other
-                    // Loaded-time chart setup has completed.
-                    ApplyContinuousInitialLimits();
-                    SaveInitialView();
-                    ApplySavedInitialView();
-                    _initialCandleRangeApplied = true;
-                }
-                else
-                {
-                    ApplyInitialCandleRange();
-                    ApplySavedInitialView();
-                }
 
                 InitializeCrosshairAtInitialPosition();
                 ConfigureDisplayDateAxis(Chart);
@@ -274,7 +213,7 @@ namespace TradeIt.Charts
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Chart date/range fix failed: {ex}");
+                System.Diagnostics.Debug.WriteLine($"Chart date normalization fix failed: {ex}");
             }
         }
 
@@ -326,8 +265,6 @@ namespace TradeIt.Charts
             }
             catch (ArgumentOutOfRangeException)
             {
-                // Invalid source dates are left untouched here. The data validation
-                // layer is responsible for reporting malformed market records.
                 return false;
             }
         }
