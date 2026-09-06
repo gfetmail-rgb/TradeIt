@@ -246,8 +246,24 @@ namespace TradeIt.Charts
                     _initialCandleRangeApplied = false;
                     DrawChart();
                 }
+
                 _initialCandleRangeApplied = false;
-                ApplyInitialCandleRange();
+                if (_continuousTimeAxisApplied)
+                {
+                    // Continuous-axis initialization already defines the same view
+                    // used by Reset Zoom. Re-apply and save it here after timestamp
+                    // normalization and all Loaded-time chart setup are complete.
+                    ApplyContinuousInitialLimits();
+                    SaveInitialView();
+                    ApplySavedInitialView();
+                    _initialCandleRangeApplied = true;
+                }
+                else
+                {
+                    ApplyInitialCandleRange();
+                    ApplySavedInitialView();
+                }
+
                 InitializeCrosshairAtInitialPosition();
                 ConfigureDisplayDateAxis(Chart);
                 Chart.Refresh();
