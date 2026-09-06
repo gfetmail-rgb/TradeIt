@@ -37,7 +37,7 @@ namespace TradeIt.Charts
             _settings = ChartSettingsManager.Current;
             SubscribeToSettingsChanges();
             ChartTypeComboBox.SelectedIndex = 0;
-            ConfigureInteraction();
+            Chart.UserInputProcessor.UserActionResponses.Clear();
             Chart.PreviewMouseLeftButtonDown += Chart_PreviewMouseLeftButtonDown;
             Chart.PreviewMouseMove += Chart_PreviewMouseMove;
             Chart.MouseLeave += Chart_MouseLeave;
@@ -49,13 +49,6 @@ namespace TradeIt.Charts
             GridButton.Content = "GRID خاموش";
             HideChartButton.Content = "پنهان کردن نمودار";
             HideToolsButton.Content = "پنهان کردن ابزارهای تکنیکال";
-        }
-
-        private void ConfigureInteraction()
-        {
-            // No built-in pan/zoom interaction is registered here.
-            // Zoom will be reimplemented cleanly later without the legacy handlers.
-            Chart.UserInputProcessor.UserActionResponses.Clear();
         }
 
         private void ClearMainChart()
@@ -202,7 +195,6 @@ namespace TradeIt.Charts
             ApplySettings();
             Chart.Plot.Axes.AutoScale();
 
-            // Redraw every persisted drawing because ClearMainChart() removes all drawing plottables.
             RenderTechnicalDrawings();
             RenderAllFibonacciDrawings();
             RenderArrowDrawings();
@@ -255,8 +247,7 @@ namespace TradeIt.Charts
         private void GridButton_Click(object sender, RoutedEventArgs e) { _gridVisible = !_gridVisible; SetGridVisibility(Chart, _gridVisible); GridButton.Content = _gridVisible ? "GRID" : "GRID خاموش"; Chart.Refresh(); }
         private void SetGridVisibility(ScottPlot.WPF.WpfPlot plot, bool visible) => plot.Plot.Grid.IsVisible = visible;
         private void CrosshairButton_Click(object sender, RoutedEventArgs e) { _crosshairVisible = !_crosshairVisible; if (_crosshair != null) _crosshair.IsVisible = _crosshairVisible && _chartVisible && _crosshairMouseInside; CrosshairButton.Content = _crosshairVisible ? "Crosshair روشن" : "Crosshair خاموش"; Chart.Refresh(); }
-        private void ScreenshotButton_Click(object sender, RoutedEventArgs e) { try { int width = (int)Math.Max(1, ActualWidth), height = (int)Math.Max(1, ActualHeight); var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(width, height, 96, 96, System.Windows.Media.PixelFormats.Pbgra32); bitmap.Render(this); var dialog = new Microsoft.Win32.SaveFileDialog { Title = "ذخیره تصویر نمودار", Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg", FileName = $"{_symbol.Symbol}_{DateTime.Now:yyyyMMdd_HHmmss}.png" }; if (dialog.ShowDialog() != true) return; System.Windows.Media.Imaging.BitmapEncoder encoder = Path.GetExtension(dialog.FileName).Equals(".jpg", StringComparison.OrdinalIgnoreCase) ? new System.Windows.Media.Imaging.JpegBitmapEncoder() : new System.Windows.Media.Imaging.PngBitmapEncoder(); encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap)); using FileStream stream = new FileStream(dialog.FileName, FileMode.Create); encoder.Save(stream); BottomInfoTextBlock.Text = $"تصویر ذخیره شد: {dialog.FileName}"; } catch (Exception ex) { WpfMessageBox.Show($"خطا در گرفتن تصویر نمودار:\n{ex.Message}", "Screenshot", WpfMessageBoxButton.OK, WpfMessageBoxImage.Error); } }
-        private void PrintButton_Click(object sender, RoutedEventArgs e) { try { var dialog = new WpfPrintDialog(); if (dialog.ShowDialog() != true) return; dialog.PrintVisual(this, $"TradeIt - {_symbol.Symbol}"); BottomInfoTextBlock.Text = "نمودار برای چاپ ارسال شد."; } catch (Exception ex) { WpfMessageBox.Show($"خطا در چاپ نمودار:\n{ex.Message}", "Print", WpfMessageBoxButton.OK, WpfMessageBoxImage.Error); } }
-        private void ChartTypeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (ChartTypeComboBox.SelectedItem is not ComboBoxItem item) return; string type = item.Tag?.ToString() ?? string.Empty; _chartType = type switch { "Line" => ChartDisplayType.Line, "Bar" => ChartDisplayType.Bar, _ => ChartDisplayType.Candlestick }; DrawChart(); }
+        private void ScreenshotButton_Click(object sender, RoutedEventArgs e) { try { int width = (int)Math.Max(1, ActualWidth), height = (int)Math.Max(1, ActualHeight); var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(width, height, 96, 96, System.Windows.Media.PixelFormats.Pbgra32); bitmap.Render(this); var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder(); encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap)); string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), $"TradeIt_{_symbol.Symbol}_{DateTime.Now:yyyyMMdd_HHmmss}.png"); using var stream = File.Create(path); encoder.Save(stream); WpfMessageBox.Show($"تصویر ذخیره شد:\n{path}", "TradeIt", WpfMessageBoxButton.OK, WpfMessageBoxImage.Information); } catch (Exception ex) { WpfMessageBox.Show($"خطا در ذخیره تصویر:\n{ex.Message}", "TradeIt", WpfMessageBoxButton.OK, WpfMessageBoxImage.Error); } }
+        private void PrintChartButton_Click(object sender, RoutedEventArgs e) { try { var dialog = new WpfPrintDialog(); if (dialog.ShowDialog() == true) dialog.PrintVisual(this, $"TradeIt - {_symbol.Symbol}"); } catch (Exception ex) { WpfMessageBox.Show($"خطا در چاپ:\n{ex.Message}", "TradeIt", WpfMessageBoxButton.OK, WpfMessageBoxImage.Error); } }
     }
 }
