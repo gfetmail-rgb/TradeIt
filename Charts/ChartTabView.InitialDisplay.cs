@@ -1,4 +1,5 @@
 using System;
+using System.Windows;
 
 namespace TradeIt.Charts
 {
@@ -41,10 +42,11 @@ namespace TradeIt.Charts
                     : 1.0;
 
                 if (!(slotWidth > 0) || !double.IsFinite(slotWidth))
-                    slotWidth = _continuousTimeAxisApplied ? 1.0 : 1.0 / 24.0;
+                    slotWidth = 1.0;
 
-                // The requested 25% is the blank portion of the actual X-axis.
-                // Therefore the 200-candle data span occupies exactly 75% of it.
+                // The initial viewport is defined by candle slots, not by the total
+                // number of candles in the data set. The last candle ends at 75% of
+                // the X-axis, leaving exactly 25% blank space on the right.
                 double candleHalfWidth = slotWidth * 0.5;
                 double dataSpan = Math.Max(slotWidth, (lastX - firstX) + slotWidth);
                 double axisSpan = dataSpan / (1.0 - InitialRightBlankFraction);
@@ -59,6 +61,14 @@ namespace TradeIt.Charts
             {
                 System.Diagnostics.Debug.WriteLine($"Initial chart display range failed: {ex}");
             }
+        }
+
+        private void ResetZoomButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Reset Zoom means exactly the same X-axis state the user gets when
+            // this stock's chart is opened for the first time.
+            _initialDisplayApplied = false;
+            ApplyInitialDisplayRange();
         }
     }
 }
