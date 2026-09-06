@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Threading;
 
 using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
 using WpfKeyEventHandler = System.Windows.Input.KeyEventHandler;
@@ -40,7 +39,6 @@ namespace TradeIt.Charts
             AddHandler(UIElement.PreviewMouseRightButtonDownEvent, new WpfMouseButtonEventHandler(TechnicalDrawing_RightMouseDown), true);
             AddHandler(Keyboard.PreviewKeyDownEvent, new WpfKeyEventHandler(TechnicalDrawing_KeyDown), true);
             Focusable = true;
-            ChartTypeComboBox.SelectionChanged += TechnicalDrawing_ChartTypeChanged;
             UpdateTechnicalDrawingButtons();
         }
 
@@ -166,13 +164,6 @@ namespace TradeIt.Charts
         }
 
         private void RemoveTrendLinePreview() { if (_trendLinePreview == null) return; Chart.Plot.Remove(_trendLinePreview); _trendLinePreview = null; }
-        private void TechnicalDrawing_ChartTypeChanged(object? sender, System.Windows.Controls.SelectionChangedEventArgs e) => QueueTechnicalDrawingRender();
-
-        private void QueueTechnicalDrawingRender()
-        {
-            if (!IsLoaded || (_trendLines.Count == 0 && _horizontalLines.Count == 0 && _verticalLines.Count == 0 && _rays.Count == 0)) return;
-            Dispatcher.BeginInvoke(new Action(() => { if (!IsLoaded) return; RenderTechnicalDrawings(); RenderTextDrawings(); RenderDrawingSelectionOverlay(); Chart.Refresh(); }), DispatcherPriority.ApplicationIdle);
-        }
 
         private int FindNearestDrawingBarIndex(double x)
         {
