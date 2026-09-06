@@ -25,6 +25,7 @@ namespace TradeIt.Charts
         private ScottPlot.Coordinates? _advancedDrawingP2;
         private ScottPlot.Plottables.Scatter? _advancedDrawingPreview1;
         private ScottPlot.Plottables.Scatter? _advancedDrawingPreview2;
+        private ScottPlot.Coordinates? _horizontalRayStart;
         private ScottPlot.Plottables.Scatter? _horizontalRayPreview;
         private bool _advancedDrawingToolsAttached;
 
