@@ -20,6 +20,7 @@ namespace TradeIt.Services
 
         public bool IsRunning => _running;
         public int CurrentIndex => _index;
+        public event Action? Completed;
 
         public bool Start(int count, int initialIndex, int intervalMilliseconds, Func<Task> tickAction)
         {
@@ -83,7 +84,7 @@ namespace TradeIt.Services
 
                 if (MoveNext() < 0)
                 {
-                    Stop();
+                    Complete();
                     return;
                 }
 
@@ -95,9 +96,22 @@ namespace TradeIt.Services
             }
         }
 
+        private void Complete()
+        {
+            _running = false;
+            _timer?.Dispose();
+            _timer = null;
+            _tickAction = null;
+            _context = null;
+            _count = 0;
+            _index = -1;
+            Completed?.Invoke();
+        }
+
         public void Dispose()
         {
             Stop();
+            Completed = null;
             _gate.Dispose();
         }
     }
