@@ -268,31 +268,14 @@ namespace TradeIt.Charts
             ClearMainChart();
             switch (_chartType) { case ChartDisplayType.Candlestick: DrawCandlestick(); break; case ChartDisplayType.Line: DrawLine(); break; case ChartDisplayType.Bar: DrawBar(); break; }
             ApplySettings();
-            if (!preserveCurrentView) { Chart.Plot.Axes.AutoScale(); ApplyInitial365ViewAfterAutoScale(); }
+            if (!preserveCurrentView) { Chart.Plot.Axes.AutoScale(); }
             else Chart.Plot.Axes.SetLimits(currentLimits.Left, currentLimits.Right, currentLimits.Bottom, currentLimits.Top);
 
-            // ClearMainChart() removes drawing plottables too, so restore Fibonacci
-            // levels only after the final axis limits have been established.
             RenderAllFibonacciDrawings();
 
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | {_bars.Count:N0} داده";
             if (_crosshair != null) _crosshair.IsVisible = _crosshairVisible && _chartVisible && (_crosshairMouseInside || !_hasInitialView);
             Chart.Refresh();
-        }
-
-        private void ApplyInitial365ViewAfterAutoScale()
-        {
-            const int visibleCount = 365;
-            int firstIndex = Math.Max(0, _bars.Count - visibleCount);
-            int lastIndex = _bars.Count - 1;
-            double firstX = GetBarDateTime(_bars[firstIndex], firstIndex).ToOADate();
-            double lastX = GetBarDateTime(_bars[lastIndex], lastIndex).ToOADate();
-            if (!double.IsFinite(firstX) || !double.IsFinite(lastX) || lastX < firstX) { SaveInitialView(); return; }
-            var autoLimits = Chart.Plot.Axes.GetLimits();
-            const double candleHalfWidthDays = 0.5;
-            Chart.Plot.Axes.SetLimits(firstX - candleHalfWidthDays, lastX + candleHalfWidthDays, autoLimits.Bottom, autoLimits.Top);
-            AutoFitVisiblePriceRange();
-            SaveInitialView();
         }
 
         private void DrawCandlestick()
@@ -317,8 +300,19 @@ namespace TradeIt.Charts
         private void ApplySettings()
         {
             Chart.Plot.FigureBackground.Color = ScottPlot.Color.FromHtml(_settings.FigureBackground); Chart.Plot.DataBackground.Color = ScottPlot.Color.FromHtml(_settings.DataBackground); Chart.Plot.Grid.LineColor = ScottPlot.Color.FromHtml(_settings.GridColor); Chart.Plot.Grid.LinePattern = ParseLinePattern(_settings.GridPattern); Chart.Plot.Grid.MajorLineWidth = (float)Math.Max(0.01, _settings.GridLineWidth); Chart.Plot.Grid.MinorLineWidth = (float)Math.Max(0.01, _settings.GridLineWidth); Chart.Plot.Axes.Color(ScottPlot.Color.FromHtml(_settings.AxisColor)); SetGridVisibility(Chart, _gridVisible);
-            foreach (var plottable in Chart.Plot.GetPlottables()) { if (plottable is ScottPlot.Plottables.CandlestickPlot candles) { candles.RisingLineStyle.Width = (float)Math.Max(0.01, _settings.CandleLineWidth); candles.FallingLineStyle.Width = (float)Math.Max(0.01, _settings.CandleLineWidth); } else if (plottable is ScottPlot.Plottables.OhlcPlot ohlc) { ohlc.RisingStyle.Width = (float)Math.Max(0.01, _settings.BarLineWidth); ohlc.FallingStyle.Width = (float)Math.Max(0.01, _settings.BarLineWidth); } else if (plottable is ScottPlot.Plottables.Scatter scatter) scatter.LineWidth = (float)Math.Max(0.01, _settings.LineWidth); }
+            foreach (var plottable in Chart.Plot.GetPlottables()) { if (plottable is ScottPlot.Plottables.CandlestickPlot candles) { candles.RisingLineStyle.Width = (float)Math.Max(0.01, _settings.CandleLineWidth); candles.FallingLineStyle.Width = (float)Math.Max(0.01, _settings.CandleLineWidth); } else if (plottable is ScottPlot.Plottables.OhlcPlot ohlc) { ohlc.RisingStyle.Width = (float)Math.Max(0.01, _settings.BarLineWidth); ohlc.FallingStyle.Width = (float)Math.Max(0.01, _settings.BarLineWidth); } else if (plottable is ScottPlot.Plottables.Scatter scatter) { if (!IsDrawingScatter(scatter)) scatter.LineWidth = (float)Math.Max(0.01, _settings.LineWidth); } }
             if (_crosshair != null) { _crosshair.LineColor = ScottPlot.Color.FromHtml(_settings.CrosshairColor); _crosshair.LineWidth = (float)Math.Max(0.01, _settings.CrosshairLineWidth); _crosshair.LinePattern = ParseLinePattern(_settings.CrosshairPattern); _crosshair.HorizontalLine.LabelOppositeAxis = false; _crosshair.VerticalLine.LabelOppositeAxis = false; _crosshair.HorizontalLine.LabelAlignment = ScottPlot.Alignment.MiddleRight; _crosshair.VerticalLine.LabelAlignment = ScottPlot.Alignment.LowerCenter; }
+        }
+        private bool IsDrawingScatter(ScottPlot.Plottables.Scatter scatter)
+        {
+            if (ReferenceEquals(scatter, _trendLinePreview) || ReferenceEquals(scatter, _arrowPreview) || ReferenceEquals(scatter, _unifiedFibPreview)) return true;
+            foreach (var drawing in _trendLines) if (ReferenceEquals(scatter, drawing.PlotLine)) return true;
+            foreach (var drawing in _rays) if (ReferenceEquals(scatter, drawing.PlotLine)) return true;
+            foreach (var drawing in _parallelChannels) { if (ReferenceEquals(scatter, drawing.BaseLine) || ReferenceEquals(scatter, drawing.ParallelLine)) return true; }
+            foreach (var drawing in _drawingRectangles) foreach (var line in drawing.Lines) if (ReferenceEquals(scatter, line)) return true;
+            foreach (var drawing in _pitchforks) { if (ReferenceEquals(scatter, drawing.MedianLine) || ReferenceEquals(scatter, drawing.UpperLine) || ReferenceEquals(scatter, drawing.LowerLine)) return true; }
+            foreach (var drawing in _fibonacciDrawings) foreach (var line in drawing.Lines) if (ReferenceEquals(scatter, line)) return true;
+            return false;
         }
         private static ScottPlot.LinePattern ParseLinePattern(string? value) => value?.Trim().ToLowerInvariant() switch { "dotted" => ScottPlot.LinePattern.Dotted, "dashed" => ScottPlot.LinePattern.Dashed, "denselydashed" => ScottPlot.LinePattern.DenselyDashed, _ => ScottPlot.LinePattern.Solid };
         private void SaveInitialView() { var limits = Chart.Plot.Axes.GetLimits(); _initialXMin = limits.Left; _initialXMax = limits.Right; _initialYMin = limits.Bottom; _initialYMax = limits.Top; _hasInitialView = true; }
