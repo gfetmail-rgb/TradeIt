@@ -83,7 +83,7 @@ namespace TradeIt.Charts
             }
             ApplySettings();
             ConfigureContinuousDateAxis();
-            int visibleCount = Math.Min(365, _bars.Count);
+            int visibleCount = Math.Min(InitialVisibleCandleCount, _bars.Count);
             int firstIndex = _bars.Count - visibleCount;
             int lastIndex = _bars.Count - 1;
             var current = Chart.Plot.Axes.GetLimits();
