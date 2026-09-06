@@ -75,33 +75,10 @@ namespace TradeIt.Charts
         {
             if (_bars.Count == 0) return;
             ClearMainChart();
-            switch (_chartType)
-            {
-                case ChartDisplayType.Candlestick: DrawContinuousCandlestick(); break;
-                case ChartDisplayType.Line: DrawContinuousLine(); break;
-                case ChartDisplayType.Bar: DrawContinuousBar(); break;
-            }
+            DrawContinuousChartSeries();
             ApplySettings();
             ConfigureContinuousDateAxis();
-            int visibleCount = Math.Min(InitialVisibleCandleCount, _bars.Count);
-            int firstIndex = _bars.Count - visibleCount;
-            int lastIndex = _bars.Count - 1;
-            var current = Chart.Plot.Axes.GetLimits();
-            double firstX = ContinuousX(firstIndex);
-            double lastX = ContinuousX(lastIndex);
-            double minPrice = double.MaxValue;
-            double maxPrice = double.MinValue;
-            for (int i = firstIndex; i <= lastIndex; i++)
-            {
-                minPrice = Math.Min(minPrice, _bars[i].Low);
-                maxPrice = Math.Max(maxPrice, _bars[i].High);
-            }
-            double padding = maxPrice > minPrice ? (maxPrice - minPrice) * 0.05 : Math.Max(Math.Abs(maxPrice) * 0.01, 1);
-            double candleRange = Math.Max(1.0, lastX - firstX);
-            double rightMargin = candleRange * InitialRightMarginFraction / (1.0 - InitialRightMarginFraction);
-            Chart.Plot.Axes.SetLimits(firstX - 0.5, lastX + 0.5 + rightMargin,
-                double.IsFinite(minPrice) ? minPrice - padding : current.Bottom,
-                double.IsFinite(maxPrice) ? maxPrice + padding : current.Top);
+            ApplyContinuousInitialLimits();
 
             // The drawing coordinate helpers must know that the chart is already
             // using the continuous index axis before any drawing is restored.
@@ -121,6 +98,49 @@ namespace TradeIt.Charts
             _initialCandleRangeApplied = true;
             RestoreCrosshairAndDateAxis();
             Chart.Refresh();
+        }
+
+        private void DrawContinuousChartSeries()
+        {
+            switch (_chartType)
+            {
+                case ChartDisplayType.Candlestick: DrawContinuousCandlestick(); break;
+                case ChartDisplayType.Line: DrawContinuousLine(); break;
+                case ChartDisplayType.Bar: DrawContinuousBar(); break;
+            }
+        }
+
+        private void ApplyContinuousInitialLimits()
+        {
+            int visibleCount = Math.Min(InitialVisibleCandleCount, _bars.Count);
+            int firstIndex = _bars.Count - visibleCount;
+            int lastIndex = _bars.Count - 1;
+            var current = Chart.Plot.Axes.GetLimits();
+            double firstX = ContinuousX(firstIndex);
+            double lastX = ContinuousX(lastIndex);
+            (double minPrice, double maxPrice) = GetContinuousPriceRange(firstIndex, lastIndex);
+            double padding = maxPrice > minPrice
+                ? (maxPrice - minPrice) * 0.05
+                : Math.Max(Math.Abs(maxPrice) * 0.01, 1);
+            double candleRange = Math.Max(1.0, lastX - firstX);
+            double rightMargin = candleRange * InitialRightMarginFraction / (1.0 - InitialRightMarginFraction);
+            Chart.Plot.Axes.SetLimits(
+                firstX - 0.5,
+                lastX + 0.5 + rightMargin,
+                double.IsFinite(minPrice) ? minPrice - padding : current.Bottom,
+                double.IsFinite(maxPrice) ? maxPrice + padding : current.Top);
+        }
+
+        private (double minPrice, double maxPrice) GetContinuousPriceRange(int firstIndex, int lastIndex)
+        {
+            double minPrice = double.MaxValue;
+            double maxPrice = double.MinValue;
+            for (int i = firstIndex; i <= lastIndex; i++)
+            {
+                minPrice = Math.Min(minPrice, _bars[i].Low);
+                maxPrice = Math.Max(maxPrice, _bars[i].High);
+            }
+            return (minPrice, maxPrice);
         }
 
         private static double ContinuousX(int index) => ContinuousChartBaseDate + index;
@@ -244,30 +264,52 @@ namespace TradeIt.Charts
             var calendar = new PersianCalendar();
             foreach (MarketBar bar in _bars)
             {
-                string sourceCalendar = bar.Calendar?.Trim() ?? "";
-                if (!string.Equals(sourceCalendar, "Persian", StringComparison.OrdinalIgnoreCase)) continue;
-                string date = NormalizeDigits(bar.JalaliDate).Trim();
-                if (string.IsNullOrWhiteSpace(date)) continue;
-                string[] parts = date.Split('/', '-', '.');
-                if (parts.Length != 3 ||
-                    !int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int year) ||
-                    !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int month) ||
-                    !int.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out int day)) continue;
-                try
-                {
-                    DateTime converted = calendar.ToDateTime(year, month, day, 0, 0, 0, 0);
-                    string time = NormalizeDigits(bar.Time).Trim();
-                    if (!string.IsNullOrWhiteSpace(time) && TimeSpan.TryParse(time, CultureInfo.InvariantCulture, out TimeSpan timeOfDay))
-                        converted = converted.Date.Add(timeOfDay);
-                    if (!bar.Timestamp.HasValue || bar.Timestamp.Value != converted)
-                    {
-                        bar.Timestamp = converted;
-                        changed = true;
-                    }
-                }
-                catch { }
+                if (!IsPersianSourceDate(bar)) continue;
+                if (!TryParseJalaliDate(bar.JalaliDate, out int year, out int month, out int day)) continue;
+                if (TryNormalizeTimestamp(bar, calendar, year, month, day)) changed = true;
             }
             return changed;
+        }
+
+        private static bool IsPersianSourceDate(MarketBar bar)
+        {
+            return string.Equals(bar.Calendar?.Trim(), "Persian", StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrWhiteSpace(bar.JalaliDate);
+        }
+
+        private static bool TryParseJalaliDate(string? value, out int year, out int month, out int day)
+        {
+            year = month = day = 0;
+            string date = NormalizeDigits(value).Trim();
+            string[] parts = date.Split('/', '-', '.');
+            return parts.Length == 3
+                && int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out year)
+                && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out month)
+                && int.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out day);
+        }
+
+        private static bool TryNormalizeTimestamp(MarketBar bar, PersianCalendar calendar, int year, int month, int day)
+        {
+            try
+            {
+                DateTime converted = calendar.ToDateTime(year, month, day, 0, 0, 0, 0);
+                string time = NormalizeDigits(bar.Time).Trim();
+                if (!string.IsNullOrWhiteSpace(time)
+                    && TimeSpan.TryParse(time, CultureInfo.InvariantCulture, out TimeSpan timeOfDay))
+                {
+                    converted = converted.Date.Add(timeOfDay);
+                }
+
+                if (bar.Timestamp.HasValue && bar.Timestamp.Value == converted) return false;
+                bar.Timestamp = converted;
+                return true;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // Invalid source dates are left untouched here. The data validation
+                // layer is responsible for reporting malformed market records.
+                return false;
+            }
         }
 
         private static string NormalizeDigits(string? value)
