@@ -21,9 +21,6 @@ namespace TradeIt
         private bool _autoScrollViewLoading;
         private TabItem? _autoScrollTab;
 
-        // Kept as a separate controller entry point until the legacy MainWindow
-        // Auto Scroll event wiring is migrated. It intentionally has a unique
-        // name so it cannot collide with the existing UI methods.
         private async void AutoScrollButton_Order2_Click(object sender, RoutedEventArgs e)
         {
             if (_autoScrollController.IsRunning)
@@ -62,11 +59,19 @@ namespace TradeIt
             AutoScrollButton.Content = "Stop";
 
             EnsureAutoScrollControllerTab();
-            _autoScrollController.Start(
-                _allSymbols.Count,
-                initialIndex,
-                intervalMilliseconds,
-                ShowAutoScrollSymbolAsync);
+
+            _autoScrollController.Completed -= StopAutoScrollController;
+            _autoScrollController.Completed += StopAutoScrollController;
+
+            if (!_autoScrollController.Start(
+                    _allSymbols.Count,
+                    initialIndex,
+                    intervalMilliseconds,
+                    ShowAutoScrollSymbolAsync))
+            {
+                StopAutoScrollController();
+                return;
+            }
 
             await ShowAutoScrollSymbolAsync();
         }
@@ -86,7 +91,6 @@ namespace TradeIt
                 AutoScrollIntervalTextBox.SelectAll();
                 return false;
             }
-
             return true;
         }
 
