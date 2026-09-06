@@ -31,48 +31,9 @@ namespace TradeIt
             if (sender is not MainWindow window)
                 return;
 
-            // The legacy partial initializes the controls on Loaded as well.
-            // Defer one dispatcher turn so the architecture layer can take ownership
-            // of those controls without changing their construction or layout.
             window.Dispatcher.BeginInvoke(
                 new Action(window.AttachSymbolFilterArchitecture),
                 System.Windows.Threading.DispatcherPriority.Loaded);
-        }
-
-        private void AttachSymbolFilterArchitecture()
-        {
-            if (_symbolFilterArchitectureAttached || !_symbolFiltersInitialized)
-                return;
-
-            DetachLegacySymbolFilterHandlers();
-
-            SymbolSearchTextBox.TextChanged += SymbolFilterArchitecture_TextChanged;
-            _nameFilterTextBox!.TextChanged += SymbolFilterArchitecture_TextChanged;
-            _nameFilterComboBox!.SelectionChanged += SymbolFilterArchitecture_SelectionChanged;
-            _daysWithoutTradeCheckBox!.Checked += SymbolFilterArchitecture_RoutedChanged;
-            _daysWithoutTradeCheckBox.Unchecked += SymbolFilterArchitecture_RoutedChanged;
-            _daysWithoutTradeTextBox!.TextChanged += SymbolFilterArchitecture_TextChanged;
-            _daysWithTradeCheckBox!.Checked += SymbolFilterArchitecture_RoutedChanged;
-            _daysWithTradeCheckBox.Unchecked += SymbolFilterArchitecture_RoutedChanged;
-            _daysWithTradeTextBox!.TextChanged += SymbolFilterArchitecture_TextChanged;
-            _volumeFilterCheckBox!.Checked += SymbolFilterArchitecture_RoutedChanged;
-            _volumeFilterCheckBox.Unchecked += SymbolFilterArchitecture_RoutedChanged;
-            _volumeAverageDaysTextBox!.TextChanged += SymbolFilterArchitecture_TextChanged;
-            _volumeMultiplierTextBox!.TextChanged += SymbolFilterArchitecture_TextChanged;
-
-            foreach (var row in _priceFilterControls)
-            {
-                row.Enabled.Checked += SymbolFilterArchitecture_RoutedChanged;
-                row.Enabled.Unchecked += SymbolFilterArchitecture_RoutedChanged;
-                row.LeftField.SelectionChanged += SymbolFilterArchitecture_SelectionChanged;
-                row.LeftDays.TextChanged += SymbolFilterArchitecture_TextChanged;
-                row.Comparison.SelectionChanged += SymbolFilterArchitecture_SelectionChanged;
-                row.RightField.SelectionChanged += SymbolFilterArchitecture_SelectionChanged;
-                row.RightDays.TextChanged += SymbolFilterArchitecture_TextChanged;
-            }
-
-            _symbolFilterArchitectureAttached = true;
-            _ = ApplySymbolFiltersThroughEngineAsync();
         }
 
         private void DetachLegacySymbolFilterHandlers()
@@ -119,55 +80,6 @@ namespace TradeIt
         {
             if (!_symbolFiltersApplying)
                 _ = ApplySymbolFiltersThroughEngineAsync();
-        }
-
-        private async Task ApplySymbolFiltersThroughEngineAsync()
-        {
-            if (!_symbolFilterArchitectureAttached || !_symbolFiltersInitialized || _selectedPortfolio == null)
-                return;
-
-            if (!ReferenceEquals(_symbolFilterEnginePortfolio, _selectedPortfolio))
-            {
-                _symbolFilterEngine.ClearCache();
-                _symbolFilterEnginePortfolio = _selectedPortfolio;
-            }
-
-            _symbolFilterCts?.Cancel();
-            _symbolFilterCts?.Dispose();
-            _symbolFilterCts = new CancellationTokenSource();
-            CancellationToken token = _symbolFilterCts.Token;
-
-            try
-            {
-                _symbolFiltersApplying = true;
-                CaptureFilterSettings();
-                _symbolFiltersApplying = false;
-
-                var results = await _symbolFilterEngine.ApplyAsync(
-                    _allSymbols,
-                    SymbolSearchTextBox.Text,
-                    _symbolFilterSettings,
-                    token,
-                    symbol => _symbolDataService.LoadBars(symbol, _selectedPortfolio!));
-
-                token.ThrowIfCancellationRequested();
-                SymbolsDataGrid.ItemsSource = results;
-
-                if (_symbolFilterStatusTextBlock != null)
-                    _symbolFilterStatusTextBlock.Text = $"نتیجه: {results.Count:N0} نماد";
-            }
-            catch (OperationCanceledException)
-            {
-            }
-            catch (Exception ex)
-            {
-                if (_symbolFilterStatusTextBlock != null)
-                    _symbolFilterStatusTextBlock.Text = $"خطا در فیلتر: {ex.Message}";
-            }
-            finally
-            {
-                _symbolFiltersApplying = false;
-            }
         }
     }
 }
