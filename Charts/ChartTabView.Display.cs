@@ -306,7 +306,7 @@ namespace TradeIt.Charts
                 {
                     _continuousTimeAxisApplied = false;
                     ConfigureFinalDateAxis();
-                    ForceInitial365CandleRange();
+                    ApplyInitialCandleRange();
                 }
                 else
                 {
@@ -355,39 +355,6 @@ namespace TradeIt.Charts
                 labels.Add(string.IsNullOrWhiteSpace(label) ? $"کندل {index + 1}" : label);
             }
             axis.TickGenerator = new ScottPlot.TickGenerators.NumericManual(positions.ToArray(), labels.ToArray());
-        }
-
-        private void ForceInitial365CandleRange()
-        {
-            if (_bars.Count == 0) return;
-            const int visibleCount = 365;
-            int firstIndex = Math.Max(0, _bars.Count - visibleCount);
-            int lastIndex = _bars.Count - 1;
-            double firstX = GetBarDateTime(_bars[firstIndex], firstIndex).ToOADate();
-            double lastX = GetBarDateTime(_bars[lastIndex], lastIndex).ToOADate();
-            if (!double.IsFinite(firstX) || !double.IsFinite(lastX)) return;
-            const double xPadding = 0.5;
-            double minPrice = double.MaxValue;
-            double maxPrice = double.MinValue;
-            for (int i = firstIndex; i <= lastIndex; i++)
-            {
-                minPrice = Math.Min(minPrice, _bars[i].Low);
-                maxPrice = Math.Max(maxPrice, _bars[i].High);
-            }
-            double rightMargin = Math.Max(1.0, lastX - firstX) * InitialRightMarginFraction / (1.0 - InitialRightMarginFraction);
-            if (double.IsFinite(minPrice) && double.IsFinite(maxPrice))
-            {
-                double range = maxPrice - minPrice;
-                double padding = range > 0 ? range * 0.05 : Math.Max(Math.Abs(maxPrice) * 0.01, 1);
-                Chart.Plot.Axes.SetLimits(firstX - xPadding, lastX + xPadding + rightMargin, minPrice - padding, maxPrice + padding);
-            }
-            else
-            {
-                var current = Chart.Plot.Axes.GetLimits();
-                Chart.Plot.Axes.SetLimits(firstX - xPadding, lastX + xPadding + rightMargin, current.Bottom, current.Top);
-            }
-            _initialCandleRangeApplied = true;
-            SaveInitialView();
         }
 
         private void FinalChartFixes_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
