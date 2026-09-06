@@ -100,7 +100,7 @@ namespace TradeIt.Charts
             {
                 _crosshair.IsVisible = _crosshairVisible &&
                                        _chartVisible &&
-                                       (_crosshairMouseInside || !_hasInitialView);
+                                       _crosshairMouseInside;
             }
 
             CrosshairButton.IsChecked = _crosshairVisible;
