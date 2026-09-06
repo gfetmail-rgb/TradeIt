@@ -5,6 +5,7 @@ namespace TradeIt.Charts
     public partial class ChartTabView
     {
         private bool _advancedDrawingRenderFixAttached;
+        private bool _advancedDrawingRenderInProgress;
 
         private void AttachAdvancedDrawingRenderFix()
         {
@@ -17,7 +18,7 @@ namespace TradeIt.Charts
 
         private void AdvancedDrawingRenderFix_RenderStarting(object? sender, ScottPlot.RenderPack e)
         {
-            if (!_allDrawingsVisible)
+            if (!_allDrawingsVisible || _advancedDrawingRenderInProgress)
                 return;
 
             RenderAdvancedDrawingsAfterChartRebuild();
@@ -25,32 +26,43 @@ namespace TradeIt.Charts
 
         private void RenderAdvancedDrawingsAfterChartRebuild()
         {
-            foreach (var drawing in _parallelChannels)
-            {
-                if (drawing.BaseLine != null) Chart.Plot.Remove(drawing.BaseLine);
-                if (drawing.ParallelLine != null) Chart.Plot.Remove(drawing.ParallelLine);
-                drawing.BaseLine = null;
-                drawing.ParallelLine = null;
-                AddParallelChannelToChart(drawing);
-            }
+            if (_advancedDrawingRenderInProgress)
+                return;
 
-            foreach (var drawing in _drawingRectangles)
+            _advancedDrawingRenderInProgress = true;
+            try
             {
-                foreach (var line in drawing.Lines)
-                    Chart.Plot.Remove(line);
-                drawing.Lines.Clear();
-                AddRectangleToChart(drawing);
-            }
+                foreach (var drawing in _parallelChannels)
+                {
+                    if (drawing.BaseLine != null) Chart.Plot.Remove(drawing.BaseLine);
+                    if (drawing.ParallelLine != null) Chart.Plot.Remove(drawing.ParallelLine);
+                    drawing.BaseLine = null;
+                    drawing.ParallelLine = null;
+                    AddParallelChannelToChart(drawing);
+                }
 
-            foreach (var drawing in _pitchforks)
+                foreach (var drawing in _drawingRectangles)
+                {
+                    foreach (var line in drawing.Lines)
+                        Chart.Plot.Remove(line);
+                    drawing.Lines.Clear();
+                    AddRectangleToChart(drawing);
+                }
+
+                foreach (var drawing in _pitchforks)
+                {
+                    if (drawing.MedianLine != null) Chart.Plot.Remove(drawing.MedianLine);
+                    if (drawing.UpperLine != null) Chart.Plot.Remove(drawing.UpperLine);
+                    if (drawing.LowerLine != null) Chart.Plot.Remove(drawing.LowerLine);
+                    drawing.MedianLine = null;
+                    drawing.UpperLine = null;
+                    drawing.LowerLine = null;
+                    AddPitchforkToChart(drawing);
+                }
+            }
+            finally
             {
-                if (drawing.MedianLine != null) Chart.Plot.Remove(drawing.MedianLine);
-                if (drawing.UpperLine != null) Chart.Plot.Remove(drawing.UpperLine);
-                if (drawing.LowerLine != null) Chart.Plot.Remove(drawing.LowerLine);
-                drawing.MedianLine = null;
-                drawing.UpperLine = null;
-                drawing.LowerLine = null;
-                AddPitchforkToChart(drawing);
+                _advancedDrawingRenderInProgress = false;
             }
         }
     }
