@@ -34,7 +34,7 @@ namespace TradeIt.Charts
 
         private void ApplyInitialCandleRange()
         {
-            if (_bars.Count == 0 || _hasInitialView)
+            if (_bars.Count == 0 || _initialCandleRangeApplied)
                 return;
 
             if (!ChartSettingsManager.Current.ShowTimeGaps)
@@ -60,15 +60,44 @@ namespace TradeIt.Charts
                 limits.Bottom,
                 limits.Top);
 
+            AutoFitInitialVisiblePriceRange(firstVisibleIndex, lastVisibleIndex);
             SaveInitialView();
             _initialCandleRangeApplied = true;
             Chart.Refresh();
+        }
+
+        private void AutoFitInitialVisiblePriceRange(int firstIndex, int lastIndex)
+        {
+            double minPrice = double.MaxValue;
+            double maxPrice = double.MinValue;
+
+            for (int i = firstIndex; i <= lastIndex; i++)
+            {
+                minPrice = Math.Min(minPrice, _bars[i].Low);
+                maxPrice = Math.Max(maxPrice, _bars[i].High);
+            }
+
+            if (!double.IsFinite(minPrice) || !double.IsFinite(maxPrice) || minPrice == double.MaxValue || maxPrice == double.MinValue)
+                return;
+
+            double range = maxPrice - minPrice;
+            double padding = range > 0
+                ? range * 0.05
+                : Math.Max(Math.Abs(maxPrice) * 0.01, 1.0);
+
+            var limits = Chart.Plot.Axes.GetLimits();
+            Chart.Plot.Axes.SetLimits(
+                limits.Left,
+                limits.Right,
+                minPrice - padding,
+                maxPrice + padding);
         }
 
         private void ResetZoomButton_Click(object sender, RoutedEventArgs e)
         {
             if (!_hasInitialView)
             {
+                _initialCandleRangeApplied = false;
                 ApplyInitialCandleRange();
                 return;
             }
