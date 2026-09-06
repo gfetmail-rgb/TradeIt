@@ -9,6 +9,7 @@ namespace TradeIt.Charts
     {
         private static readonly object Sync = new();
         private static readonly string SettingsFile = StoragePaths.ChartSettingsFile;
+        private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
         private static ChartSettings _current = LoadOrCreateDefaults();
 
         public static event EventHandler? SettingsChanged;
@@ -45,7 +46,7 @@ namespace TradeIt.Charts
         {
             Directory.CreateDirectory(Path.GetDirectoryName(SettingsFile)!);
             _current.HasUserSavedSettings = true;
-            File.WriteAllText(SettingsFile, JsonSerializer.Serialize(_current, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(SettingsFile, JsonSerializer.Serialize(_current, JsonOptions));
         }
 
         public static void Save() => Save(_current);
