@@ -103,6 +103,10 @@ namespace TradeIt.Charts
                 double.IsFinite(minPrice) ? minPrice - padding : current.Bottom,
                 double.IsFinite(maxPrice) ? maxPrice + padding : current.Top);
 
+            // The drawing coordinate helpers must know that the chart is already
+            // using the continuous index axis before any drawing is restored.
+            _continuousTimeAxisApplied = true;
+
             // ClearMainChart() also removes persisted drawing plottables. Restore the
             // non-advanced drawings here; advanced drawings and their styles are restored
             // by AdvancedDrawingRenderFix during RenderStarting.
@@ -115,7 +119,6 @@ namespace TradeIt.Charts
 
             SaveInitialView();
             _initialCandleRangeApplied = true;
-            _continuousTimeAxisApplied = true;
             RestoreCrosshairAndDateAxis();
             Chart.Refresh();
         }
