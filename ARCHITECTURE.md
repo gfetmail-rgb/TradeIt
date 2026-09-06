@@ -26,12 +26,13 @@ Filtering is delegated to `SymbolFilterEngine`, including historical-bar caching
 - initial range
 - crosshair
 - drawing tools, selection, handles, text and technical drawings
+- chart export (screenshot / print)
 
 The partials are intentionally organized by responsibility; they are not duplicate implementations of the same feature.
 
 ## Auto Scroll
 
-`AutoScrollController` owns timer state, index progression, concurrency protection, and UI-context marshaling. `MainWindow.AutoScroll.cs` is the UI adapter that creates/reuses the Auto Scroll tab and delegates progression to the controller.
+`AutoScrollController` owns timer state, index progression, concurrency protection, and UI-context marshaling. `MainWindow.AutoScroll.cs` is the UI adapter that creates/reuses the Auto Scroll tab and delegates progression to the controller. `MainWindow.xaml.cs` contains no legacy Auto Scroll timer/index state and routes lifecycle changes through the controller.
 
 ## Persistence
 
