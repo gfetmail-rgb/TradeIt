@@ -15,7 +15,7 @@ namespace TradeIt.Charts
                 plottable.IsVisible = _chartVisible;
             }
             if (_crosshair != null)
-                _crosshair.IsVisible = _chartVisible && _crosshairVisible && (_crosshairMouseInside || !_hasInitialView);
+                _crosshair.IsVisible = _chartVisible && _crosshairVisible && _crosshairMouseInside;
             HideChartButton.Content = _chartVisible ? "پنهان کردن نمودار" : "نمایش نمودار";
             Chart.Refresh();
         }
@@ -110,8 +110,5 @@ namespace TradeIt.Charts
             ChartInfoTextBlock.Text = $"{_symbol.Symbol} | همه ابزارهای رسم حذف شدند";
             Chart.Refresh();
         }
-
-        private void ZoomInButton_Click(object sender, RoutedEventArgs e) => ZoomXAxis(0.80);
-        private void ZoomOutButton_Click(object sender, RoutedEventArgs e) => ZoomXAxis(1.25);
     }
 }
