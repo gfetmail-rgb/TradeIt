@@ -8,6 +8,7 @@ namespace TradeIt.Charts
     {
         private const int InitialVisibleCandleCount = 50;
         private const double InitialRightMarginFraction = 0.30;
+        private bool _initialCandleRangeApplied;
         private static readonly bool _initialCandleRangeRegistered = RegisterInitialCandleRange();
 
         private static bool RegisterInitialCandleRange()
