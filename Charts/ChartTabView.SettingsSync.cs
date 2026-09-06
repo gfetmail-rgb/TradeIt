@@ -1,43 +1,13 @@
 using System;
-using System.Windows;
 
 namespace TradeIt.Charts
 {
     public partial class ChartTabView
     {
-        private bool _settingsLifecycleAttached;
-
+        // Display.cs is the single owner of ChartSettingsManager.SettingsChanged.
+        // Keep this method for constructor compatibility without creating a second subscription path.
         private void SubscribeToSettingsChanges()
         {
-            ChartSettingsManager.SettingsChanged -= ChartSettingsManager_SettingsChanged;
-            ChartSettingsManager.SettingsChanged += ChartSettingsManager_SettingsChanged;
-
-            if (_settingsLifecycleAttached)
-                return;
-
-            _settingsLifecycleAttached = true;
-            Loaded += ChartTabView_SettingsLoaded;
-            Unloaded += ChartTabView_SettingsUnloaded;
-        }
-
-        private void ChartTabView_SettingsLoaded(object sender, RoutedEventArgs e)
-        {
-            SubscribeToSettingsChanges();
-        }
-
-        private void ChartTabView_SettingsUnloaded(object sender, RoutedEventArgs e)
-        {
-            ChartSettingsManager.SettingsChanged -= ChartSettingsManager_SettingsChanged;
-        }
-
-        private void ChartSettingsManager_SettingsChanged(object? sender, EventArgs e)
-        {
-            if (!IsLoaded) return;
-
-            if (Dispatcher.CheckAccess())
-                ApplyStoredChartSettings();
-            else
-                Dispatcher.InvokeAsync(ApplyStoredChartSettings);
         }
 
         private void ApplyStoredChartSettings()
