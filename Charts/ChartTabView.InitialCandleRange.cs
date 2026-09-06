@@ -7,10 +7,10 @@ namespace TradeIt.Charts
     public partial class ChartTabView
     {
         // Single source of truth for the requested initial chart view.
-        // At most 200 candles are visible, with the candles occupying about 2/3
-        // of the horizontal plot area and the final 1/3 left empty.
+        // At most 200 candles are visible, with 25% of the horizontal plot area
+        // left empty after the last candle.
         private const int InitialVisibleCandleCount = 200;
-        private const double InitialRightMarginFraction = 1.0 / 3.0;
+        private const double InitialRightMarginFraction = 0.25;
         private const double InitialLeftMarginFraction = 0.02;
         private bool _initialCandleRangeApplied;
         private static readonly bool _initialCandleRangeRegistered = RegisterInitialCandleRange();
@@ -52,8 +52,7 @@ namespace TradeIt.Charts
                 return;
 
             double candleRange = Math.Max(1.0, lastX - firstX);
-            // To leave one third of the viewport empty, the right margin must
-            // be half of the candle span: data width : margin = 2 : 1.
+            // Data width : empty right margin = 75% : 25%.
             double rightMargin = candleRange * InitialRightMarginFraction / (1.0 - InitialRightMarginFraction);
             double leftMargin = Math.Max(candleRange * InitialLeftMarginFraction, 0.5);
 
@@ -68,6 +67,18 @@ namespace TradeIt.Charts
             SaveInitialView();
             _initialCandleRangeApplied = true;
             Chart.Refresh();
+        }
+
+        private void ApplySavedInitialView()
+        {
+            if (!_hasInitialView)
+                return;
+
+            Chart.Plot.Axes.SetLimits(
+                _initialXMin,
+                _initialXMax,
+                _initialYMin,
+                _initialYMax);
         }
 
         private void AutoFitInitialVisiblePriceRange(int firstIndex, int lastIndex)
@@ -106,11 +117,7 @@ namespace TradeIt.Charts
                 return;
             }
 
-            Chart.Plot.Axes.SetLimits(
-                _initialXMin,
-                _initialXMax,
-                _initialYMin,
-                _initialYMax);
+            ApplySavedInitialView();
             Chart.Refresh();
         }
     }
