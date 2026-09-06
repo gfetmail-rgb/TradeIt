@@ -28,10 +28,6 @@ namespace TradeIt.Charts
                 UIElement.PreviewMouseMoveEvent,
                 new System.Windows.Input.MouseEventHandler(chart.CoordinateConsistencyFix_MouseMove),
                 true);
-            chart.Chart.AddHandler(
-                UIElement.PreviewMouseLeftButtonDownEvent,
-                new System.Windows.Input.MouseButtonEventHandler(chart.CoordinateConsistencyFix_MouseLeftButtonDown),
-                true);
         }
 
         private void CoordinateConsistencyFix_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
@@ -79,68 +75,6 @@ namespace TradeIt.Charts
             return Math.Abs(ContinuousX(low) - x) < Math.Abs(x - ContinuousX(low - 1))
                 ? low
                 : low - 1;
-        }
-
-        private void CoordinateConsistencyFix_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            if (!_continuousTimeAxisApplied || e.ChangedButton != MouseButton.Left || e.ClickCount != 2)
-                return;
-
-            System.Windows.Point point = e.GetPosition(Chart);
-            if (point.X < 0 || point.X > Chart.ActualWidth)
-                return;
-
-            double width = Chart.ActualWidth;
-            double height = Chart.ActualHeight;
-            if (width <= 0 || height <= 0)
-                return;
-
-            const double leftAxisWidth = 75.0;
-            const double rightAxisWidth = 30.0;
-            const double bottomAxisHeight = 55.0;
-            bool onPriceAxis = point.Y < height - bottomAxisHeight &&
-                               (point.X <= leftAxisWidth || point.X >= width - rightAxisWidth);
-            if (!onPriceAxis)
-                return;
-
-            AutoFitVisiblePriceRangeContinuous();
-            e.Handled = true;
-        }
-
-        private void AutoFitVisiblePriceRangeContinuous()
-        {
-            if (!_hasInitialView || _bars.Count == 0)
-                return;
-
-            var limits = Chart.Plot.Axes.GetLimits();
-            double minPrice = double.MaxValue;
-            double maxPrice = double.MinValue;
-
-            int first = Math.Max(0, (int)Math.Ceiling(limits.Left - 2000.0));
-            int last = Math.Min(_bars.Count - 1, (int)Math.Floor(limits.Right - 2000.0));
-            if (last < first)
-                return;
-
-            for (int i = first; i <= last; i++)
-            {
-                minPrice = Math.Min(minPrice, _bars[i].Low);
-                maxPrice = Math.Max(maxPrice, _bars[i].High);
-            }
-
-            if (minPrice == double.MaxValue || maxPrice == double.MinValue)
-                return;
-
-            double range = maxPrice - minPrice;
-            double padding = range > 0
-                ? range * 0.05
-                : Math.Max(Math.Abs(maxPrice) * 0.01, 1);
-
-            Chart.Plot.Axes.SetLimits(
-                limits.Left,
-                limits.Right,
-                minPrice - padding,
-                maxPrice + padding);
-            Chart.Refresh();
         }
     }
 }
