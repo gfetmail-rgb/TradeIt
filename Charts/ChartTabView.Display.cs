@@ -293,7 +293,7 @@ namespace TradeIt.Charts
         private void ApplyCrosshairDisplayState()
         {
             if (_crosshair != null)
-                _crosshair.IsVisible = _crosshairVisible && _chartVisible && (_crosshairMouseInside || !_hasInitialView);
+                _crosshair.IsVisible = _crosshairVisible && _chartVisible && _crosshairMouseInside;
         }
 
         private static readonly bool _finalChartFixesRegistered = RegisterFinalChartFixes();
@@ -322,7 +322,6 @@ namespace TradeIt.Charts
                 {
                     _continuousTimeAxisApplied = false;
                     ConfigureFinalDateAxis();
-                    ApplyInitialCandleRange();
                 }
                 else
                 {
