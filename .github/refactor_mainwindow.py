@@ -3,28 +3,27 @@ import re
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "MainWindow.xaml.cs"
+MARKER = "// AUTO-REFACTORED-METHODS-V2"
 HELPER = ROOT / "MainWindow.RefactoredMethods.cs"
-MARKER = "// AUTO-REFACTORED-METHODS-V1"
 
+# Each tuple is (source file, method name, optional predicate for overload selection).
 TARGETS = [
-    "OpenChartTabAsync",
-    "CreateTabHeader",
-    "SetBusy",
-    "DeleteSymbolsButton_Click",
-    "MakeWatchButton_Click",
-    "EnterFullScreen",
-    "ExitFullScreen",
-    "ApplySymbolFiltersThroughEngineAsync",
-    "AttachSymbolFilterArchitecture",
+    ("MainWindow.xaml.cs", "OpenChartTabAsync", lambda b: "bool replaceCurrentTab" in b),
+    ("MainWindow.xaml.cs", "CreateTabHeader", None),
+    ("MainWindow.xaml.cs", "SetBusy", None),
+    ("MainWindow.xaml.cs", "DeleteSymbolsButton_Click", None),
+    ("MainWindow.xaml.cs", "MakeWatchButton_Click", None),
+    ("MainWindow.xaml.cs", "EnterFullScreen", None),
+    ("MainWindow.xaml.cs", "ExitFullScreen", None),
+    ("MainWindow.SymbolFilterArchitecture.cs", "ApplySymbolFiltersThroughEngineAsync", None),
+    ("MainWindow.SymbolFilterArchitecture.cs", "AttachSymbolFilterArchitecture", None),
 ]
 
-# The first item has two overloads. Move only the overload that accepts
-# replaceCurrentTab; the two-argument public wrapper remains in MainWindow.
 
 def method_start_candidates(text, name):
+    # Handles multiline signatures while requiring an access modifier.
     pat = re.compile(
-        rf"(?ms)^[ \t]*(?:public|private|protected|internal)\b.*?\b{name}\s*\([^;{{}}]*?\)\s*\{{"
+        rf"(?ms)^[ \t]*(?:public|private|protected|internal)\b[^;{{}}]*?\b{name}\s*\([^;{{}}]*?\)\s*\{{"
     )
     return list(pat.finditer(text))
 
@@ -75,8 +74,7 @@ def matching_brace(text, open_index):
 
 
 def extract_one(text, name, predicate=None):
-    candidates = method_start_candidates(text, name)
-    for m in candidates:
+    for m in method_start_candidates(text, name):
         open_index = text.find("{", m.start(), m.end())
         close_index = matching_brace(text, open_index)
         block = text[m.start():close_index + 1]
@@ -85,78 +83,75 @@ def extract_one(text, name, predicate=None):
     raise RuntimeError(f"Target method not found: {name}")
 
 
+def extract_from_file(path, specs):
+    text = path.read_text(encoding="utf-8")
+    ranges = []
+    for name, predicate in specs:
+        start, end, block = extract_one(text, name, predicate)
+        ranges.append((start, end, name, block))
+    ordered = sorted(ranges)
+    for (_, prev_end, _, _), (start, _, _, _) in zip(ordered, ordered[1:]):
+        if start < prev_end:
+            raise RuntimeError(f"Overlapping target ranges in {path.name}")
+    for start, end, _, _ in sorted(ranges, reverse=True):
+        text = text[:start] + text[end:]
+    return text, [(name, block) for _, _, name, block in ranges]
+
+
 def main():
-    if not SOURCE.exists():
-        raise RuntimeError("MainWindow.xaml.cs not found")
     if HELPER.exists() and MARKER in HELPER.read_text(encoding="utf-8"):
         print("Refactor already applied; nothing to do.")
         return
 
-    source = SOURCE.read_text(encoding="utf-8")
-    original = source
-    extracted = []
+    grouped = {}
+    for filename, name, predicate in TARGETS:
+        grouped.setdefault(filename, []).append((name, predicate))
 
-    # Extract from bottom to top so offsets remain valid.
-    specs = [
-        ("OpenChartTabAsync", lambda b: "bool replaceCurrentTab" in b),
-        ("CreateTabHeader", None),
-        ("SetBusy", lambda b: "SetBusy(" in b),
-        ("DeleteSymbolsButton_Click", None),
-        ("MakeWatchButton_Click", None),
-        ("EnterFullScreen", None),
-        ("ExitFullScreen", None),
-        ("ApplySymbolFiltersThroughEngineAsync", None),
-        ("AttachSymbolFilterArchitecture", None),
-    ]
+    extracted_all = []
+    updated_files = {}
+    for filename, specs in grouped.items():
+        path = ROOT / filename
+        if not path.exists():
+            raise RuntimeError(f"Missing source file: {filename}")
+        updated, extracted = extract_from_file(path, specs)
+        updated_files[path] = updated
+        extracted_all.extend(extracted)
 
-    ranges = []
-    for name, predicate in specs:
-        start, end, block = extract_one(source, name, predicate)
-        ranges.append((start, end, name, block))
+    if len(extracted_all) != len(TARGETS):
+        raise RuntimeError("Not all requested methods were extracted")
 
-    # Reject overlapping selections before changing anything.
-    ordered = sorted(ranges)
-    for (_, prev_end, _, _), (start, _, _, _) in zip(ordered, ordered[1:]):
-        if start < prev_end:
-            raise RuntimeError("Overlapping target method ranges detected")
-
-    for start, end, name, block in sorted(ranges, reverse=True):
-        extracted.append((name, block))
-        source = source[:start] + source[end:]
-
-    expected = len(specs)
-    if len(extracted) != expected:
-        raise RuntimeError(f"Expected {expected} methods, extracted {len(extracted)}")
-
-    # Preserve the original usings so moved handlers compile independently.
-    using_end = source.find("namespace TradeIt")
-    if using_end < 0:
-        raise RuntimeError("namespace TradeIt not found")
-    usings = source[:using_end].rstrip()
+    # Preserve the union of using directives from the affected files.
+    using_blocks = []
+    for filename in grouped:
+        text = (ROOT / filename).read_text(encoding="utf-8")
+        namespace_pos = text.find("namespace TradeIt")
+        if namespace_pos < 0:
+            raise RuntimeError(f"namespace TradeIt not found in {filename}")
+        using_blocks.append(text[:namespace_pos].rstrip())
+    usings = "\n".join(dict.fromkeys(using_blocks))
 
     helper = (
         usings
-        + "\n\n"
-        + "namespace TradeIt\n{\n"
+        + "\n\nnamespace TradeIt\n{\n"
         + "    public partial class MainWindow\n    {\n"
         + f"        {MARKER}\n\n"
-        + "\n\n".join(block for _, block in reversed(extracted))
+        + "\n\n".join(block for _, block in extracted_all)
         + "\n    }\n}\n"
     )
 
-    # Keep a marker in the source as well, making the operation visibly one-time.
-    source = source.replace(
-        "public partial class MainWindow\n    {",
-        "public partial class MainWindow\n    {\n        // AUTO-REFACTORED-METHODS-V1: implementations moved to MainWindow.RefactoredMethods.cs",
-        1,
-    )
+    for path, content in updated_files.items():
+        if "AUTO-REFACTORED-METHODS-V2" not in content:
+            content = content.replace(
+                "public partial class MainWindow\n    {",
+                "public partial class MainWindow\n    {\n        // AUTO-REFACTORED-METHODS-V2: implementations moved to MainWindow.RefactoredMethods.cs",
+                1,
+            )
+        path.write_text(content, encoding="utf-8", newline="\n")
 
-    SOURCE.write_text(source, encoding="utf-8", newline="\n")
     HELPER.write_text(helper, encoding="utf-8", newline="\n")
-
     subprocess.run(["git", "diff", "--check"], cwd=ROOT, check=True)
     print("Extracted methods:")
-    for name, _ in reversed(extracted):
+    for name, _ in extracted_all:
         print(f"  - {name}")
 
 
