@@ -62,7 +62,7 @@ namespace TradeIt.Charts
         public static Dictionary<string, bool> CreateDefaultExtensionLevels() => new()
         {
             ["0.0"] = true, ["38.2"] = true, ["61.8"] = true, ["100.0"] = true,
-            ["127.2"] = true, ["161.8"] = true, ["261.8"] = true
+            ["127.2"] = true, ["161.8"] = true, ["200.0"] = true, ["261.8"] = true
         };
 
         public static Dictionary<string, DrawingToolStyle> CreateDefaultDrawingToolStyles() => new()
