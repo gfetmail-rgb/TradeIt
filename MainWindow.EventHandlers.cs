@@ -20,11 +20,7 @@ namespace TradeIt
 
         private static bool RegisterChartClickSettingHandler()
         {
-            EventManager.RegisterClassHandler(
-                typeof(TextBlock),
-                UIElement.MouseLeftButtonUpEvent,
-                new MouseButtonEventHandler(ChartNameClassClickHandler),
-                true);
+            EventManager.RegisterClassHandler(typeof(TextBlock), UIElement.MouseLeftButtonUpEvent, new MouseButtonEventHandler(ChartNameClassClickHandler), true);
             return true;
         }
 
@@ -32,12 +28,8 @@ namespace TradeIt
         {
             if (e.Handled || sender is not TextBlock textBlock || textBlock.Tag?.ToString() != "SymbolName" || textBlock.DataContext is not SymbolInfo symbol)
                 return;
-
-            if (Window.GetWindow(textBlock) is not MainWindow window ||
-                !IsInsideSymbolGrid(textBlock, window.SymbolsDataGrid) ||
-                window._selectedPortfolio == null)
+            if (Window.GetWindow(textBlock) is not MainWindow window || !IsInsideSymbolGrid(textBlock, window.SymbolsDataGrid) || window._selectedPortfolio == null)
                 return;
-
             e.Handled = true;
             ChartSettings settings = ChartSettingsManager.Current;
             if (settings.OpenChartInNewTab)
@@ -51,8 +43,7 @@ namespace TradeIt
             DependencyObject? current = child;
             while (current != null)
             {
-                if (ReferenceEquals(current, grid))
-                    return true;
+                if (ReferenceEquals(current, grid)) return true;
                 current = System.Windows.Media.VisualTreeHelper.GetParent(current);
             }
             return false;
@@ -63,10 +54,7 @@ namespace TradeIt
 
         private static bool RegisterFilterClearHandler()
         {
-            EventManager.RegisterClassHandler(
-                typeof(MainWindow),
-                Window.LoadedEvent,
-                new RoutedEventHandler(FilterClearLoadedClassHandler));
+            EventManager.RegisterClassHandler(typeof(MainWindow), Window.LoadedEvent, new RoutedEventHandler(FilterClearLoadedClassHandler));
             return true;
         }
 
@@ -78,18 +66,13 @@ namespace TradeIt
 
         private void AddClearAllFiltersButton()
         {
-            if (_clearFiltersUiAdded || SymbolFilterHost == null)
-                return;
-
+            if (_clearFiltersUiAdded || SymbolFilterHost == null) return;
             _clearFiltersUiAdded = true;
             SymbolFilterHost.RowDefinitions.Clear();
             SymbolFilterHost.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             SymbolFilterHost.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-
             UIElement? existing = SymbolFilterHost.Children.Count > 0 ? SymbolFilterHost.Children[0] : null;
-            if (existing != null)
-                Grid.SetRow(existing, 1);
-
+            if (existing != null) Grid.SetRow(existing, 1);
             var clearButton = new WpfButton
             {
                 Content = "پاک کردن تمام فیلترها",
@@ -118,7 +101,6 @@ namespace TradeIt
             {
                 _symbolFiltersApplying = false;
             }
-
             _ = ApplyAllSymbolFiltersAsync();
         }
 
@@ -157,7 +139,6 @@ namespace TradeIt
             _symbolFilterSettings.DaysWithoutTradeEnabled = false;
             _symbolFilterSettings.DaysWithTradeEnabled = false;
             _symbolFilterSettings.VolumeFilterEnabled = false;
-
             foreach (var filter in _symbolFilterSettings.PriceFilters)
                 filter.Enabled = false;
         }
@@ -168,25 +149,22 @@ namespace TradeIt
                 _symbolFilterStatusTextBlock.Text = "همه فیلترها پاک و غیرفعال شدند.";
         }
 
-        private static void SetSelectedIndex(ComboBox? comboBox, int index)
+        private static void SetSelectedIndex(System.Windows.Controls.ComboBox? comboBox, int index)
         {
-            if (comboBox != null)
-                comboBox.SelectedIndex = index;
+            if (comboBox != null) comboBox.SelectedIndex = index;
         }
 
-        private static void SetChecked(CheckBox? checkBox, bool value)
+        private static void SetChecked(System.Windows.Controls.CheckBox? checkBox, bool value)
         {
-            if (checkBox != null)
-                checkBox.IsChecked = value;
+            if (checkBox != null) checkBox.IsChecked = value;
         }
 
-        private static void SetText(TextBox? textBox, string value)
+        private static void SetText(System.Windows.Controls.TextBox? textBox, string value)
         {
-            if (textBox != null)
-                textBox.Text = value;
+            if (textBox != null) textBox.Text = value;
         }
 
-        private static void ClearTextBox(TextBox? textBox)
+        private static void ClearTextBox(System.Windows.Controls.TextBox? textBox)
         {
             textBox?.Clear();
         }
@@ -195,18 +173,13 @@ namespace TradeIt
 
         private static bool RegisterPortfolioManagementRefreshOnClose()
         {
-            EventManager.RegisterClassHandler(
-                typeof(PortfolioManagementWindow),
-                FrameworkElement.UnloadedEvent,
-                new RoutedEventHandler(PortfolioManagementWindow_Unloaded),
-                true);
+            EventManager.RegisterClassHandler(typeof(PortfolioManagementWindow), FrameworkElement.UnloadedEvent, new RoutedEventHandler(PortfolioManagementWindow_Unloaded), true);
             return true;
         }
 
         private static void PortfolioManagementWindow_Unloaded(object sender, RoutedEventArgs e)
         {
-            if (sender is not PortfolioManagementWindow window || window.Owner is not MainWindow mainWindow)
-                return;
+            if (sender is not PortfolioManagementWindow window || window.Owner is not MainWindow mainWindow) return;
             mainWindow.RefreshPortfolioButton_Click(mainWindow, new RoutedEventArgs());
         }
 
@@ -220,10 +193,8 @@ namespace TradeIt
                 PortfolioComboBox.ItemsSource = _portfolios;
                 string targetName = !string.IsNullOrWhiteSpace(portfolioName) ? portfolioName : currentPortfolioName ?? string.Empty;
                 Portfolio? target = _portfolios.FirstOrDefault(x => x.Name == targetName);
-                if (target != null)
-                    PortfolioComboBox.SelectedItem = target;
-                else if (_portfolios.Count > 0)
-                    PortfolioComboBox.SelectedIndex = 0;
+                if (target != null) PortfolioComboBox.SelectedItem = target;
+                else if (_portfolios.Count > 0) PortfolioComboBox.SelectedIndex = 0;
             }
             catch (Exception ex)
             {
@@ -241,29 +212,18 @@ namespace TradeIt
 
         private static bool RegisterSharedChartSettingFix()
         {
-            EventManager.RegisterClassHandler(
-                typeof(MainWindow),
-                UIElement.PreviewMouseLeftButtonUpEvent,
-                new MouseButtonEventHandler(SharedChartSettingFix_MouseLeftButtonUp),
-                true);
+            EventManager.RegisterClassHandler(typeof(MainWindow), UIElement.PreviewMouseLeftButtonUpEvent, new MouseButtonEventHandler(SharedChartSettingFix_MouseLeftButtonUp), true);
             return true;
         }
 
         private static async void SharedChartSettingFix_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if (e.Handled || e.ChangedButton != MouseButton.Left)
-                return;
-            if (e.OriginalSource is not DependencyObject source)
-                return;
-
+            if (e.Handled || e.ChangedButton != MouseButton.Left) return;
+            if (e.OriginalSource is not DependencyObject source) return;
             TextBlock? symbolText = FindSymbolNameTextBlock(source);
-            if (symbolText?.DataContext is not SymbolInfo symbol)
-                return;
-            if (Window.GetWindow(symbolText) is not MainWindow window || window._selectedPortfolio == null)
-                return;
-            if (ChartSettingsManager.Current.OpenChartInNewTab)
-                return;
-
+            if (symbolText?.DataContext is not SymbolInfo symbol) return;
+            if (Window.GetWindow(symbolText) is not MainWindow window || window._selectedPortfolio == null) return;
+            if (ChartSettingsManager.Current.OpenChartInNewTab) return;
             e.Handled = true;
             await window.OpenSharedChartTabAsync(symbol, window._selectedPortfolio);
         }
@@ -273,9 +233,7 @@ namespace TradeIt
             DependencyObject? current = source;
             while (current != null)
             {
-                if (current is TextBlock text && text.Tag?.ToString() == "SymbolName")
-                    return text;
-
+                if (current is TextBlock text && text.Tag?.ToString() == "SymbolName") return text;
                 current = current is System.Windows.Media.Visual visual
                     ? System.Windows.Media.VisualTreeHelper.GetParent(visual)
                     : current is FrameworkContentElement content
@@ -290,40 +248,30 @@ namespace TradeIt
 
         private static bool RegisterStartupHandler()
         {
-            EventManager.RegisterClassHandler(
-                typeof(MainWindow),
-                LoadedEvent,
-                new RoutedEventHandler(MainWindow_StartupEmptyListLoaded),
-                true);
+            EventManager.RegisterClassHandler(typeof(MainWindow), LoadedEvent, new RoutedEventHandler(MainWindow_StartupEmptyListLoaded), true);
             return true;
         }
 
         private static void MainWindow_StartupEmptyListLoaded(object sender, RoutedEventArgs e)
         {
-            if (sender is not MainWindow window)
-                return;
-
+            if (sender is not MainWindow window) return;
             window._isFullScreen = false;
             window.WindowStyle = WindowStyle.SingleBorderWindow;
             window.ResizeMode = ResizeMode.CanResize;
             window.WindowState = WindowState.Maximized;
-            if (window.FullScreenExitButton != null)
-                window.FullScreenExitButton.Visibility = Visibility.Collapsed;
+            if (window.FullScreenExitButton != null) window.FullScreenExitButton.Visibility = Visibility.Collapsed;
             window.TopToolbar.Visibility = Visibility.Visible;
             window.StatusBar.Visibility = Visibility.Visible;
             window.SymbolsPanel.Visibility = Visibility.Visible;
             window.MainContent.Visibility = Visibility.Visible;
             window.ChartArea.Visibility = Visibility.Visible;
             window._startupEmptyListPending = true;
-            window.Dispatcher.BeginInvoke(
-                DispatcherPriority.ApplicationIdle,
-                new Action(() => window.ClearStartupPortfolioSelection()));
+            window.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => window.ClearStartupPortfolioSelection()));
         }
 
         private void ClearStartupPortfolioSelection()
         {
-            if (!_startupEmptyListPending)
-                return;
+            if (!_startupEmptyListPending) return;
             _startupEmptyListPending = false;
             PortfolioComboBox.SelectedIndex = -1;
             _selectedPortfolio = null;
@@ -337,8 +285,7 @@ namespace TradeIt
 
         private void ClearStartupSelection()
         {
-            if (PortfolioComboBox == null || SymbolsDataGrid == null)
-                return;
+            if (PortfolioComboBox == null || SymbolsDataGrid == null) return;
             PortfolioComboBox.SelectedItem = null;
             PortfolioComboBox.SelectedIndex = -1;
             _selectedPortfolio = null;
@@ -350,11 +297,8 @@ namespace TradeIt
 
         private async void SymbolNameTextBlock_ClickBySetting(object sender, MouseButtonEventArgs e)
         {
-            if (_suppressSymbolSelection)
-                return;
-            if (sender is not FrameworkElement element || element.DataContext is not SymbolInfo symbol || _selectedPortfolio == null)
-                return;
-
+            if (_suppressSymbolSelection) return;
+            if (sender is not FrameworkElement element || element.DataContext is not SymbolInfo symbol || _selectedPortfolio == null) return;
             e.Handled = true;
             ChartSettings settings = ChartSettingsManager.Current;
             if (settings.OpenChartInNewTab)
@@ -367,33 +311,24 @@ namespace TradeIt
 
         private static bool RegisterUserOptionsStartupHandler()
         {
-            EventManager.RegisterClassHandler(
-                typeof(MainWindow),
-                FrameworkElement.LoadedEvent,
-                new RoutedEventHandler(MainWindow_UserOptionsLoaded),
-                true);
+            EventManager.RegisterClassHandler(typeof(MainWindow), FrameworkElement.LoadedEvent, new RoutedEventHandler(MainWindow_UserOptionsLoaded), true);
             return true;
         }
 
         private static void MainWindow_UserOptionsLoaded(object sender, RoutedEventArgs e)
         {
-            if (sender is not MainWindow window)
-                return;
-
-            window.Dispatcher.BeginInvoke(
-                new Action(() =>
-                {
-                    if (window.PortfolioComboBox.Items.Count > 0)
-                        window.PortfolioComboBox.SelectedIndex = -1;
-                    window._selectedPortfolio = null;
-                    window._allSymbols.Clear();
-                    window.SymbolsDataGrid.ItemsSource = null;
-                    window.SymbolsDataGrid.SelectedItem = null;
-                    window.CloseAllChartTabs();
-                    window.StopAutoScrollController();
-                    window.StatusTextBlock.Text = "یک سبد را انتخاب کنید.";
-                }),
-                DispatcherPriority.ApplicationIdle);
+            if (sender is not MainWindow window) return;
+            window.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (window.PortfolioComboBox.Items.Count > 0) window.PortfolioComboBox.SelectedIndex = -1;
+                window._selectedPortfolio = null;
+                window._allSymbols.Clear();
+                window.SymbolsDataGrid.ItemsSource = null;
+                window.SymbolsDataGrid.SelectedItem = null;
+                window.CloseAllChartTabs();
+                window.StopAutoScrollController();
+                window.StatusTextBlock.Text = "یک سبد را انتخاب کنید.";
+            }), DispatcherPriority.ApplicationIdle);
         }
     }
 }
