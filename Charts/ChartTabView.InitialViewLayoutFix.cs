@@ -26,9 +26,9 @@ namespace TradeIt.Charts
 
             chart.AttachInitialViewRenderFix();
 
-            // Force one render after every Loaded handler has had its chance to
-            // configure the chart. The RenderStarting callback below is the final
-            // authority for the opening limits.
+            // Start one render after all Loaded handlers have had an opportunity to
+            // configure the chart. The final initial-view correction is performed
+            // from RenderFinished, after ScottPlot has completed the whole pipeline.
             chart.Dispatcher.BeginInvoke(
                 new Action(chart.Chart.Refresh),
                 DispatcherPriority.ContextIdle);
@@ -40,10 +40,10 @@ namespace TradeIt.Charts
                 return;
 
             _initialViewRenderFixAttached = true;
-            Chart.Plot.RenderManager.RenderStarting += InitialViewRenderStarting;
+            Chart.Plot.RenderManager.RenderFinished += InitialViewRenderFinished;
         }
 
-        private void InitialViewRenderStarting(object? sender, ScottPlot.RenderPack e)
+        private void InitialViewRenderFinished(object? sender, ScottPlot.RenderDetails e)
         {
             if (_initialViewRenderFixApplied || !IsLoaded || _bars.Count == 0)
                 return;
@@ -67,14 +67,23 @@ namespace TradeIt.Charts
                 if (!_hasInitialView)
                     return;
 
-                // Deliberately use the exact same operation as Reset Zoom.
-                // This removes any distinction between the opening view and Reset Zoom.
+                // Reset Zoom uses this exact operation. Performing it after the
+                // complete ScottPlot render pipeline prevents any earlier autoscale,
+                // plottable axis manager, or layout pass from overwriting the opening
+                // limits.
                 ApplySavedInitialView();
                 _initialViewRenderFixApplied = true;
+
+                // SetLimits() changes the axis state, but the frame just completed.
+                // Render once more so the first visible frame is guaranteed to use
+                // the same limits stored for Reset Zoom.
+                Chart.Dispatcher.BeginInvoke(
+                    new Action(Chart.Refresh),
+                    DispatcherPriority.Render);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Initial chart render fix failed: {ex}");
+                System.Diagnostics.Debug.WriteLine($"Initial chart render-finished fix failed: {ex}");
             }
         }
     }
