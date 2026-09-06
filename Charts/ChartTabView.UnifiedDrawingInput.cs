@@ -47,8 +47,9 @@ namespace TradeIt.Charts
             if (_unifiedDrawingInputAttached) return;
             _unifiedDrawingInputAttached = true;
             InputManager.Current.PreProcessInput += UnifiedDrawing_PreProcessInput;
-            DrawingFibRetracementButton.Click += UnifiedDrawing_FibRetracementClick;
-            DrawingFibExtensionButton.Click += UnifiedDrawing_FibExtensionClick;
+            // Fibonacci buttons are wired in ChartTabView.xaml. Do not register
+            // the same handlers again here, otherwise one click advances the
+            // drawing state twice (the F2 tool is especially affected).
             Chart.PreviewMouseLeftButtonDown += UnifiedDrawing_ChartLeftMouseDown;
             Chart.PreviewMouseMove += UnifiedDrawing_ChartMouseMove;
             AddHandler(Keyboard.PreviewKeyDownEvent, new System.Windows.Input.KeyEventHandler(UnifiedDrawing_ControlKeyDown), true);
@@ -275,9 +276,6 @@ namespace TradeIt.Charts
             double ab = drawing.B.Y - drawing.A.Y;
             var limits = Chart.Plot.Axes.GetLimits();
 
-            // Fibonacci levels must span a visible X range. Using A..B as the
-            // segment can produce a zero-width line after bar snapping and make
-            // the retracement appear to draw nothing.
             double left = limits.Left;
             double right = limits.Right;
             if (!double.IsFinite(left) || !double.IsFinite(right) || right <= left)
