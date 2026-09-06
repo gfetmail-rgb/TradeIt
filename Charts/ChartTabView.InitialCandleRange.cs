@@ -7,8 +7,10 @@ namespace TradeIt.Charts
     public partial class ChartTabView
     {
         // Single source of truth for the requested initial chart view.
+        // At most 200 candles are visible, with the candles occupying about 2/3
+        // of the horizontal plot area and the final 1/3 left empty.
         private const int InitialVisibleCandleCount = 200;
-        private const double InitialRightMarginFraction = 0.10;
+        private const double InitialRightMarginFraction = 1.0 / 3.0;
         private const double InitialLeftMarginFraction = 0.02;
         private bool _initialCandleRangeApplied;
         private static readonly bool _initialCandleRangeRegistered = RegisterInitialCandleRange();
@@ -50,7 +52,9 @@ namespace TradeIt.Charts
                 return;
 
             double candleRange = Math.Max(1.0, lastX - firstX);
-            double rightMargin = candleRange * InitialRightMarginFraction;
+            // To leave one third of the viewport empty, the right margin must
+            // be half of the candle span: data width : margin = 2 : 1.
+            double rightMargin = candleRange * InitialRightMarginFraction / (1.0 - InitialRightMarginFraction);
             double leftMargin = Math.Max(candleRange * InitialLeftMarginFraction, 0.5);
 
             var limits = Chart.Plot.Axes.GetLimits();
