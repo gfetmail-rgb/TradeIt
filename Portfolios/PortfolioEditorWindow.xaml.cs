@@ -13,7 +13,8 @@ namespace TradeIt.Portfolios
     public partial class PortfolioEditorWindow : Window
     {
         private DataTable? _previewTable;
-        private readonly PortfolioManager? _portfolioManager;
+        private PortfolioManager? _portfolioManager;
+        private bool _hasSavedPortfolio;
 
         public Portfolio? ResultPortfolio { get; private set; }
 
@@ -21,12 +22,16 @@ namespace TradeIt.Portfolios
         {
             InitializeComponent();
             UpdateDateTimeControls();
+            Loaded += PortfolioEditorWindow_Loaded;
         }
 
-        public PortfolioEditorWindow(PortfolioManager portfolioManager)
-            : this()
+        private void PortfolioEditorWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            _portfolioManager = portfolioManager;
+            // فرم تعریف سبد که مستقیماً از MainWindow باز شده است،
+            // ذخیره را خودش انجام می‌دهد تا پس از هر ذخیره فرم باز
+            // بماند و برای تعریف سبد بعدی خالی شود.
+            if (Owner is TradeIt.MainWindow)
+                _portfolioManager ??= new PortfolioManager();
         }
 
         private void SourceTypeChanged(object sender, RoutedEventArgs e)
@@ -339,15 +344,16 @@ namespace TradeIt.Portfolios
                     }
                 };
 
+                ResultPortfolio = portfolio;
+
                 if (_portfolioManager != null)
                 {
                     _portfolioManager.Save(portfolio);
-                    ResultPortfolio = portfolio;
+                    _hasSavedPortfolio = true;
                     ResetForm();
                     return;
                 }
 
-                ResultPortfolio = portfolio;
                 DialogResult = true;
             }
             catch (Exception ex)
@@ -392,7 +398,7 @@ namespace TradeIt.Portfolios
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
-            DialogResult = false;
+            DialogResult = _hasSavedPortfolio;
         }
 
         private string GetSelectedDelimiter()
