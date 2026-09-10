@@ -384,10 +384,53 @@ namespace TradeIt.Portfolios
                 if (Owner is TradeIt.MainWindow mainWindow)
                     mainWindow.RefreshPortfoliosAfterEditorSave(portfolio.Name);
 
-                PortfolioNameTextBox.Clear();
-                PortfolioNameTextBox.Focus();
+                ResetFormAfterSuccessfulSave();
             }
             catch (Exception ex) { System.Windows.MessageBox.Show(ex.ToString(), "خطا", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+
+        private void ResetFormAfterSuccessfulSave()
+        {
+            _mappingLoaded = false;
+            _previewTable = null;
+
+            PortfolioNameTextBox.Clear();
+            PathTextBox.Clear();
+            PreviewDataGrid.ItemsSource = null;
+
+            _symbolSelectionItems.Clear();
+            if (_symbolSelectionView != null)
+            {
+                _symbolSelectionView.Filter = null;
+                _symbolSelectionView.Refresh();
+            }
+            SymbolFilterTextBox.Clear();
+            UpdateSelectedSymbolsCount();
+
+            SymbolFromFileNameRadio.IsChecked = true;
+            SymbolFromFileContentRadio.IsChecked = false;
+            FileExtensionComboBox.SelectedIndex = 0;
+            DelimiterComboBox.SelectedIndex = 0;
+            CalendarComboBox.SelectedIndex = 0;
+            HigherTimeframeCapabilityComboBox.SelectedIndex = 0;
+            HeaderCheckBox.IsChecked = true;
+            NoDateTimeCheckBox.IsChecked = false;
+            DateFormatComboBox.SelectedIndex = 0;
+            TimeFormatComboBox.SelectedIndex = 0;
+
+            WpfComboBox[] columnCombos =
+            {
+                SymbolColumnCombo, DateColumnCombo, TimeColumnCombo, OpenColumnCombo, HighColumnCombo,
+                LowColumnCombo, CloseColumnCombo, VolumeColumnCombo, PreviousColumnCombo, ValueColumnCombo,
+                TradeCountColumnCombo, EnglishTickerColumnCombo, ShareCountColumnCombo, MarketValueColumnCombo,
+                TSECloseColumnCombo
+            };
+
+            foreach (WpfComboBox combo in columnCombos)
+                combo.Items.Clear();
+
+            UpdateDateTimeControls();
+            PortfolioNameTextBox.Focus();
         }
 
         private HigherTimeframeCapability GetHigherTimeframeCapability()
