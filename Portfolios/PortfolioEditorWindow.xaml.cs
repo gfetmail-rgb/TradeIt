@@ -1,5 +1,4 @@
-﻿
-using System.Data;
+﻿using System.Data;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -14,6 +13,7 @@ namespace TradeIt.Portfolios
     public partial class PortfolioEditorWindow : Window
     {
         private DataTable? _previewTable;
+        private readonly PortfolioManager? _portfolioManager;
 
         public Portfolio? ResultPortfolio { get; private set; }
 
@@ -21,6 +21,12 @@ namespace TradeIt.Portfolios
         {
             InitializeComponent();
             UpdateDateTimeControls();
+        }
+
+        public PortfolioEditorWindow(PortfolioManager portfolioManager)
+            : this()
+        {
+            _portfolioManager = portfolioManager;
         }
 
         private void SourceTypeChanged(object sender, RoutedEventArgs e)
@@ -254,6 +260,16 @@ namespace TradeIt.Portfolios
                     return;
                 }
 
+                if (_portfolioManager != null && _portfolioManager.Exists(name))
+                {
+                    System.Windows.MessageBox.Show(
+                        $"سبدی با نام «{name}» قبلاً وجود دارد.\nلطفاً نام دیگری انتخاب کنید.",
+                        "نام تکراری",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
                 int openColumn = GetColumnIndex(OpenColumnCombo);
                 int highColumn = GetColumnIndex(HighColumnCombo);
                 int lowColumn = GetColumnIndex(LowColumnCombo);
@@ -323,13 +339,55 @@ namespace TradeIt.Portfolios
                     }
                 };
 
+                if (_portfolioManager != null)
+                {
+                    _portfolioManager.Save(portfolio);
+                    ResultPortfolio = portfolio;
+                    ResetForm();
+                    return;
+                }
+
                 ResultPortfolio = portfolio;
                 DialogResult = true;
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show(ex.ToString(), "خطا", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show(ex.ToString(), "خطا در ذخیره سبد", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void ResetForm()
+        {
+            PortfolioNameTextBox.Clear();
+            PathTextBox.Clear();
+
+            FolderRadio.IsChecked = true;
+            FileRadio.IsChecked = false;
+            SymbolFromFileNameRadio.IsChecked = true;
+            SymbolFromFileContentRadio.IsChecked = false;
+
+            DelimiterComboBox.SelectedIndex = 0;
+            CalendarComboBox.SelectedIndex = 0;
+            HeaderCheckBox.IsChecked = true;
+            NoDateTimeCheckBox.IsChecked = false;
+            DateFormatComboBox.SelectedIndex = 0;
+            TimeFormatComboBox.SelectedIndex = 0;
+
+            WpfComboBox[] combos =
+            {
+                SymbolColumnCombo, DateColumnCombo, TimeColumnCombo,
+                OpenColumnCombo, HighColumnCombo, LowColumnCombo, CloseColumnCombo,
+                VolumeColumnCombo, TSECloseColumnCombo, PreviousColumnCombo,
+                ValueColumnCombo, TradeCountColumnCombo, EnglishTickerColumnCombo,
+                ShareCountColumnCombo, MarketValueColumnCombo
+            };
+
+            foreach (WpfComboBox combo in combos)
+                combo.SelectedIndex = combo.Items.Count > 0 ? 0 : -1;
+
+            _previewTable = null;
+            PreviewGrid.ItemsSource = null;
+            UpdateDateTimeControls();
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
