@@ -27,9 +27,6 @@ namespace TradeIt.Portfolios
 
         private void PortfolioEditorWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            // فرم تعریف سبد که مستقیماً از MainWindow باز شده است،
-            // ذخیره را خودش انجام می‌دهد تا پس از هر ذخیره فرم باز
-            // بماند و برای تعریف سبد بعدی خالی شود.
             if (Owner is TradeIt.MainWindow)
                 _portfolioManager ??= new PortfolioManager();
         }
@@ -389,7 +386,10 @@ namespace TradeIt.Portfolios
             };
 
             foreach (WpfComboBox combo in combos)
-                combo.SelectedIndex = combo.Items.Count > 0 ? 0 : -1;
+            {
+                combo.Items.Clear();
+                combo.SelectedIndex = -1;
+            }
 
             _previewTable = null;
             PreviewGrid.ItemsSource = null;
