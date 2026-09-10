@@ -49,6 +49,20 @@ namespace TradeIt.Portfolios
             return portfolios;
         }
 
+        public bool Exists(string portfolioName)
+        {
+            if (string.IsNullOrWhiteSpace(portfolioName))
+                return false;
+
+            string name = portfolioName.Trim();
+
+            return LoadAll().Any(
+                x => string.Equals(
+                    x.Name?.Trim(),
+                    name,
+                    StringComparison.OrdinalIgnoreCase));
+        }
+
         public void Save(Portfolio portfolio)
         {
             if (portfolio == null)
